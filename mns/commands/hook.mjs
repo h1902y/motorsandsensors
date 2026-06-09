@@ -17,56 +17,68 @@ import { captureTrace } from '../capture-core.mjs';
 import { SessionState } from '../session.mjs';
 import { openLive, touchLive, closeLive } from '../live/live-store.mjs';
 
-const HOST = 'claude-code'; // these hooks are installed into Claude Code
+// Lifecycle events, normalized across hosts (verified by observing each host):
+//   open  — session starts
+//   turn  — agent finished a response turn (per-turn "still alive"); re-capture
+//   end   — clean session end (rare: most hosts have none → staleness reconciles)
+// Claude: SessionStart / Stop / SessionEnd. OpenCode: session.created / session.idle
+// / session.deleted (deleted is delete-only, so end is effectively staleness too).
+const OPEN = new Set(['SessionStart', 'session.created']);
+const TURN = new Set(['Stop', 'session.idle']);
+const END = new Set(['SessionEnd', 'session.deleted']);
 
 function safeCapture(adapter, ref, status, cwd) {
   if (!adapter || !ref) return;
   try {
     captureTrace({ adapter, ref, status, cwd });
   } catch {
-    /* transcript not yet readable, etc. — never break the hook */
+    /* source not yet readable, etc. — never break the hook */
   }
 }
 
 /**
- * Core dispatch. Pure-ish (takes payload + injected now/cwd) so tests can drive
- * it without real stdin or a live agent.
+ * Core dispatch — host-agnostic. The capture `ref` is host-specific: Claude
+ * re-parses the transcript file (`transcript_path`); OpenCode re-reads its
+ * SQLite store keyed by `session_id`. Pure-ish (injected now/cwd) for tests.
  */
-export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Date.now() }) {
+export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Date.now(), host = 'claude-code' }) {
   const id = payload.session_id;
-  const transcriptPath = payload.transcript_path;
   if (!id) return { event, skipped: 'no session_id' };
-  const adapter = byName(HOST);
+  const ref = host === 'claude-code' ? payload.transcript_path : id; // opencode: sessionId → adapter reads its DB
+  const adapter = byName(host);
 
-  switch (event) {
-    case 'SessionStart':
-      openLive({ id, host: HOST, transcriptPath, startedAt: new Date(now).toISOString(), now }, cwd);
-      safeCapture(adapter, transcriptPath, SessionState.ACTIVE, cwd);
-      break;
-    case 'Stop':
-      touchLive({ id, host: HOST, transcriptPath, now }, cwd);
-      safeCapture(adapter, transcriptPath, SessionState.ACTIVE, cwd);
-      break;
-    case 'SessionEnd':
-      safeCapture(adapter, transcriptPath, SessionState.COMPLETED, cwd);
-      closeLive(id, cwd);
-      break;
-    default:
-      return { event, skipped: 'unhandled event' };
+  if (OPEN.has(event)) {
+    openLive({ id, host, transcriptPath: ref, startedAt: new Date(now).toISOString(), now }, cwd);
+    safeCapture(adapter, ref, SessionState.ACTIVE, cwd);
+  } else if (TURN.has(event)) {
+    touchLive({ id, host, transcriptPath: ref, now }, cwd);
+    safeCapture(adapter, ref, SessionState.ACTIVE, cwd);
+  } else if (END.has(event)) {
+    safeCapture(adapter, ref, SessionState.COMPLETED, cwd);
+    closeLive(id, cwd);
+  } else {
+    return { event, skipped: 'unhandled event' };
   }
-  return { event, id };
+  return { event, id, host };
 }
 
-/** stdin entry used by the CLI. Reads the hook payload, dispatches, exits 0. */
-export function runHook(event) {
+/**
+ * CLI entry. Claude hooks pipe a JSON payload on stdin; OpenCode's plugin passes
+ * `--host opencode --session <id>` (no stdin). Always exits 0 (never break the agent).
+ */
+export function runHook(event, { host = 'claude-code', session } = {}) {
   let payload = {};
-  try {
-    payload = JSON.parse(readFileSync('/dev/stdin', 'utf8'));
-  } catch {
-    /* no/garbage stdin — still exit 0 */
+  if (host === 'claude-code') {
+    try {
+      payload = JSON.parse(readFileSync('/dev/stdin', 'utf8'));
+    } catch {
+      /* no/garbage stdin */
+    }
+  } else {
+    payload = { session_id: session };
   }
   try {
-    handleHook({ event, payload });
+    handleHook({ event, payload, host });
   } catch {
     /* never break the agent */
   }

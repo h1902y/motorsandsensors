@@ -62,9 +62,9 @@ switch (cmd) {
   case 'status': status(); break;
   case 'capture': capture(args); break;
   case 'trace': trace(args); break;
-  case 'enable': enable(); break;
-  case 'disable': disable(); break;
-  case 'hook': runHook(args._[0]); break;
+  case 'enable': enable(args); break;
+  case 'disable': disable(args); break;
+  case 'hook': runHook(args._[0], { host: args.host, session: args.session }); break;
   case 'doctor': doctor(); break;
   case 'version': case '--version': case '-v': version(); break;
   case undefined: case 'help': case '--help': case '-h': help(); break;

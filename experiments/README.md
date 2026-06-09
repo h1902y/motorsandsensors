@@ -19,6 +19,7 @@ The lab. Each experiment is a **numbered, self-contained spike** with a hypothes
 | 1 | [trace-capture](experiment-1-trace-capture/) | Host-agnostic, OTel-shaped trace capture via transcript parsing — same core, ≥2 hosts | ✅ proven; harvest pending |
 | 2 | [live-sessions](experiment-2-live-sessions/) | Live, invisible session lifecycle from host hooks (`mns enable`); lost sessions reconciled | ✅ proven (real-agent run pending); code in `mns/` |
 | 3 | [provider-coverage](experiment-3-provider-coverage/) | Extend host-agnosticity to more providers, validated against **real** wire data (not docs/fixtures) | ✅ Codex + OpenCode (both real); core unchanged → 4 real hosts |
+| 4 | [opencode-plugin](experiment-4-opencode-plugin/) | Live capture for OpenCode via its plugin bus (`mns enable --host opencode`) — MNS-as-plugin | ✅ live-verified; same lifecycle shape as Claude |
 
 ## Conventions
 

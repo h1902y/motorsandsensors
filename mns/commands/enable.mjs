@@ -5,7 +5,7 @@
 
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { repoRoot } from '../store.mjs';
 import { addHooks, removeHooks, isInstalled, LIFECYCLE_EVENTS } from '../live/install.mjs';
 
@@ -32,18 +32,56 @@ function writeSettings(path, obj) {
   writeFileSync(path, JSON.stringify(obj, null, 2) + '\n');
 }
 
-export function enable() {
+// --- OpenCode: install a project plugin (.opencode/plugin/mns.js) that fires the
+// mns hook on lifecycle events. Spawns the real node (with node:sqlite), not bun.
+const NODE = process.execPath;
+const opencodePluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugin', 'mns.js');
+const opencodePlugin = () => `// installed by \`mns enable --host opencode\` — live capture shim (graceful: never throws into OpenCode).
+import { spawn } from "node:child_process";
+const NODE = ${JSON.stringify(NODE)};
+const MNS = ${JSON.stringify(BIN)};
+const fire = (event, id) => { try { spawn(NODE, [MNS, "hook", event, "--host", "opencode", "--session", id], { stdio: "ignore", detached: true }).unref(); } catch {} };
+export const Mns = async () => ({
+  event: async ({ event }) => {
+    try {
+      const id = event?.properties?.sessionID;
+      if (!id) return;
+      if (event.type === "session.created") fire("session.created", id);
+      else if (event.type === "session.idle") fire("session.idle", id);
+      else if (event.type === "session.deleted") fire("session.deleted", id);
+    } catch {}
+  },
+});
+`;
+
+export function enable(args = {}) {
+  if ((args.host || 'claude-code') === 'opencode') {
+    const path = opencodePluginPath();
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, opencodePlugin());
+    console.log('mns enabled for OpenCode — live capture plugin installed');
+    console.log(`  plugin : ${path}`);
+    console.log('  events : session.created → active · session.idle → re-capture (per turn)');
+    console.log('  note   : no clean end signal — ended/killed sessions reconcile via `mns doctor`');
+    console.log('  scope  : new OpenCode sessions in this repo; disable: mns disable --host opencode');
+    return;
+  }
   const path = settingsPath();
-  const next = addHooks(readSettings(path), commandFor);
-  writeSettings(path, next);
-  console.log('mns enabled — live capture installed');
+  writeSettings(path, addHooks(readSettings(path), commandFor));
+  console.log('mns enabled — live capture installed (Claude Code)');
   console.log(`  settings : ${path}`);
   console.log(`  hooks    : ${LIFECYCLE_EVENTS.join(', ')}  (graceful: exit 0 if mns absent)`);
   console.log('  scope    : new sessions in this repo (restart your agent to pick them up)');
   console.log('  disable  : mns disable');
 }
 
-export function disable() {
+export function disable(args = {}) {
+  if ((args.host || 'claude-code') === 'opencode') {
+    const path = opencodePluginPath();
+    if (existsSync(path)) rmSync(path, { force: true });
+    console.log(`mns disabled for OpenCode — plugin removed (${path})`);
+    return;
+  }
   const path = settingsPath();
   if (!existsSync(path)) {
     console.log('nothing to disable (no .claude/settings.json)');
