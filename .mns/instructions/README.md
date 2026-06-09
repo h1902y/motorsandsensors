@@ -1,7 +1,6 @@
-# instructions/ — cognition steering (+ guardrails, v1)
+# instructions/ — the Instructions faculty (directive: who the agent is)
 
-What the host agent should read and follow in this project. v1 merges guardrails
-in here as advisory rules (there is no enforcement runtime yet); they remain
-conceptually separate and will graduate to enforced gates later.
-- `project.md` — project-specific steering (conventions, priorities, context).
-- `guardrails.md` — rules the agent must follow (advisory in v1).
+Cognition steering: identity, conventions, priorities — the project-level seed of
+the pinned system prompt. The host agent reads and follows this.
+- `project.md` — project-specific steering (what this is, conventions, priorities).
+- Hard *enforced* rules live in `../guardrails/` (a separate faculty), not here.

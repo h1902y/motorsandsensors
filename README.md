@@ -4,7 +4,7 @@
 
 Your host agent — Claude Code, Codex, Gemini CLI, OpenCode — supplies the *brain* (the reasoning loop + the model). motors & sensors wraps the host you already pay for: it **serves** faculties to it, **observes** every session as an OpenTelemetry trace, and (the end-game) **evolves** the faculties from those traces — human-gated, across versioned generations. We never run a competing agent loop and never drive the host headlessly.
 
-> **Status (honest):** early build, moving fast. The **observe** layer and the first slice of **serve** work today and are verified against real sessions. The **evolve** engine — the actual differentiator — is designed, not yet built. Full design: [`docs/DESIGN.md`](docs/DESIGN.md).
+> **Status (honest):** early build, moving fast. **Observe** works (4 real hosts, verified); **serve** has its first two slices — the faculty home (`mns init`) and an **enforced guardrails gate** on tool calls. The **evolve** engine — the actual differentiator — is designed, not yet built. Full design: [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## What works today
 
@@ -23,6 +23,7 @@ mns doctor      # health + lost-session reconciliation
 |---|---|---|---|---|
 | post-hoc capture | ✅ rich | ✅ thin | ✅ rich | ✅ rich |
 | live capture | ✅ hooks | — | — | ✅ plugin |
+| guardrails gate | ✅ PreToolUse | — | — | ⏳ next |
 
 All four verified against **real sessions** — never fixtures ([`playground-4`](playground/playground-4-provider-journey/play.mjs)).
 

@@ -47,7 +47,7 @@ usage: mns <command> [options]
   capture [--host NAME]     capture a session → .mns/traces + .mns/sessions.json
           [--session ID] [--file PATH]
   trace [--last | FILE]     print a captured trace's span tree
-  enable                    install background hooks → invisible live capture
+  enable                    background hooks: invisible live capture + guardrails gate
   disable                   remove the background hooks
   doctor                    environment + session health (reconciles lost sessions)
   version                   print version
