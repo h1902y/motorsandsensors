@@ -55,3 +55,15 @@ This project owns its activities in [`tasks/`](tasks/) — multi-day work units 
 - Activity templates live at `~/Documents/personal/tasks/.schema/templates/` (canonical) — mirror that shape when creating a new task here.
 - When task state changes materially, reflect the headline in [`STATUS.md`](STATUS.md) so the personal vault's dashboard stays current — that's the only cross-repo obligation.
 - Some migrated tasks carry `[[wikilinks]]` to notes that stayed in the personal vault; those are cross-repo and won't resolve in Obsidian — leave them as references.
+
+<!-- >>> mns:faculties:v1 >>> -->
+## mns — agent faculty home
+
+This project has an mns faculty home at `.mns/` (managed by the mns CLI):
+
+- **Read `.mns/knowledge/`** — verified project facts/entities. Treat as ground truth.
+- **Follow `.mns/instructions/`** — project steering (`project.md`) and rules (`guardrails.md`).
+- **Use `.mns/actions/`** — named procedures/runbooks for this project.
+- **Record durable, verified learnings** in `.mns/knowledge/` (facts only, no speculation).
+- Do **not** read `.mns/traces/` or `.mns/live/` (mns observability internals).
+<!-- <<< mns:faculties <<< -->

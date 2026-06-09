@@ -6,6 +6,7 @@ import { detected } from '../../experiments/experiment-1-trace-capture/adapters/
 import { paths, gitInfo } from '../store.mjs';
 import { listLive } from '../live/live-store.mjs';
 import { reconcile } from '../live/reconcile.mjs';
+import { planScaffold, homeExists } from '../scaffold.mjs';
 
 export function doctor() {
   let problems = 0;
@@ -37,6 +38,17 @@ export function doctor() {
     ok(`.mns/ writable (${dir})`);
   } catch {
     bad(`.mns/ not writable (${dir})`);
+  }
+
+  // faculty home (served by `mns init`)
+  const root = paths().root;
+  if (!homeExists(root)) {
+    warn('no faculty home — run `mns init` to scaffold knowledge/memory/actions/instructions');
+  } else {
+    const missing = planScaffold(root);
+    const gaps = missing.dirs.length + missing.files.length + (missing.manifestMissing ? 1 : 0);
+    if (gaps) warn(`faculty home incomplete (${gaps} piece(s) missing) — rerun \`mns init\``);
+    else ok('faculty home complete (knowledge/ memory/ actions/ instructions/)');
   }
 
   // hosts

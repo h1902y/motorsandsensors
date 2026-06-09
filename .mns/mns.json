@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "initializedAt": "2026-06-09T17:51:59.673Z",
+  "layout": [
+    "knowledge",
+    "memory",
+    "actions",
+    "instructions"
+  ]
+}

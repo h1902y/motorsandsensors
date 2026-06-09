@@ -13,6 +13,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { init } from '../mns/commands/init.mjs';
 import { status } from '../mns/commands/status.mjs';
 import { capture } from '../mns/commands/capture.mjs';
 import { trace } from '../mns/commands/trace.mjs';
@@ -41,6 +42,7 @@ function help() {
 
 usage: mns <command> [options]
 
+  init                      scaffold the faculty home (.mns/) — git-style, idempotent
   status                    detected hosts + recorded sessions
   capture [--host NAME]     capture a session → .mns/traces + .mns/sessions.json
           [--session ID] [--file PATH]
@@ -59,6 +61,7 @@ const [cmd, ...rest] = process.argv.slice(2);
 const args = parseArgs(rest);
 
 switch (cmd) {
+  case 'init': init(args); break;
   case 'status': status(); break;
   case 'capture': capture(args); break;
   case 'trace': trace(args); break;

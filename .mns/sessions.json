@@ -4,14 +4,14 @@
     {
       "id": "ses_1535700f9ffe3OKC6scrQYySU9",
       "host": "opencode",
-      "status": "active",
+      "status": "abandoned",
       "startedAt": "2026-06-09T13:53:37.030Z",
       "endedAt": "2026-06-09T13:53:41.582Z",
       "durationMs": 4552,
       "traceId": "c60993ec807086660999a029acb23857",
       "traceRef": ".mns/traces/opencode-ses_1535700f9ffe3OKC6scrQYySU9.otlp.jsonl",
       "git": {
-        "commit": "9714caa717b7cc2442fc0b4b58d0cf10f9fc2cc4",
+        "commit": "952df01977be1a825e399c7243276fb8847c7ab6",
         "branch": "main"
       },
       "counts": {

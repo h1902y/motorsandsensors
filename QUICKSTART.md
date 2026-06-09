@@ -38,11 +38,14 @@ Prefer not to link? Use `node bin/mns.mjs <cmd>` or `npm run mns -- <cmd>` anywh
 ## Use it (60 seconds)
 
 ```bash
+mns init                # scaffold your project's agent faculty home (.mns/) — git-style
 mns status              # what hosts + sessions are visible on this machine
 mns capture             # capture your latest session (auto-detects the host)
 mns trace --last        # print the captured trace as a tree
-mns doctor              # environment + session health (reconciles lost sessions)
+mns doctor              # environment + session + faculty-home health
 ```
+
+`mns init` behaves like `git init`: empty dir → scaffolds everything (incl. `AGENTS.md`/`CLAUDE.md` pointing your agent at its faculties); existing project → adds `.mns/` and injects a small delimiter-marked block into your existing `CLAUDE.md`/`AGENTS.md`/`GEMINI.md` (your text is never touched); already initialized → "Reinitialized", restores missing pieces only. The home: `knowledge/` (verified facts) · `memory/` (curated episodes) · `actions/` (runbooks) · `instructions/` (steering + rules).
 
 Or go hands-free — capture every session automatically (see [Live capture](#live-capture-enable-once-then-invisible)):
 

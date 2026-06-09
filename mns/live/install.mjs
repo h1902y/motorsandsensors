@@ -5,7 +5,11 @@
 // add/remove only those — never clobbering the user's own hooks. Idempotent.
 
 export const SIGNATURE = 'mns.mjs hook'; // every mns hook command contains this
-const DENY_RULE = 'Read(./.mns/**)'; // entire-style: agent can't read its own trace output
+// entire-style: agent can't read its own observability output (feedback loop) —
+// but ONLY that. The faculty home (.mns/knowledge etc., served by `mns init`)
+// must stay readable, so the deny is narrowed to traces/ + live/.
+const DENY_RULES = ['Read(./.mns/traces/**)', 'Read(./.mns/live/**)'];
+const LEGACY_DENY = 'Read(./.mns/**)'; // pre-init rule — migrated out on add/remove
 
 // Minimal hook set for lifecycle (Design B re-captures the transcript, so we do
 // NOT need PreToolUse/PostToolUse — fewer hooks = less intrusion).
@@ -30,7 +34,8 @@ export function addHooks(settings, commandFor, events = LIFECYCLE_EVENTS) {
   }
   s.permissions ||= {};
   s.permissions.deny ||= [];
-  if (!s.permissions.deny.includes(DENY_RULE)) s.permissions.deny.push(DENY_RULE);
+  s.permissions.deny = s.permissions.deny.filter((r) => r !== LEGACY_DENY); // migrate the old blanket rule
+  for (const rule of DENY_RULES) if (!s.permissions.deny.includes(rule)) s.permissions.deny.push(rule);
   return s;
 }
 
@@ -45,7 +50,7 @@ export function removeHooks(settings) {
     if (!Object.keys(s.hooks).length) delete s.hooks;
   }
   if (s.permissions?.deny) {
-    s.permissions.deny = s.permissions.deny.filter((r) => r !== DENY_RULE);
+    s.permissions.deny = s.permissions.deny.filter((r) => !DENY_RULES.includes(r) && r !== LEGACY_DENY);
     if (!s.permissions.deny.length) delete s.permissions.deny;
     if (!Object.keys(s.permissions).length) delete s.permissions;
   }

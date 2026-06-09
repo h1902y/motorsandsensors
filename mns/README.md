@@ -3,14 +3,22 @@
 Verb-first, entire.io-style, **zero dependencies, no build**. The user-facing surface over the trace core.
 
 ```bash
+mns init                    # scaffold the faculty home (.mns/) — git-style, idempotent
 mns status                  # detected hosts + recorded sessions
 mns capture [--host NAME]   # capture a session → git-native trace + index entry
 mns trace [--last | FILE]   # print a captured trace's span tree
 mns enable | disable        # live, invisible capture on/off — Claude hooks, or --host opencode (plugin)
 mns hook <Event>            # internal: the callback Claude Code's hooks invoke
-mns doctor                  # environment + session health (reconciles lost sessions)
+mns doctor                  # environment + session + faculty-home health (reconciles lost sessions)
 mns version | help
 ```
+
+## The faculty home (`mns init`)
+
+Git-init semantics — context-aware, idempotent, never destructive:
+**empty dir** → full scaffold + `AGENTS.md`/`CLAUDE.md` created · **existing project** → scaffold + delimiter-block injected into existing instruction files (user text untouched) · **`.mns/` exists** → "Reinitialized", missing pieces only.
+
+`.mns/` = everything mns owns in a project: `knowledge/` (semantic) · `memory/` (episodic) · `actions/` (procedural) · `instructions/` (cognition steering + v1-advisory guardrails) · plus the observe layer (`sessions.json`, `traces/`, `live/`). See [experiment-5](../experiments/experiment-5-faculty-home/).
 
 Run as `mns <cmd>` after `npm link`, or `node bin/mns.mjs <cmd>`, or `npm run mns -- <cmd>`.
 
