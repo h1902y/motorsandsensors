@@ -61,7 +61,7 @@ The faculties map to the three cognitive-memory systems — **Knowledge** (seman
 | Path | What |
 |---|---|
 | [`mns/`](mns/) + `bin/mns.mjs` | the CLI — capture, live lifecycle, faculty home (product surface) |
-| [`experiments/`](experiments/) | numbered spikes — hypothesis → real-data proof → conclusions — how everything gets built |
+| [`experiments/`](experiments/) | spike code + [`LOG.md`](experiments/LOG.md) — the build journal (hypothesis → real-data proof → conclusions per experiment) |
 | [`app/`](app/) | the durable application skeleton (be / run / evolve) — proven code harvests here |
 | [`playground/`](playground/) | real-data smoke checks (pass / skip / fail) |
 | [`tests/`](tests/) | hermetic unit + regression suite (`npm test`) |

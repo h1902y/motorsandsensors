@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **A working early-stage build + its canonical design.** The host coding-agent (Claude Code / Codex / Gemini CLI / OpenCode) supplies the **brain**; this project gives it evolving **faculties** — Memory (episodic), Knowledge (semantic), Actions (procedural), Guardrails — that **graduate** across versioned generations, grown from the observability **trace** of real use, human-gated. We **wrap, serve, observe, evolve** a host we never drive.
 
-Built so far (verified): the **observe** layer — host-agnostic trace capture (OTLP/JSON) across 4 real hosts + the `mns` CLI + live capture — and the first **serve** slice (`mns init` faculty home). The **evolve** engine is design-only. Don't claim unbuilt parts work; don't treat designed parts as absent — check `experiments/README.md` for what's proven.
+Built so far (verified): the **observe** layer — host-agnostic trace capture (OTLP/JSON) across 4 real hosts + the `mns` CLI + live capture — and the first **serve** slice (`mns init` faculty home). The **evolve** engine is design-only. Don't claim unbuilt parts work; don't treat designed parts as absent — check `experiments/LOG.md` for what’s proven.
 
 ## Commands
 
@@ -50,7 +50,7 @@ No build step, **zero runtime dependencies** (a deliberate policy — `node:test
 
 ## Docs canon
 
-- `README.md` = front door (what works, quickstart). `docs/DESIGN.md` = **canonical design** (was the repo README until 2026-06-10 — older docs/comments citing "README §N" mean DESIGN.md). Experiment records are dated documents — append corrections, don't rewrite history.
+- `README.md` = front door (what works, quickstart). `docs/DESIGN.md` = **canonical design** (was the repo README until 2026-06-10 — older docs/comments citing "README §N" mean DESIGN.md). `experiments/LOG.md` = the **build journal** (all experiment records, one append-only file — append corrections, don’t rewrite history). That’s the whole doc set; module knowledge lives in code comments, not READMEs.
 - `inspiration/` = audit records; they contain intentionally-dead links to pre-consolidation filenames — do **not** recreate those files. Preserve every verified-vs-directional honesty split.
 - Older docs say "zuzu/zuzuagents" — expected, not an error. Dates are absolute (`2026-06-09`).
 - `STATUS.md` / `SOCIAL.md` / `tasks/` / `engagement/` stay at the repo root — the personal vault reads them at these paths (federation contract).
