@@ -26,5 +26,6 @@ Skip ≠ fail is the whole point: on a fresh checkout with no host sessions, the
 | 1 | [trace-capture](playground-1-trace-capture/) — capture this repo's real Claude session → sane `session→turn→tool` tree |
 | 2 | [host-agnostic](playground-2-host-agnostic/) — ≥2 real hosts through the **same core** → both valid; rich-vs-thin contrast |
 | 3 | [otlp-validity](playground-3-otlp-validity/) — a captured trace is structurally conformant OTLP/JSON |
+| 4 | [provider-journey](playground-4-provider-journey/) — capture→OTLP across the four major hosts; honest real/no-data/no-adapter matrix |
 
 > Playgrounds reuse Experiment 1's `core/` + `adapters/`. Imports re-point to `app/` once that code harvests in.

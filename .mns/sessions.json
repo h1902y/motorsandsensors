@@ -2,22 +2,60 @@
   "version": 1,
   "sessions": [
     {
+      "id": "019eac26-b264-7ed1-b5cb-e125ebc06091",
+      "host": "codex",
+      "status": "captured",
+      "startedAt": "2026-06-09T11:31:17.862Z",
+      "endedAt": "2026-06-09T11:31:30.546Z",
+      "durationMs": 12684,
+      "traceId": "9266fb663e57cce6ca4c362b4dcc94e8",
+      "traceRef": ".mns/traces/codex-019eac26-b264-7ed1-b5cb-e125ebc06091.otlp.jsonl",
+      "git": {
+        "commit": "39691fd00ca74826c9c15e2ac18feb95c0f48174",
+        "branch": "main"
+      },
+      "counts": {
+        "turns": 1,
+        "tools": 1,
+        "errors": 0
+      }
+    },
+    {
       "id": "20410eef-3e0b-43c3-878f-5a15c016d2a5",
       "host": "claude-code",
       "status": "captured",
       "startedAt": "2026-06-09T04:54:03.237Z",
-      "endedAt": "2026-06-09T09:53:56.319Z",
-      "durationMs": 17993082,
+      "endedAt": "2026-06-09T10:26:14.527Z",
+      "durationMs": 19931290,
       "traceId": "229abddc1e3fe6ace58692d75fc03f80",
       "traceRef": ".mns/traces/claude-code-20410eef-3e0b-43c3-878f-5a15c016d2a5.otlp.jsonl",
       "git": {
-        "commit": "e3945f59c00cd024625880986ae0400fc422eaeb",
+        "commit": "1b8238f4d4e35eb61957954f1057ee4a0ecfc38e",
         "branch": "main"
       },
       "counts": {
-        "turns": 5,
-        "tools": 160,
-        "errors": 1
+        "turns": 6,
+        "tools": 167,
+        "errors": 2
+      }
+    },
+    {
+      "id": "6c6924c4-7aa7-4cbf-b05b-c76b91fc8607",
+      "host": "gemini-cli",
+      "status": "captured",
+      "startedAt": "2026-05-10T04:17:02.618Z",
+      "endedAt": "2026-05-11T03:57:24.159Z",
+      "durationMs": 85221541,
+      "traceId": "63388b145a42cab518793b265e2420ef",
+      "traceRef": ".mns/traces/gemini-cli-6c6924c4-7aa7-4cbf-b05b-c76b91fc8607.otlp.jsonl",
+      "git": {
+        "commit": "1b8238f4d4e35eb61957954f1057ee4a0ecfc38e",
+        "branch": "main"
+      },
+      "counts": {
+        "turns": 3,
+        "tools": 0,
+        "errors": 0
       }
     }
   ]
