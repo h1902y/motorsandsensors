@@ -113,7 +113,7 @@ mns disable     # remove the hooks
 
 How it stays non-intrusive: a minimal hook set (`SessionStart/Stop/SessionEnd` only — we re-read the transcript rather than hook every tool); every hook command is wrapped `… || true` so it **always exits 0** — if `mns` is missing it degrades silently and **never breaks your agent**; and a `permissions.deny` rule keeps the agent from reading its own trace output.
 
-**Killed a terminal?** No clean end-signal exists, so a lost session reads `active` until the next `mns doctor`/`status` **reconciles** it to `abandoned` — capturing the full session from the transcript still on disk (nothing lost). This lazy detection is the same constraint entire.io has.
+**Killed a terminal?** No clean end-signal exists, so a lost session reads `active` until the next **`mns doctor`** run **reconciles** it to `abandoned` — capturing the full session from the transcript still on disk (nothing lost). (`mns status` only displays; `doctor` is what reconciles.) This lazy detection is the same constraint entire.io has.
 
 > **Honest caveat:** live capture is verified by the test suite and by piping real hook payloads through the `mns hook` binary; enabling it on a live agent session and watching real hooks fire is the one remaining real-world check. `mns capture` (post-hoc) is fully exercised.
 

@@ -8,7 +8,7 @@
 // Trace blobs are git-ignored in Phase 1; Phase 2 moves them to an orphan branch.
 
 import { join, relative, resolve, isAbsolute } from 'node:path';
-import { existsSync, readFileSync, readdirSync, statSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, renameSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { writeNdjson } from '../experiments/experiment-1-trace-capture/core/otlp.mjs';
 
@@ -51,7 +51,14 @@ function writeIndex(idx, cwd = process.cwd()) {
   mkdirSync(dir, { recursive: true });
   // stable order: newest first by startedAt
   const sessions = [...idx.sessions].sort((a, b) => Date.parse(b.startedAt || 0) - Date.parse(a.startedAt || 0));
-  writeFileSync(index, JSON.stringify({ version: INDEX_VERSION, sessions }, null, 2) + '\n');
+  // Atomic write (tmp + rename) so a concurrent reader never sees a half-written
+  // file (which readIndex would silently treat as empty). NOTE: this prevents
+  // *corruption*, not the lost-update race when two sessions in the same repo
+  // upsert concurrently — Phase 3 should move to per-session record files (no
+  // shared index) or file locking. Trace blobs are per-session, so unaffected.
+  const tmp = `${index}.tmp`;
+  writeFileSync(tmp, JSON.stringify({ version: INDEX_VERSION, sessions }, null, 2) + '\n');
+  renameSync(tmp, index);
 }
 
 /** Write an OTLP request array as a trace blob; returns the repo-relative ref. */

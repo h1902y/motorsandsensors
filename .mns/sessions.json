@@ -6,17 +6,17 @@
       "host": "claude-code",
       "status": "captured",
       "startedAt": "2026-06-09T04:54:03.237Z",
-      "endedAt": "2026-06-09T09:20:52.624Z",
-      "durationMs": 16009387,
+      "endedAt": "2026-06-09T09:53:56.319Z",
+      "durationMs": 17993082,
       "traceId": "229abddc1e3fe6ace58692d75fc03f80",
       "traceRef": ".mns/traces/claude-code-20410eef-3e0b-43c3-878f-5a15c016d2a5.otlp.jsonl",
       "git": {
-        "commit": "775ffbc76d8269b904433695b63a2feccf31d386",
+        "commit": "e3945f59c00cd024625880986ae0400fc422eaeb",
         "branch": "main"
       },
       "counts": {
-        "turns": 4,
-        "tools": 111,
+        "turns": 5,
+        "tools": 160,
         "errors": 1
       }
     }
