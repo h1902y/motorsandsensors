@@ -4,9 +4,11 @@
 // exists; apply() creates ONLY what's missing — it never overwrites a file, so
 // user edits to any seeded file always survive a re-init.
 //
-// v1 layout (be-layer faculties; guardrails merged into instructions/ until a
-// real enforcement runtime exists — see docs/DESIGN.md §5):
-//   .mns/mns.json + knowledge/ memory/ actions/ instructions/
+// Layout = the five faculties (docs/DESIGN.md §3①, the 5+3 anatomy):
+//   .mns/mns.json + knowledge/ memory/ actions/ instructions/ guardrails/
+// Guardrails became first-class (enforced via the PreToolUse gate) on 2026-06-10;
+// the old instructions/guardrails.md advisory seed left the layout (existing
+// projects keep theirs — no-clobber — but new scaffolds get the real faculty).
 
 import { join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
@@ -35,13 +37,12 @@ Named, reusable procedures/skills for this project (scripts, runbooks, tool reci
 - **Contract:** one action per file; state what it does, inputs, and how to invoke it.
 `;
 
-const INSTRUCTIONS_README = `# instructions/ — cognition steering (+ guardrails, v1)
+const INSTRUCTIONS_README = `# instructions/ — the Instructions faculty (directive: who the agent is)
 
-What the host agent should read and follow in this project. v1 merges guardrails
-in here as advisory rules (there is no enforcement runtime yet); they remain
-conceptually separate and will graduate to enforced gates later.
-- \`project.md\` — project-specific steering (conventions, priorities, context).
-- \`guardrails.md\` — rules the agent must follow (advisory in v1).
+Cognition steering: identity, conventions, priorities — the project-level seed of
+the pinned system prompt. The host agent reads and follows this.
+- \`project.md\` — project-specific steering (what this is, conventions, priorities).
+- Hard *enforced* rules live in \`../guardrails/\` (a separate faculty), not here.
 `;
 
 const PROJECT_SEED = `# Project steering
@@ -49,23 +50,43 @@ const PROJECT_SEED = `# Project steering
 <!-- Fill in: what this project is, conventions, priorities. The host agent reads this. -->
 `;
 
-const GUARDRAILS_SEED = `# Guardrails (v1 — advisory rules the agent follows)
+const GUARDRAILS_README = `# guardrails/ — the Guardrails faculty (enforced, not advisory)
 
-- Do not read \`.mns/traces/\` or \`.mns/live/\` (observability internals).
-- Record durable, verified project facts in \`.mns/knowledge/\`; never speculation.
-<!-- Add project-specific rules below. -->
+Declarative rules in \`rules.json\`, evaluated on every tool call by the mns
+PreToolUse gate (installed by \`mns enable\`). Severity wins: deny > ask > allow;
+no match → the host's normal permission flow. The engine FAILS OPEN — a
+guardrail bug can block nothing — and matched decisions are logged for the trace.
+
+Rule shape: \`{ id, action: deny|ask|allow, tool: "Bash"|"*", pattern: <regex
+over the tool input>, reason }\`. Edit, commit, done — rules are definitions,
+versioned in git like everything else.
 `;
+
+const RULES_SEED =
+  JSON.stringify(
+    {
+      version: 1,
+      rules: [
+        { id: 'no-root-wipe', action: 'deny', tool: 'Bash', pattern: 'rm\\s+-[a-z]*r[a-z]*\\s+/(\\s|$)', reason: 'destructive delete at filesystem root' },
+        { id: 'no-secret-reads', action: 'deny', tool: '*', pattern: '\\.env(\\.|\\b)|id_rsa|\\.pem\\b', reason: 'secret material should not enter the context' },
+        { id: 'confirm-force-push', action: 'ask', tool: 'Bash', pattern: 'git\\s+push\\s+.*--force', reason: 'force-push rewrites shared history' },
+      ],
+    },
+    null,
+    2,
+  ) + '\n';
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['.mns', '.mns/knowledge', '.mns/memory', '.mns/actions', '.mns/instructions'],
+  dirs: ['.mns', '.mns/knowledge', '.mns/memory', '.mns/actions', '.mns/instructions', '.mns/guardrails'],
   files: {
     '.mns/knowledge/README.md': KNOWLEDGE_README,
     '.mns/memory/README.md': MEMORY_README,
     '.mns/actions/README.md': ACTIONS_README,
     '.mns/instructions/README.md': INSTRUCTIONS_README,
     '.mns/instructions/project.md': PROJECT_SEED,
-    '.mns/instructions/guardrails.md': GUARDRAILS_SEED,
+    '.mns/guardrails/README.md': GUARDRAILS_README,
+    '.mns/guardrails/rules.json': RULES_SEED,
   },
 };
 
@@ -76,7 +97,7 @@ export function manifest(initializedAt) {
   return {
     version: MANIFEST_VERSION,
     initializedAt,
-    layout: ['knowledge', 'memory', 'actions', 'instructions'],
+    layout: ['knowledge', 'memory', 'actions', 'instructions', 'guardrails'],
   };
 }
 

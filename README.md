@@ -15,7 +15,7 @@ npm link        # zero dependencies, no build — puts `mns` on your PATH
 mns init        # scaffold your project's agent faculty home (.mns/) — git-style
 mns capture     # turn your latest agent session into an OpenTelemetry trace
 mns trace --last
-mns enable      # live, invisible capture (Claude Code hooks / OpenCode plugin)
+mns enable      # live capture + the guardrails gate (Claude Code hooks / OpenCode plugin)
 mns doctor      # health + lost-session reconciliation
 ```
 
@@ -42,8 +42,9 @@ All four verified against **real sessions** — never fixtures ([`playground-4`]
    the host agent (yours)          motors & sensors
   ┌─────────────────────┐     ┌──────────────────────────────┐
   │ Cognition · Model · │ ◄── │ SERVE   faculties:           │
-  │ Workspace           │     │         knowledge · memory · │
-  │  (we never drive)   │     │         actions · guardrails │
+  │ Workspace           │     │   knowledge · memory ·       │
+  │  (we never drive)   │     │   actions · instructions ·   │
+  │                     │     │   guardrails (enforced)      │
   └──────────┬──────────┘     ├──────────────────────────────┤
              │ sessions       │ OBSERVE traces (OTel,        │
              └──────────────► │         git-native)          │
@@ -54,7 +55,7 @@ All four verified against **real sessions** — never fixtures ([`playground-4`]
                               └──────────────────────────────┘
 ```
 
-The faculties map to the three cognitive-memory systems — **Knowledge** (semantic: what's true), **Memory** (episodic: what happened), **Actions** (procedural: how to do things) — plus **Guardrails** (the membrane). They improve across **versioned generations**, proposals mined from traces, **always human-approved**. That loop is the product; everything here is a step toward it.
+**Five faculties**, each mapping onto a cognitive system — **Knowledge** (semantic: what's true), **Memory** (episodic: what happened), **Actions** (procedural: how to do things), **Instructions** (directive: who the agent is), **Guardrails** (protective: what it must not do — *enforced* on tool calls, fail-open). They improve across **versioned generations**, proposals mined from traces, **always human-approved**. That loop is the product; everything here is a step toward it.
 
 ## Repo map
 

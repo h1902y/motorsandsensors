@@ -59,23 +59,25 @@ The organizing principle: for any primitive, ask whether it is part of what the 
 
 > **One-line story:** an **agent** is a durable entity composed of **evolving faculties**, running on a **runtime**, grown by an **evolution engine** that *observes* the faculties running, *evaluates* what it sees, and *graduates* them into new generations — human-gated. The system **learns from the observability traces of previous runs**: that loop is the whole product.
 
-### ① The Agent — what it *is* (the faculties)
+### ① The Agent — what it *is* (the 5 + 3 anatomy)
 
-The agent is **co-owned**: the host owns the parts we observe but never graduate; we own and grow the rest.
+> **Revised 2026-06-10** (was "7 faculties, 4 us / 3 host"). Two fixes: **Instructions** promoted to a faculty (the pinned `system_prompt`/steering artifact always behaved like one — us-owned, evolving, pinned — but had no name), and the host trio stopped being called "faculties" (a process, an engine, and an arena aren't faculties of the agent). Operational definition of a faculty: **us-owned · contents accumulate from traces · graduate via proposals · pinned in generations · served to the host.**
 
-| Faculty | Owner | Role | Evolves by |
+**Five faculties (ours):**
+
+| Faculty | Cognitive analog | Role | Evolves by |
 |---|---|---|---|
-| **Memory** *(episodic)* | **us** | what happened to *me* — recollection of past runs/conversations; seeds the persona/scaffolding | distilling the trace into curated episodic recollection; reflection |
-| **Knowledge** *(semantic)* | **us** | what's *true* — domain facts, operating-domain expertise | extraction + entity-resolution + reflection; substrate ladder `md → relational → graph → vector` (earned tier promotions) |
-| **Actions** *(procedural)* | **us** | how to *do* things — skills/toolkits (the *unit* is a "tool"; **Actions** is the faculty) | the selection-burden ladder `single → agent-decided → schema-assisted → retrieved → crystallized → service` + a contents lifecycle |
-| **Guardrails** | **us** | its *membrane* — input/output sanitization (injection, PII, schema, moderation, redaction) | inspector rules in an ordered gate pipeline; pinned in the generation |
-| **Cognition** | **host** | how it *thinks* — the reason→act→observe loop, planning, goal-tracking | *not graduated by us*; **steerable** only via injected scaffolding |
-| **Model** | **host** | the *engine* the faculties run on | the host's subscription/choice — we observe, don't pick or pay |
-| **Workspace** | **host/user** | *where* it acts — the real machine/repo (our sandbox is only for *our* Action execution) | host-provided |
+| **Knowledge** *(semantic)* | semantic memory | what's *true* — domain facts, entities | extraction + entity-resolution + reflection; substrate ladder `md → relational → graph → vector` |
+| **Memory** *(episodic)* | episodic memory | what *happened* to me — past runs/conversations | distilling the trace into curated recollection; reflection |
+| **Actions** *(procedural)* | procedural memory | how to *do* things — skills/toolkits (unit = a "tool") | the selection-burden ladder + a contents lifecycle |
+| **Instructions** *(directive)* | self-schema / values | who I *am*, how I should behave — the pinned `system_prompt` + project steering | steering text mined/refined from trace insights; pinned per generation |
+| **Guardrails** *(protective)* | inhibitory control | what I must *not* do — enforced gates on tool I/O, not advice | inspector rules in an ordered gate pipeline; pinned in the generation |
 
-**The deep structure:** three faculties are the three cognitive-memory systems — **Knowledge** = semantic (facts about the world), **Memory** = episodic (the self's experiences), **Actions** = procedural (the self's skills, literally Voyager's "skill library"). Cognition reasons over all three; Model is the substrate; Guardrails the membrane; Workspace the arena.
+**Host anatomy (not faculties — what ours plug into):** **Cognition** (the reason→act→observe *process*; steerable only via Instructions injection), **Model** (the *engine*; the host's subscription/choice), **Workspace** (the *arena*; the real machine/repo).
 
-> **Vocabulary note:** earlier docs called the *semantic* faculty "Memory". The canonical naming (adopted here) is **Knowledge** = semantic, **Memory** = episodic.
+**The deep structure:** the five map cleanly onto cognitive systems — semantic, episodic, and procedural memory plus the self-schema (Instructions) and executive inhibition (Guardrails). Cognition reasons over all of them; Model is the substrate; Workspace the arena.
+
+> **Vocabulary note:** earlier docs called the *semantic* faculty "Memory", and pre-2026-06-10 docs say "4 faculties" with Instructions folded into serving mechanics. Canonical now: **Knowledge** = semantic, **Memory** = episodic, **five** us-owned faculties, host trio = anatomy.
 
 ### ② The Runtime — serve, observe, evolve (it does **not** run the agent loop)
 
@@ -141,8 +143,13 @@ First-class entities **`Agent` / `Memory` / `Knowledge` / `Actions`**, joined **
 ### Memory (episodic)
 The agent's *curated* recollection distilled from the raw observability stream: seed (system prompt) → conversation scaffolding → historic-conversation analysis → steering. Likely a different substrate from Knowledge (append-heavy run/conversation log + summarization, vs relational/graph/vector facts) — confirm during build.
 
-### Guardrails — the membrane, pinned in the generation
+### Instructions (directive) — who the agent is
+The pinned steering artifact: the generation's `system_prompt` (+hash) at platform level; per-project, `.mns/instructions/` served via instruction-file injection. Evolves like every faculty — steering text refined from trace insights ("the agent keeps doing X wrong" → a proposal to amend the instructions → human approves → new generation). Distinct from host-owned Cognition (the loop itself): Instructions is *our artifact that shapes* the loop. *(Promoted to a faculty 2026-06-10 — it always met the operational definition.)*
+
+### Guardrails (protective) — the enforced membrane, pinned in the generation
 Input (prompt-injection scan, PII scrub, schema validation) + output (schema validation, moderation, redaction-before-persist, policy) implemented as **inspectors in one ordered gate pipeline**; each returns `Allow / Deny / RequireApproval`; `RequireApproval` → `waitForEvent` pause → approval inbox. Each check is a **GUARDRAIL span** on the trace, so the safety trail *is* the execution trace.
+
+> **Built (v1, 2026-06-10):** the first enforced gate — declarative rules (`.mns/guardrails/rules.json`: `{id, action: deny|ask|allow, tool, pattern, reason}`) evaluated per tool call by the mns `PreToolUse` hook on Claude Code; severity wins (deny > ask > allow); **fail-open** (engine errors/missing rules block nothing — a guardrail bug must never brick the agent); matched decisions logged per session (the GUARDRAIL-span precursor). `ask` maps to the host's permission prompt — the v1 form of `RequireApproval`. OpenCode enforcement (`tool.execute.before`) is the next rung; the full inspector pipeline (PII/injection/moderation) remains design.
 
 **Tools are a first-class attack surface** (self-evolving/imported tools make this acute): treat all self-authored + MCP tools as **untrusted → sandbox by default**, require provenance, block secret/env enumeration, redact secrets before they hit the trace; **code-review-on-promotion** for crystallized/authored tools (staged validation: interface→signature→contract→golden-replay, *plus* a human review); **retrieval-poisoning defense at R3** (multi-signal ranking, not embedding-similarity alone); evals run on *unseen* traces with an **independent verifier** (proposer ≠ scorer).
 

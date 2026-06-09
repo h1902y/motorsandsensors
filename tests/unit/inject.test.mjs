@@ -13,7 +13,7 @@ test('inject appends the block to existing content, user text intact', () => {
 
 test('inject into empty text yields just the block', () => {
   const out = injectBlock('');
-  assert.ok(out.startsWith('<!-- >>> mns:faculties:v1 >>> -->'));
+  assert.match(out, /^<!-- >>> mns:faculties:v\d+ >>> -->/);
 });
 
 test('re-inject does not duplicate (replaces own block only)', () => {

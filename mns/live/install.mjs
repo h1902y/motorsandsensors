@@ -11,9 +11,13 @@ export const SIGNATURE = 'mns.mjs hook'; // every mns hook command contains this
 const DENY_RULES = ['Read(./.mns/traces/**)', 'Read(./.mns/live/**)'];
 const LEGACY_DENY = 'Read(./.mns/**)'; // pre-init rule — migrated out on add/remove
 
-// Minimal hook set for lifecycle (Design B re-captures the transcript, so we do
-// NOT need PreToolUse/PostToolUse — fewer hooks = less intrusion).
+// Minimal hook set: lifecycle (Design B re-captures the transcript — no
+// PostToolUse needed) + the PreToolUse Guardrails GATE (the one place we *do*
+// sit on the hot path: it evaluates .mns/guardrails/rules.json per tool call,
+// fails open, and stays silent unless a rule matches).
 export const LIFECYCLE_EVENTS = ['SessionStart', 'Stop', 'SessionEnd'];
+export const GATE_EVENTS = ['PreToolUse'];
+const ALL_EVENTS = [...LIFECYCLE_EVENTS, ...GATE_EVENTS];
 
 const clone = (o) => JSON.parse(JSON.stringify(o ?? {}));
 const hasOurs = (matchers) => (matchers || []).some((m) => (m.hooks || []).some((h) => String(h.command).includes(SIGNATURE)));
@@ -23,7 +27,7 @@ const hasOurs = (matchers) => (matchers || []).some((m) => (m.hooks || []).some(
  * @param {object} settings  existing settings.json contents
  * @param {(event:string)=>string} commandFor  builds the command string per event
  */
-export function addHooks(settings, commandFor, events = LIFECYCLE_EVENTS) {
+export function addHooks(settings, commandFor, events = ALL_EVENTS) {
   const s = clone(settings);
   s.hooks ||= {};
   for (const ev of events) {
@@ -57,7 +61,7 @@ export function removeHooks(settings) {
   return s;
 }
 
-/** True if mns hooks are present for all lifecycle events. */
+/** True if mns hooks are present for all lifecycle + gate events. */
 export function isInstalled(settings) {
-  return LIFECYCLE_EVENTS.every((ev) => hasOurs(settings?.hooks?.[ev]));
+  return ALL_EVENTS.every((ev) => hasOurs(settings?.hooks?.[ev]));
 }

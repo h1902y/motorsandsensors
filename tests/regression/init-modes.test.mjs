@@ -86,3 +86,18 @@ test('mode 3 — reinit restores missing pieces only', () => {
     assert.ok(existsSync(join(cwd, '.mns', 'actions', 'README.md')));
   });
 });
+
+test('reinit upgrades an older faculty block to the current version in place', async () => {
+  const { facultiesBlock, BLOCK_VERSION } = await import('../../mns/inject.mjs');
+  withTemp((cwd) => {
+    writeFileSync(join(cwd, 'CLAUDE.md'), '# Mine\n\n' + facultiesBlock(1) + '\n\n## After section\n');
+    const out = run(cwd);
+    assert.match(out, new RegExp(`upgraded → v${BLOCK_VERSION}`));
+    const text = readFileSync(join(cwd, 'CLAUDE.md'), 'utf8');
+    assert.ok(text.includes(`mns:faculties:v${BLOCK_VERSION}`), 'current version present');
+    assert.ok(!text.includes('mns:faculties:v1 '), 'old version gone');
+    assert.equal((text.match(/mns:faculties:v\d+/g) || []).length, 1, 'exactly one block');
+    assert.ok(text.startsWith('# Mine'), 'user heading intact');
+    assert.ok(text.includes('## After section'), 'trailing user content intact');
+  });
+});

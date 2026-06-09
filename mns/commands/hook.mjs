@@ -11,11 +11,14 @@
 // MUST always exit 0 and never block — a throwing hook would disrupt the agent
 // session. `runHook` wraps everything; failures degrade silently.
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { byName } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 import { captureTrace } from '../capture-core.mjs';
 import { SessionState } from '../session.mjs';
 import { openLive, touchLive, closeLive } from '../live/live-store.mjs';
+import { loadRules, evaluate, toPreToolUseDecision } from '../guardrails.mjs';
+import { paths } from '../store.mjs';
 
 // Lifecycle events, normalized across hosts (verified by observing each host):
 //   open  — session starts
@@ -63,6 +66,37 @@ export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Dat
 }
 
 /**
+ * The Guardrails gate (PreToolUse). Evaluates the tool call against
+ * .mns/guardrails/rules.json and prints Claude's hookSpecificOutput decision —
+ * or NOTHING (exit 0, no JSON = defer to the host's normal permission flow).
+ * That silence is the fail-open: engine errors and rule-file problems can slow
+ * nothing down and block nothing. Matched decisions are logged for the trace.
+ */
+export function gateToolUse({ payload = {}, cwd = process.cwd() } = {}) {
+  try {
+    const { dir } = paths(cwd);
+    const loaded = loadRules(join(dir, 'guardrails', 'rules.json'));
+    if (!loaded.ok) return null; // missing/malformed rules → fail open
+    const verdict = evaluate(loaded.rules, { tool: payload.tool_name, input: payload.tool_input });
+    if (verdict) {
+      try {
+        const liveDir = join(dir, 'live');
+        mkdirSync(liveDir, { recursive: true });
+        appendFileSync(
+          join(liveDir, `guardrails-${payload.session_id || 'unknown'}.jsonl`),
+          JSON.stringify({ at: new Date().toISOString(), tool: payload.tool_name, ...verdict }) + '\n',
+        );
+      } catch {
+        /* logging must not affect the gate */
+      }
+    }
+    return toPreToolUseDecision(verdict);
+  } catch {
+    return null; // fail open, always
+  }
+}
+
+/**
  * CLI entry. Claude hooks pipe a JSON payload on stdin; OpenCode's plugin passes
  * `--host opencode --session <id>` (no stdin). Always exits 0 (never break the agent).
  */
@@ -78,7 +112,12 @@ export function runHook(event, { host = 'claude-code', session } = {}) {
     payload = { session_id: session };
   }
   try {
-    handleHook({ event, payload, host });
+    if (event === 'PreToolUse') {
+      const decision = gateToolUse({ payload });
+      if (decision) process.stdout.write(JSON.stringify(decision));
+    } else {
+      handleHook({ event, payload, host });
+    }
   } catch {
     /* never break the agent */
   }

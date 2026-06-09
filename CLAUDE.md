@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-**A working early-stage build + its canonical design.** The host coding-agent (Claude Code / Codex / Gemini CLI / OpenCode) supplies the **brain**; this project gives it evolving **faculties** — Memory (episodic), Knowledge (semantic), Actions (procedural), Guardrails — that **graduate** across versioned generations, grown from the observability **trace** of real use, human-gated. We **wrap, serve, observe, evolve** a host we never drive.
+**A working early-stage build + its canonical design.** The host coding-agent (Claude Code / Codex / Gemini CLI / OpenCode) supplies the **brain**; this project gives it evolving **faculties** — Knowledge (semantic), Memory (episodic), Actions (procedural), Instructions (directive), Guardrails (protective, enforced) — that **graduate** across versioned generations, grown from the observability **trace** of real use, human-gated. We **wrap, serve, observe, evolve** a host we never drive.
 
 Built so far (verified): the **observe** layer — host-agnostic trace capture (OTLP/JSON) across 4 real hosts + the `mns` CLI + live capture — and the first **serve** slice (`mns init` faculty home). The **evolve** engine is design-only. Don't claim unbuilt parts work; don't treat designed parts as absent — check `experiments/LOG.md` for what’s proven.
 
@@ -34,14 +34,14 @@ No build step, **zero runtime dependencies** (a deliberate policy — `node:test
 - **Real-wire-data rule:** adapters/integrations are built and verified against output the host *actually produced* — never from docs alone, never against self-invented fixtures (that's circular). Observe real events **before** wiring lifecycle semantics (docs lied twice: Claude `Stop` and OpenCode `session.idle` are per-*turn*, not end; OpenCode `session.deleted` is delete-only).
 - **Golden ids in regression tests are pasted from a real run** — never hand-computed. If the id scheme changes intentionally, regenerate and review.
 - **Playground exit contract:** 0 = pass, **2 = skip** (host data absent — not a failure), anything else = fail. Don't "fix" skips to passes.
-- **Hooks/plugins must never break the host:** always exit 0 (`… || true` wrappers, try-wrapped plugin), spawn detached, degrade silently.
+- **Hooks/plugins must never break the host:** always exit 0 (`… || true` wrappers, try-wrapped plugin), spawn detached, degrade silently. The guardrails **gate fails open** — engine/rule errors emit no decision (host's normal flow), never a block.
 - **`.mns/` deny rules are narrow** (`traces/`, `live/` only) — a blanket `.mns/**` deny starves the agent of its own faculties.
 - **Secrets:** keys never land in tracked files; scan before commit/push. Generated host-enablement config (`.opencode/`, `.claude/settings*.json`) is git-ignored.
 - The `<!-- >>> mns:faculties … -->` block at the bottom of this file is **managed by `mns init`** — don't hand-edit it.
 
 ## Load-bearing vocabulary (these terms carry decisions)
 
-- **Faculties**: Knowledge = semantic, Memory = episodic, Actions = procedural, Guardrails = membrane — *we own these*. **Cognition / Model / Workspace are host-owned** (observe, steer via instructions; never graduate). 7 total, split 4/3.
+- **Faculties — the 5+3 anatomy** (since 2026-06-10): **five us-owned faculties** — Knowledge (semantic), Memory (episodic), Actions (procedural), **Instructions** (directive: the pinned steering/system-prompt artifact), Guardrails (protective: *enforced* tool gates) — each us-owned, trace-grown, generation-pinned, served. **Cognition / Model / Workspace are host *anatomy*, not faculties** (process / engine / arena; observed and steered, never graduated).
 - **be / run / evolve**: what the agent *is* / what *serves & bounds* it / what *grows* it.
 - **Pin definitions, observe data**: immutable things are *definitions* (prompt, tool version, schema); everything else is runtime captured in traces.
 - **Agent → Generation → Run**: durable identity → immutable pinned lockfile (rollback = flip pointer) → transient episode emitting a trace.
@@ -75,14 +75,15 @@ This project owns its activities in [`tasks/`](tasks/) — multi-day work units 
 - When task state changes materially, reflect the headline in [`STATUS.md`](STATUS.md) so the personal vault's dashboard stays current — that's the only cross-repo obligation.
 - Some migrated tasks carry `[[wikilinks]]` to notes that stayed in the personal vault; those are cross-repo and won't resolve in Obsidian — leave them as references.
 
-<!-- >>> mns:faculties:v1 >>> -->
+<!-- >>> mns:faculties:v2 >>> -->
 ## mns — agent faculty home
 
 This project has an mns faculty home at `.mns/` (managed by the mns CLI):
 
 - **Read `.mns/knowledge/`** — verified project facts/entities. Treat as ground truth.
-- **Follow `.mns/instructions/`** — project steering (`project.md`) and rules (`guardrails.md`).
+- **Follow `.mns/instructions/`** — project steering (who/how to be in this project).
 - **Use `.mns/actions/`** — named procedures/runbooks for this project.
+- **Respect `.mns/guardrails/`** — hard rules, *enforced* on tool calls by the mns gate.
 - **Record durable, verified learnings** in `.mns/knowledge/` (facts only, no speculation).
 - Do **not** read `.mns/traces/` or `.mns/live/` (mns observability internals).
 <!-- <<< mns:faculties <<< -->

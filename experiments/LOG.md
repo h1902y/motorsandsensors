@@ -9,6 +9,7 @@
 | 3 | provider coverage (Codex + OpenCode, real wire data) | ✅ proven; core unchanged → 4 real hosts |
 | 4 | OpenCode plugin (live capture) | ✅ live-verified; same lifecycle shape as Claude |
 | 5 | faculty home (`mns init`) | ◐ scaffold proven; live agent-reads-faculties proof pending |
+| 6 | guardrails gate (5+3 taxonomy; enforced PreToolUse) | ✅ gate verified vs real schema; real-session firing pending |
 
 ---
 
@@ -425,3 +426,39 @@ Product surface, in `mns/`: `scaffold.mjs` (layout contract + no-clobber plan/ap
 
 ---
 
+
+## Experiment 6 — the Guardrails gate (and the 5+3 taxonomy)
+
+> **Correction to experiment 5 (2026-06-10):** exp-5 merged guardrails into `instructions/` as advisory text "until an enforcement runtime exists." Superseded — the taxonomy was rethought (see below) and the enforcement runtime now exists; `.mns/guardrails/` is a first-class faculty surface. New scaffolds get it; existing homes gain it on re-init (no-clobber).
+
+### The taxonomy rethink (brainstormed, adopted)
+
+Stress-testing "7 faculties, 4/3" against an operational definition (us-owned · contents accumulate from traces · graduate via proposals · pinned in generations · served) found one gap and one inconsistency:
+- **Gap:** the pinned `system_prompt`/steering artifact passed every faculty test but had no faculty name → promoted as **Instructions** (directive; cognitive analog: self-schema/values).
+- **Inconsistency:** Cognition/Model/Workspace are a process/engine/arena, not faculties → reframed as **host anatomy**.
+
+Canonical now (**DESIGN §3①**): **5 faculties** (Knowledge · Memory · Actions · Instructions · Guardrails) **+ 3 host anatomy**. The five map cleanly to cognitive systems (semantic/episodic/procedural memory, self-schema, inhibitory control). The `mns init` scaffold now matches 1:1.
+
+### Hypothesis (the build half)
+
+Guardrails can be a *built, enforced* faculty today — not advisory text — using Claude Code's `PreToolUse` hook as the gate.
+
+### What was built
+
+- **Rules as data:** `.mns/guardrails/rules.json` — `{id, action: deny|ask|allow, tool, pattern, reason}`, ordered, declarative; seeded conservatively (root-wipe deny, secret-read deny, force-push ask). A *definition*: versioned in git, pinned like everything else.
+- **The gate:** `mns enable` now also installs `PreToolUse` → `mns hook PreToolUse` evaluates the call and prints the **verified** decision schema (`hookSpecificOutput.permissionDecision: deny|ask` + reason); silence = defer to the host's normal flow. `ask` is the v1 `RequireApproval`.
+- **Severity wins** (deny > ask > allow) — file order can never silently disarm a deny.
+- **Fail-open everywhere:** malformed rules, bad regex, missing file, garbage stdin → no decision, exit 0. A guardrail bug must never brick the agent. Verified by tests.
+- **Observed:** matched decisions append to `.mns/live/guardrails-<session>.jsonl` — the GUARDRAIL-span precursor (the safety trail joins the trace later).
+- **Block v2:** the injected faculty block bumped to v2 (mentions the enforced gate); `mns init` learned **version-aware re-injection** (upgrades a v1 block in place — first real use of the versioned markers).
+
+### Verified
+
+Schema checked against the hooks docs *before* wiring (real-wire-data rule); end-to-end through the real binary in a scaffolded temp project: root-wipe → `deny` JSON, force-push → `ask`, benign → silence, all exit 0; decisions logged; 74 tests pass (engine unit + gate regression + v2 upgrade).
+
+### Honest limits
+
+- **Not yet observed firing in a live agent session** (the gate ran against piped payloads + the real binary, not a real Claude turn) — the remaining proof, same pattern as exp-2/4/5.
+- Pattern-matching over stringified tool input is v1 coarseness — no structured per-field matching, no input *rewriting* (`updatedInput` exists in the schema; unused).
+- Claude Code only; OpenCode's `tool.execute.before` is the next rung. The full inspector pipeline (PII/injection/moderation, output side) remains design.
+- The gate sits on the hot path (every tool call spawns node) — fast in practice; measure before optimizing.

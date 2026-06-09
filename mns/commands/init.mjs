@@ -9,7 +9,7 @@
 import { join, basename } from 'node:path';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { applyScaffold, ensureGitignore, homeExists } from '../scaffold.mjs';
-import { injectBlock, facultiesBlock, hasBlock } from '../inject.mjs';
+import { injectBlock, facultiesBlock, hasBlock, BLOCK_VERSION } from '../inject.mjs';
 import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 import { repoRoot } from '../store.mjs';
 
@@ -29,9 +29,11 @@ function serveInstructions(cwd, { greenfield }) {
   for (const f of existing) {
     const path = join(cwd, f);
     const text = readFileSync(path, 'utf8');
-    if (hasBlock(text)) continue; // already served (re-inject only on version bump)
+    // current-version block present → nothing to do; older version → replace in
+    // place (the markers are versioned for exactly this); absent → append.
+    if (text.includes(`mns:faculties:v${BLOCK_VERSION}`)) continue;
     writeFileSync(path, injectBlock(text));
-    injected.push(f);
+    injected.push(hasBlock(text) ? `${f} (upgraded → v${BLOCK_VERSION})` : f);
   }
   if (greenfield && existing.length === 0) {
     for (const f of ['AGENTS.md', 'CLAUDE.md']) {
@@ -63,12 +65,12 @@ export function init(args = {}) {
     if (!createdCount && !injected.length && !ignoreAdded.length) console.log('  (complete — nothing to do)');
   } else if (greenfield) {
     console.log(`Initialized empty mns home in ${join(cwd, '.mns')}/`);
-    console.log(`  faculties : knowledge/ memory/ actions/ instructions/  (+ mns.json manifest)`);
+    console.log(`  faculties : knowledge/ memory/ actions/ instructions/ guardrails/  (+ mns.json manifest)`);
     console.log(`  steering  : created ${created.join(' + ')} pointing your agent at its faculties`);
     console.log(`  next      : \`mns enable\` for live capture · \`mns status\` · start your agent in ${basename(cwd)}/`);
   } else {
     console.log(`Initialized mns home in existing project ${join(cwd, '.mns')}/`);
-    console.log(`  faculties : knowledge/ memory/ actions/ instructions/  (+ mns.json manifest)`);
+    console.log(`  faculties : knowledge/ memory/ actions/ instructions/ guardrails/  (+ mns.json manifest)`);
     if (injected.length) console.log(`  steering  : injected faculty block → ${injected.join(', ')}`);
     else console.log(`  steering  : no CLAUDE.md/AGENTS.md/GEMINI.md found — create one and rerun, or add the block manually`);
     const hosts = detected().map((a) => a.name).join(', ');

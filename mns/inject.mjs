@@ -8,7 +8,7 @@ const END = '<!-- <<< mns:faculties <<< -->';
 // matches our block at ANY version (so a v1 block is replaced by a v2 inject)
 const BLOCK_RE = /[ \t]*<!-- >>> mns:faculties:v\d+ >>> -->[\s\S]*?<!-- <<< mns:faculties <<< -->[ \t]*\n?/;
 
-export const BLOCK_VERSION = 1;
+export const BLOCK_VERSION = 2;
 
 /** The block content served to host agents. Keep short — it's steering, not docs. */
 export function facultiesBlock(version = BLOCK_VERSION) {
@@ -18,8 +18,9 @@ export function facultiesBlock(version = BLOCK_VERSION) {
 This project has an mns faculty home at \`.mns/\` (managed by the mns CLI):
 
 - **Read \`.mns/knowledge/\`** — verified project facts/entities. Treat as ground truth.
-- **Follow \`.mns/instructions/\`** — project steering (\`project.md\`) and rules (\`guardrails.md\`).
+- **Follow \`.mns/instructions/\`** — project steering (who/how to be in this project).
 - **Use \`.mns/actions/\`** — named procedures/runbooks for this project.
+- **Respect \`.mns/guardrails/\`** — hard rules, *enforced* on tool calls by the mns gate.
 - **Record durable, verified learnings** in \`.mns/knowledge/\` (facts only, no speculation).
 - Do **not** read \`.mns/traces/\` or \`.mns/live/\` (mns observability internals).
 ${END}`;

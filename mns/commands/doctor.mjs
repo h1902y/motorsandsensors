@@ -48,7 +48,7 @@ export function doctor() {
     const missing = planScaffold(root);
     const gaps = missing.dirs.length + missing.files.length + (missing.manifestMissing ? 1 : 0);
     if (gaps) warn(`faculty home incomplete (${gaps} piece(s) missing) — rerun \`mns init\``);
-    else ok('faculty home complete (knowledge/ memory/ actions/ instructions/)');
+    else ok('faculty home complete (knowledge/ memory/ actions/ instructions/ guardrails/)');
   }
 
   // hosts

@@ -7,7 +7,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { repoRoot } from '../store.mjs';
-import { addHooks, removeHooks, isInstalled, LIFECYCLE_EVENTS } from '../live/install.mjs';
+import { addHooks, removeHooks, isInstalled, LIFECYCLE_EVENTS, GATE_EVENTS } from '../live/install.mjs';
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'mns.mjs');
 
@@ -70,7 +70,7 @@ export function enable(args = {}) {
   writeSettings(path, addHooks(readSettings(path), commandFor));
   console.log('mns enabled — live capture installed (Claude Code)');
   console.log(`  settings : ${path}`);
-  console.log(`  hooks    : ${LIFECYCLE_EVENTS.join(', ')}  (graceful: exit 0 if mns absent)`);
+  console.log(`  hooks    : ${[...LIFECYCLE_EVENTS, ...GATE_EVENTS].join(", ")}  (lifecycle + guardrails gate; exit 0 if mns absent)`);
   console.log('  scope    : new sessions in this repo (restart your agent to pick them up)');
   console.log('  disable  : mns disable');
 }
