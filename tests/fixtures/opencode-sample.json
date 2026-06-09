@@ -1,0 +1,31 @@
+{
+  "session": {
+    "id": "ses_test",
+    "directory": "/tmp/proj",
+    "title": "List files",
+    "model": "{\"id\":\"gemini-2.5-flash\",\"providerID\":\"google\",\"variant\":\"default\"}",
+    "time_created": 1000,
+    "time_updated": 5000
+  },
+  "messages": [
+    { "id": "msg_u", "role": "user", "time_created": 1000 },
+    { "id": "msg_a", "role": "assistant", "time_created": 2000 }
+  ],
+  "parts": [
+    { "messageId": "msg_u", "time_created": 1000, "type": "text", "text": "list files" },
+    { "messageId": "msg_a", "time_created": 1500, "type": "reasoning" },
+    {
+      "messageId": "msg_a",
+      "time_created": 2000,
+      "type": "tool",
+      "tool": "bash",
+      "callID": "call_1",
+      "state": {
+        "status": "completed",
+        "input": { "command": "ls" },
+        "output": "a\nb\nc",
+        "time": { "start": 2000, "end": 4500 }
+      }
+    }
+  ]
+}

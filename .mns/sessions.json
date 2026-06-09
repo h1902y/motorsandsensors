@@ -2,6 +2,25 @@
   "version": 1,
   "sessions": [
     {
+      "id": "ses_15364915bffe36C1Mzsrp5t3m1",
+      "host": "opencode",
+      "status": "captured",
+      "startedAt": "2026-06-09T13:38:48.100Z",
+      "endedAt": "2026-06-09T13:38:52.650Z",
+      "durationMs": 4550,
+      "traceId": "c1d2dd7bf34635fd79ac6aab427a9932",
+      "traceRef": ".mns/traces/opencode-ses_15364915bffe36C1Mzsrp5t3m1.otlp.jsonl",
+      "git": {
+        "commit": "71c59da8a2794be97efe877945c38bc90afb6953",
+        "branch": "main"
+      },
+      "counts": {
+        "turns": 1,
+        "tools": 1,
+        "errors": 0
+      }
+    },
+    {
       "id": "019eac26-b264-7ed1-b5cb-e125ebc06091",
       "host": "codex",
       "status": "captured",

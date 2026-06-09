@@ -5,8 +5,9 @@ import { assertAdapter } from './host-adapter.mjs';
 import { claudeCode } from './claude-code.mjs';
 import { geminiCli } from './gemini-cli.mjs';
 import { codex } from './codex.mjs';
+import { opencode } from './opencode.mjs';
 
-export const ADAPTERS = [claudeCode, geminiCli, codex].map(assertAdapter);
+export const ADAPTERS = [claudeCode, geminiCli, codex, opencode].map(assertAdapter);
 
 export function byName(name) {
   return ADAPTERS.find((a) => a.name === name) || null;

@@ -13,7 +13,9 @@ Turn the coding-agent sessions you already run into **OpenTelemetry traces you o
 | **Claude Code** | ✅ | rich — `session → turn → tool`, real durations, OK/ERROR status |
 | **Gemini CLI** | ✅ | thin — `session → turn` (prompts; tool calls live in checkpoints, not yet read) |
 | **Codex** | ✅ | rich — `session → turn → tool` (verified against a real `codex exec` rollout) |
-| **OpenCode** | ⏳ planned | multi-file JSON store; adapter needs real-data validation |
+| **OpenCode** | ✅ | rich — `session → turn → tool`, reads its SQLite store via built-in `node:sqlite` (verified against a real `opencode run`) |
+
+All four verified against **real** sessions, not fixtures — see `playground-4`. (OpenCode reads SQLite, so its capture needs Node ≥ 22; the others need ≥ 20.)
 
 Completeness varies by host *by design* — it's the same core, with a thinner adapter where the host logs less.
 

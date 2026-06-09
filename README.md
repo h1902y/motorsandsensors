@@ -170,6 +170,15 @@ Because we **wrap & observe** a loop we don't drive, the HostAdapter follows ent
 - **Need 1 — host-agnosticity:** the observe-adapter above; host owns model selection; assume no shared host model-schema.
 - **Need 2 — internal-inference agnosticity** (our own faculty ops; a **stopgap until MCP Sampling**, so don't over-build): a thin litellm-*style* surface (one canonical `complete()`/`stream()` + `drop_params`, provider from a `provider/model` string — aider's altitude, **not** vendoring litellm, **not** continue's ~70 subclasses). Config = two blocks: `host:` (adapters; model host-owned) + `inference:` (`default` + per-faculty overrides + custom providers + type-keyed fallbacks). Reusable pattern: separate **`api`** (wire protocol) from **`provider`** (id) → a new OpenAI-compatible vendor = zero code.
 
+### OpenCode as a candidate default host (a strategy hypothesis — not yet committed)
+The host adapters assume the user *already runs* a host. But a newcomer who runs none of Claude Code / Codex / Gemini needs an agent to wrap. **OpenCode (OSS, MIT) is the natural default to bundle** — and it makes us a richer integration, not just an observer:
+- **MNS as an OpenCode plugin** (`@opencode-ai/plugin`). OpenCode's plugin events (`session.created/idle/deleted`, `tool.execute.before/after`, `message.part.updated`) are a **richer live-capture surface than Claude Code hooks** — `session.idle/deleted` even give a cleaner lifecycle/kill signal than Claude (which has none). So OpenCode may be our *best* live-capture host, and "be a plugin for OpenCode" maps directly onto the Phase-2 lifecycle model. *(Adapter for reading OpenCode's SQLite store is built + real-data-verified; the live plugin is the next step.)*
+- **Default-host ≠ abandoning host-agnosticity.** We still observe any host; we'd merely *ship one default* so non-host users get started in one step. The four-adapter set (Claude/Gemini/Codex/OpenCode, all real-data-verified) is the agnosticity proof.
+- **Credits via MNS → OpenCode (monetization hypothesis — two models, decide later, neither built):**
+  - **(a) MNS-as-gateway** — MNS hosts an OpenAI-compatible endpoint; OpenCode points at it as a custom provider; users buy MNS credits (Razorpay) and MNS proxies upstream + keeps margin. *Controllable, no partnership needed — but real infra/payments/abuse work.*
+  - **(b) Zen-reseller** — credits top up OpenCode's own Zen balance. *Simpler conceptually, but depends on an OpenCode partnership; no public reseller API found.*
+  > Flagged, not decided. The point today: the *plugin + default-host* path is real and partly built; the *credit* path is a business decision parked behind it.
+
 ---
 
 ## 7. Why interactive-mode-first (a product pillar, not a detail)
