@@ -38,7 +38,14 @@ Prefer not to link? Use `node bin/mns.mjs <cmd>` or `npm run mns -- <cmd>` anywh
 mns status              # what hosts + sessions are visible on this machine
 mns capture             # capture your latest session (auto-detects the host)
 mns trace --last        # print the captured trace as a tree
-mns doctor              # environment + session health check
+mns doctor              # environment + session health (reconciles lost sessions)
+```
+
+Or go hands-free — capture every session automatically (see [Live capture](#live-capture-enable-once-then-invisible)):
+
+```bash
+mns enable              # install background hooks; then just code
+mns disable             # turn it back off
 ```
 
 ### What you'll see
@@ -92,16 +99,27 @@ In the playground, **⏭️ skipped** just means that host isn't on *your* machi
 - **`npm test` runs zero tests / errors on the glob** — you're below Node 21; upgrade (22 LTS).
 - **No `git` linkage on a capture** — you're outside a git repo; capture still works, the session just won't link to a commit.
 
-## Where this is headed
+## Live capture (enable once, then invisible)
 
-The north star is the **entire.io "enable once, then invisible"** experience:
+The entire.io "enable once, then forget it's there" experience — **built** ([`experiment-2-live-sessions`](experiments/experiment-2-live-sessions/)):
 
 ```bash
-mns enable      # (planned) installs background hooks for your agent
-# …then just code. Sessions are captured live, in the background, automatically.
+mns enable      # installs background lifecycle hooks into .claude/settings.json
+# …restart your agent, then just code. Sessions record themselves:
+#   SessionStart → opened (active) · SessionEnd → completed
+mns status      # watch them go active → completed
+mns disable     # remove the hooks
 ```
 
-Planned next (`experiment-2-live-sessions`): `mns enable`/`disable` install graceful-degradation hooks (they `exit 0` if `mns` is absent — **never break your agent**) that open a session when your agent session starts and close it when it ends; lost/killed sessions are reconciled by `mns doctor`; traces move to a dedicated git branch. None of this is built yet — today's `mns capture` is the honest, working subset.
+How it stays non-intrusive: a minimal hook set (`SessionStart/Stop/SessionEnd` only — we re-read the transcript rather than hook every tool); every hook command is wrapped `… || true` so it **always exits 0** — if `mns` is missing it degrades silently and **never breaks your agent**; and a `permissions.deny` rule keeps the agent from reading its own trace output.
+
+**Killed a terminal?** No clean end-signal exists, so a lost session reads `active` until the next `mns doctor`/`status` **reconciles** it to `abandoned` — capturing the full session from the transcript still on disk (nothing lost). This lazy detection is the same constraint entire.io has.
+
+> **Honest caveat:** live capture is verified by the test suite and by piping real hook payloads through the `mns hook` binary; enabling it on a live agent session and watching real hooks fire is the one remaining real-world check. `mns capture` (post-hoc) is fully exercised.
+
+## Where this is headed
+
+Still ahead: a real-agent live run (the last proof above); trace blobs onto a dedicated git branch (today they're local-only, the index links to commits); live capture for Gemini and other hosts; and the payoff — the **evolution engine** that scores captured sessions and proposes improvements (the project's actual differentiator, see [README.md](README.md)).
 
 ## Repo map
 

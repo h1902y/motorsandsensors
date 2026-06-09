@@ -6,7 +6,9 @@ Verb-first, entire.io-style, **zero dependencies, no build**. The user-facing su
 mns status                  # detected hosts + recorded sessions
 mns capture [--host NAME]   # capture a session → git-native trace + index entry
 mns trace [--last | FILE]   # print a captured trace's span tree
-mns doctor                  # environment + session health
+mns enable | disable        # turn live, invisible capture on/off (hooks)
+mns hook <Event>            # internal: the callback Claude Code's hooks invoke
+mns doctor                  # environment + session health (reconciles lost sessions)
 mns version | help
 ```
 
@@ -27,9 +29,9 @@ Mirrors entire.io's split so trace blobs never pollute your working diff:
 
 The lifecycle model: `opening → active → completed | abandoned | crashed`. A killed terminal sends no clean "end", so lost sessions are *reconciled* (entire's approach), not signalled.
 
-**Phase 1 (today):** post-hoc transcript capture records every session as `captured` (lifecycle-unknown snapshot). The full state machine is defined and tested now so Phase 2 can drive it live.
+**`mns capture` (post-hoc):** records a session as `captured` (lifecycle-unknown snapshot from an existing transcript).
 
-**Phase 2 (next — `experiment-2-live-sessions`):** `mns enable` installs background agent hooks → sessions open/close live across the terminal lifecycle; `mns doctor` reconciles abandoned/crashed ones via a liveness heartbeat. See [QUICKSTART.md](../QUICKSTART.md) → "Where this is headed".
+**`mns enable` (live):** installs background hooks (`SessionStart/Stop/SessionEnd`) so sessions transition for real — `active → completed`, or `→ abandoned` when a terminal is killed (reconciled by `mns doctor` via a liveness heartbeat, since a kill emits no signal). Built in [`experiment-2-live-sessions`](../experiments/experiment-2-live-sessions/); the hook is a lifecycle *signal + re-capture trigger* (Design B), never a span builder. See [QUICKSTART.md](../QUICKSTART.md#live-capture-enable-once-then-invisible).
 
 ## Layout
 

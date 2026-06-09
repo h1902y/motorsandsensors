@@ -3,8 +3,9 @@
 
 import { mkdirSync, accessSync, constants } from 'node:fs';
 import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
-import { isTerminal } from '../session.mjs';
-import { paths, gitInfo, readIndex } from '../store.mjs';
+import { paths, gitInfo } from '../store.mjs';
+import { listLive } from '../live/live-store.mjs';
+import { reconcile } from '../live/reconcile.mjs';
 
 export function doctor() {
   let problems = 0;
@@ -43,10 +44,13 @@ export function doctor() {
   if (hosts.length) ok(`hosts detected: ${hosts.map((h) => h.name).join(', ')}`);
   else warn('no supported agent data found — use Claude Code or Gemini CLI, then `mns capture`');
 
-  // session sanity (Phase 1: all recorded sessions should be terminal)
-  const stuck = readIndex().sessions.filter((s) => !isTerminal(s.status));
-  if (stuck.length) warn(`${stuck.length} non-terminal session(s) — Phase 2 \`mns doctor\` will reconcile these`);
-  else ok('no stuck sessions');
+  // live-session reconciliation: close out lost/killed sessions (no SessionEnd).
+  const before = listLive().length;
+  const reconciled = reconcile();
+  if (reconciled.length) warn(`reconciled ${reconciled.length} lost session(s) → abandoned`);
+  const live = listLive().length;
+  if (live) ok(`${live} live session(s) active`);
+  else if (!before) ok('no live sessions');
 
   console.log(problems ? `\n${problems} problem(s) found` : '\nall good');
   process.exit(problems ? 1 : 0);

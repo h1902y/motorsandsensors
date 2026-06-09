@@ -10,3 +10,5 @@ experiments/**/out/
 # Git-native session store: the index is tracked (small, links to commits);
 # the bulky OTLP trace blobs stay local until Phase 2's orphan branch.
 .mns/traces/
+# Transient liveness state for in-flight sessions (like .git/ session state).
+.mns/live/

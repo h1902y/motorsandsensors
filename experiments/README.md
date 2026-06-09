@@ -17,6 +17,7 @@ The lab. Each experiment is a **numbered, self-contained spike** with a hypothes
 | # | Name | Hypothesis | Status |
 |---|------|------------|--------|
 | 1 | [trace-capture](experiment-1-trace-capture/) | Host-agnostic, OTel-shaped trace capture via transcript parsing — same core, ≥2 hosts | ✅ proven; harvest pending |
+| 2 | [live-sessions](experiment-2-live-sessions/) | Live, invisible session lifecycle from host hooks (`mns enable`); lost sessions reconciled | ✅ proven (real-agent run pending); code in `mns/` |
 
 ## Conventions
 
