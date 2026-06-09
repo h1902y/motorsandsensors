@@ -1,6 +1,7 @@
 import type {
   CreateSessionRequest,
   ListResponse,
+  SearchResponse,
   SessionInfo,
   WorkspaceInfo,
 } from "@webcode/protocol";
@@ -51,14 +52,22 @@ export const api = {
 
   downloadUrl: (path: string) => `/api/fs/download?path=${encodeURIComponent(path)}`,
 
-  upload: async (dir: string, file: File, overwrite = false) => {
-    const qs = new URLSearchParams({ dir, name: file.name });
-    if (overwrite) qs.set("overwrite", "1");
-    const res = await fetch(`/api/fs/upload?${qs}`, { method: "POST", body: file });
-    if (!res.ok) {
-      const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      throw new ApiError(res.status, body?.error ?? "upload failed");
-    }
+  /** Open with the OS default app (or reveal in Finder/file manager). */
+  openLocal: (path: string, reveal = false) =>
+    request<{ ok: true }>("/api/fs/open", json({ path, reveal })),
+
+  saveRecording: (sessionId: string, path: string) =>
+    request<{ ok: true; path: string; truncated: boolean }>(
+      `/api/sessions/${sessionId}/recording`,
+      json({ path }),
+    ),
+
+  search: (q: string, opts: { path?: string; regex?: boolean; caseSensitive?: boolean } = {}) => {
+    const qs = new URLSearchParams({ q });
+    if (opts.path) qs.set("path", opts.path);
+    if (opts.regex) qs.set("regex", "1");
+    if (opts.caseSensitive) qs.set("case", "1");
+    return request<SearchResponse>(`/api/search?${qs}`);
   },
 };
 

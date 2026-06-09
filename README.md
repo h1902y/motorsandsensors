@@ -61,11 +61,27 @@ packages/
 - **Preview pane**: third resizable pane, single-click any file — GFM markdown
   (react-markdown + remark-gfm: tables, task lists, relative images resolved through the
   daemon), shiki syntax highlighting (lazy chunks), images/SVG, PDF, video/audio
-  (streamed via Range), CSV tables, binary-sniff fallback card. Previews live-refresh
-  when the file changes on disk.
+  (streamed via Range), CSV tables, asciicast `.cast` replay, binary-sniff fallback card.
+  Previews live-refresh when the file changes on disk.
+
+- **Local-native integration** (it's the same machine — no upload/download):
+  - **Tree ↔ terminal cwd sync**: the daemon polls each shell's real working directory
+    (`lsof`/`/proc`, shell-agnostic); the status bar + tree indicator follow it, and clicking
+    the status bar reveals the cwd in the tree. Double-click a dir (or its "cd here" action)
+    sends a `cd` to the active terminal — kill-line prefixed so it never clobbers a half-typed
+    command, path shell-quoted.
+  - **Row actions**: copy absolute path, reveal in Finder, open with the OS default app.
+  - **Clickable paths** in terminal output (`src/foo.ts:42` from grep/test/tsc) → open in the
+    preview pane, resolved against that session's live cwd, workspace-scoped.
+  - **Content search**: ripgrep (`rg --json`, grep fallback) in a sidebar panel — grouped,
+    highlighted, regex + case toggles, click-through to preview.
+  - **Session recording**: save the live terminal as an asciicast v2 `.cast` into the
+    workspace (output only — input is never recorded), replays in the preview pane.
 
 ## Status
 
-v0.2 — terminal (tabs, reattach, flow control, WebGL) + explorer (tree, watch, upload/
-download/zip, rename/delete) + file preview pane working end-to-end. Next: ⌘K file jump,
-PWA manifest (standalone window frees Cmd+W/T), settings, `npm i -g` packaging, SSH-out.
+v0.3 — terminal (tabs, reattach, flow control, WebGL) + explorer (tree, watch, rename/delete)
++ preview pane + local-native integration (cwd sync, clickable paths, ripgrep search, session
+recordings) working end-to-end. Roadmap (Charm-inspired): freeze-style SVG export of selections,
+⌘K palette, glow-style markdown TOC, sequin escape-sequence inspector, git awareness, PWA
+manifest, `npm i -g` packaging, SSH-out.

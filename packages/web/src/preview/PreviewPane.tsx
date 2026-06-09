@@ -10,6 +10,7 @@ import {
 } from "./filetypes";
 import { MarkdownView } from "./MarkdownView";
 import { CsvView } from "./CsvView";
+import { CastView } from "./CastView";
 import { ShikiBlock } from "./shiki";
 
 function inlineUrl(path: string): string {
@@ -27,10 +28,12 @@ export function PreviewPane() {
         <span className="truncate text-[12px] text-ink-100" title={preview.path}>
           {preview.name}
         </span>
-        <span className="shrink-0 text-[11px] text-ink-500">{formatBytes(preview.size)}</span>
+        {preview.size !== undefined && (
+          <span className="shrink-0 text-[11px] text-ink-500">{formatBytes(preview.size)}</span>
+        )}
         <span className="ml-auto flex shrink-0 items-center gap-0.5">
-          <HeaderButton title="Download" onClick={() => downloadFile(preview)} d="M8 3v7m0 0L5 7m3 3l3-3M3 13h10" />
-          <HeaderButton title="Open in new tab" onClick={() => window.open(inlineUrl(preview.path), "_blank")} d="M6 3H3v10h10v-3M9 3h4v4M13 3L7 9" />
+          <HeaderButton title="Reveal in Finder" onClick={() => void api.openLocal(preview.path, true)} d="M2 5h4l1.5 1.5H14V12a1 1 0 01-1 1H3a1 1 0 01-1-1V5z" />
+          <HeaderButton title="Open with default app" onClick={() => void api.openLocal(preview.path)} d="M6 3H3v10h10v-3M9 3h4v4M13 3L7 9" />
           <HeaderButton title="Close preview" onClick={closePreview} d="M4 4l8 8m0-8l-8 8" />
         </span>
       </div>
@@ -41,17 +44,12 @@ export function PreviewPane() {
   );
 }
 
-function downloadFile(target: PreviewTarget) {
-  const a = document.createElement("a");
-  a.href = api.downloadUrl(target.path);
-  a.download = target.name;
-  a.click();
-}
-
 function PreviewBody({ target }: { target: PreviewTarget }) {
   const category = categorize(target.name);
 
   switch (category) {
+    case "cast":
+      return <CastView src={inlineUrl(target.path)} />;
     case "image":
       return (
         <div className="flex h-full items-center justify-center p-4">
@@ -85,6 +83,12 @@ function PreviewBody({ target }: { target: PreviewTarget }) {
   }
 }
 
+class TooLargeError extends Error {
+  constructor(readonly size: number) {
+    super("too large");
+  }
+}
+
 function TextPreview({
   target,
   category,
@@ -92,27 +96,39 @@ function TextPreview({
   target: PreviewTarget;
   category: "markdown" | "csv" | "code";
 }) {
-  const tooLarge = target.size > TEXT_SIZE_LIMIT;
+  const tooLarge = (target.size ?? 0) > TEXT_SIZE_LIMIT;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["preview", target.path],
     enabled: !tooLarge,
+    retry: false,
     queryFn: async () => {
-      const res = await fetch(inlineUrl(target.path));
+      // Range-capped fetch: when size is unknown (terminal link / search
+      // hit), this avoids pulling a multi-GB file into memory.
+      const res = await fetch(inlineUrl(target.path), {
+        headers: { Range: `bytes=0-${TEXT_SIZE_LIMIT - 1}` },
+      });
       if (!res.ok) throw new Error(`failed to load (${res.status})`);
+      const total = parseTotal(res.headers.get("content-range"));
+      if (total !== null && total > TEXT_SIZE_LIMIT) throw new TooLargeError(total);
       return res.text();
     },
   });
 
-  if (tooLarge)
+  if (tooLarge || error instanceof TooLargeError) {
+    const size = error instanceof TooLargeError ? error.size : target.size!;
     return (
       <Card>
-        too large to preview ({formatBytes(target.size)}) —
-        <button className="ml-1 text-accent hover:underline" onClick={() => downloadFile(target)}>
-          download
+        too large to preview ({formatBytes(size)}) —
+        <button
+          className="ml-1 text-accent hover:underline"
+          onClick={() => void api.openLocal(target.path)}
+        >
+          open with default app
         </button>
       </Card>
     );
+  }
   if (error) return <Card>{(error as Error).message}</Card>;
   if (isLoading || data === undefined)
     return <Card muted>loading…</Card>;
@@ -134,16 +150,32 @@ function BinaryCard({ target }: { target: PreviewTarget }) {
         <path d="M6 2h8l4 4v14a2 2 0 01-2 2H6a2 2 0 01-2-2V4a2 2 0 012-2zM14 2v4h4" strokeLinejoin="round" />
         <path d="M9 13h6M9 16h4" strokeLinecap="round" />
       </svg>
-      <div className="text-[12px]">{target.name} · {formatBytes(target.size)}</div>
+      <div className="text-[12px]">
+        {target.name}
+        {target.size !== undefined && <> · {formatBytes(target.size)}</>}
+      </div>
       <div className="text-[11px] text-ink-500">binary file — no preview</div>
-      <button
-        onClick={() => downloadFile(target)}
-        className="rounded border border-ink-700 px-3 py-1 text-[12px] hover:border-accent-dim hover:text-ink-100"
-      >
-        download
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={() => void api.openLocal(target.path)}
+          className="rounded border border-ink-700 px-3 py-1 text-[12px] hover:border-accent-dim hover:text-ink-100"
+        >
+          open
+        </button>
+        <button
+          onClick={() => void api.openLocal(target.path, true)}
+          className="rounded border border-ink-700 px-3 py-1 text-[12px] hover:border-accent-dim hover:text-ink-100"
+        >
+          reveal in Finder
+        </button>
+      </div>
     </div>
   );
+}
+
+function parseTotal(contentRange: string | null): number | null {
+  const m = contentRange ? /\/(\d+)$/.exec(contentRange) : null;
+  return m ? Number(m[1]) : null;
 }
 
 function Card({ children, muted }: { children: React.ReactNode; muted?: boolean }) {

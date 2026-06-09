@@ -1,9 +1,14 @@
 import { create } from "zustand";
-import type { SessionInfo } from "@webcode/protocol";
+import type { CwdPayload, SessionInfo } from "@webcode/protocol";
 import { api } from "../lib/api";
 
+export type SessionTab = SessionInfo & {
+  /** live workspace-relative cwd from the daemon's poller */
+  cwdLive?: CwdPayload;
+};
+
 interface SessionsState {
-  tabs: SessionInfo[];
+  tabs: SessionTab[];
   activeId: string | null;
   loaded: boolean;
   init: () => Promise<void>;
@@ -11,6 +16,7 @@ interface SessionsState {
   close: (id: string) => Promise<void>;
   setActive: (id: string) => void;
   setTitle: (id: string, title: string) => void;
+  setCwd: (id: string, cwd: CwdPayload) => void;
   markExited: (id: string) => void;
 }
 
@@ -48,6 +54,11 @@ export const useSessions = create<SessionsState>((set, get) => ({
   setTitle: (id, title) =>
     set((s) => ({
       tabs: s.tabs.map((t) => (t.id === id ? { ...t, title } : t)),
+    })),
+
+  setCwd: (id, cwd) =>
+    set((s) => ({
+      tabs: s.tabs.map((t) => (t.id === id ? { ...t, cwdLive: cwd } : t)),
     })),
 
   markExited: (id) =>

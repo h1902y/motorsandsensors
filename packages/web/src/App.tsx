@@ -6,6 +6,7 @@ import { fsEvents } from "./lib/fs-events";
 import { useSessions } from "./state/sessions";
 import { useExplorer } from "./state/explorer";
 import { FileTree } from "./explorer/FileTree";
+import { SearchPanel } from "./explorer/SearchPanel";
 import { TermView } from "./term/TermView";
 import { PreviewPane } from "./preview/PreviewPane";
 
@@ -37,7 +38,28 @@ export default function App() {
   }, [workspace.data, queryClient]);
 
   const preview = useExplorer((s) => s.preview);
+  const sidebarMode = useExplorer((s) => s.sidebarMode);
+  const setSidebarMode = useExplorer((s) => s.setSidebarMode);
+  const revealPath = useExplorer((s) => s.revealPath);
   const activeTab = tabs.find((t) => t.id === activeId);
+
+  const saveRecording = async () => {
+    if (!activeTab) return;
+    const stamp = new Date().toISOString().slice(11, 19).replace(/:/g, "");
+    const path = window.prompt(
+      "Save recording as (workspace-relative .cast):",
+      `recordings/${activeTab.title}-${stamp}.cast`,
+    );
+    if (!path) return;
+    try {
+      const res = await api.saveRecording(activeTab.id, path);
+      if (res.truncated) {
+        window.alert("Saved — note: the oldest output was dropped (buffer cap reached).");
+      }
+    } catch (err) {
+      window.alert(`Could not save recording: ${(err as Error).message}`);
+    }
+  };
   useEffect(() => {
     const name = workspace.data?.name ?? "webcode";
     document.title = activeTab ? `${activeTab.title} — ${name}` : name;
@@ -58,7 +80,26 @@ export default function App() {
     <div className="flex h-full flex-col">
       <Group orientation="horizontal" className="min-h-0 flex-1">
         <Panel defaultSize="22%" minSize="160px" maxSize="45%" className="bg-ink-900">
-          <FileTree />
+          <div className="flex h-full flex-col">
+            <div className="flex shrink-0 border-b border-ink-700">
+              {(["files", "search"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => setSidebarMode(mode)}
+                  className={`flex-1 py-1 text-[11px] uppercase tracking-wider ${
+                    sidebarMode === mode
+                      ? "border-b border-accent text-ink-100"
+                      : "text-ink-500 hover:text-ink-300"
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <div className="min-h-0 flex-1">
+              {sidebarMode === "files" ? <FileTree /> : <SearchPanel />}
+            </div>
+          </div>
         </Panel>
         <Separator className="w-px bg-ink-700 transition-colors hover:bg-accent-dim" />
         <Panel className="flex min-w-0 flex-col">
@@ -96,6 +137,16 @@ export default function App() {
             >
               +
             </button>
+            {activeTab && (
+              <button
+                onClick={() => void saveRecording()}
+                title="Save session recording (.cast) into the workspace"
+                className="ml-auto flex items-center gap-1.5 px-3 text-[11px] text-ink-500 hover:bg-ink-850 hover:text-danger"
+              >
+                <span className="h-2 w-2 rounded-full border border-current" />
+                rec
+              </button>
+            )}
           </div>
           {/* terminals — all kept mounted so sessions survive tab switches */}
           <div className="relative min-h-0 flex-1">
@@ -130,7 +181,23 @@ export default function App() {
       <div className="flex items-center gap-3 border-t border-ink-700 bg-ink-900 px-3 py-1 text-[11px] text-ink-500">
         <span className="text-accent-dim">❯_ webcode</span>
         <span className="truncate">{workspace.data?.root}</span>
-        <span className="ml-auto">{tabs.filter((t) => t.alive).length} session(s)</span>
+        {activeTab?.cwdLive && (
+          <button
+            title="Reveal in file tree"
+            onClick={() => {
+              if (!activeTab.cwdLive!.outside && activeTab.cwdLive!.cwd) {
+                setSidebarMode("files");
+                revealPath(activeTab.cwdLive!.cwd);
+              }
+            }}
+            className="truncate text-ink-300 hover:text-accent"
+          >
+            ❯ {activeTab.cwdLive.outside
+              ? `${activeTab.cwdLive.cwd} (outside workspace)`
+              : `./${activeTab.cwdLive.cwd}`}
+          </button>
+        )}
+        <span className="ml-auto shrink-0">{tabs.filter((t) => t.alive).length} session(s)</span>
       </div>
     </div>
   );

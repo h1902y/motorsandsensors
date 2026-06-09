@@ -1,10 +1,11 @@
-import { useMemo, useRef, type DragEvent } from "react";
-import { useQueries, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef } from "react";
+import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { FsEntry, ListResponse } from "@webcode/protocol";
+import { shellQuote, type ListResponse } from "@webcode/protocol";
 import { api } from "../lib/api";
 import { useExplorer } from "../state/explorer";
 import { useSessions } from "../state/sessions";
+import { termRegistry } from "../term/registry";
 
 interface Row {
   path: string;
@@ -76,8 +77,13 @@ export function FileTree() {
   const queryClient = useQueryClient();
   const { expanded, selected, toggle, select, openPreview } = useExplorer();
   const createSession = useSessions((s) => s.create);
+  const activeId = useSessions((s) => s.activeId);
+  const activeCwd = useSessions((s) => {
+    const tab = s.tabs.find((t) => t.id === s.activeId);
+    return tab?.cwdLive && !tab.cwdLive.outside ? tab.cwdLive.cwd : undefined;
+  });
+  const workspace = useQuery({ queryKey: ["workspace"], queryFn: api.workspace });
   const scrollRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const dirPaths = useMemo(() => ["", ...expanded].sort(), [expanded]);
 
@@ -137,53 +143,34 @@ export function FileTree() {
     void refreshDir(parentOf(row.path));
   };
 
-  const onDownload = (row: Row) => {
-    const a = document.createElement("a");
-    a.href = api.downloadUrl(row.path);
-    a.download = row.name;
-    a.click();
+  // ── local-native actions ───────────────────────────────────────────
+  const absOf = (rel: string) => {
+    const root = workspace.data?.root;
+    return root ? (rel ? `${root}/${rel}` : root) : rel;
   };
 
-  const uploadFiles = async (files: FileList | File[]) => {
-    for (const file of files) {
-      try {
-        await api.upload(selectedDir, file);
-      } catch (err) {
-        if ((err as { status?: number }).status === 409 && window.confirm(`${file.name} exists — overwrite?`)) {
-          await api.upload(selectedDir, file, true);
-        }
-      }
-    }
-    void refreshDir(selectedDir);
+  /** \x15 (kill-line) clears any half-typed input before injecting cd. */
+  const cdHere = (row: Row) => {
+    termRegistry.get(activeId)?.sendInput(`\x15cd ${shellQuote(absOf(row.path))}\r`);
   };
 
-  const onDrop = (ev: DragEvent) => {
-    ev.preventDefault();
-    if (ev.dataTransfer.files.length > 0) void uploadFiles(ev.dataTransfer.files);
-  };
+  const copyPath = (row: Row) => void navigator.clipboard.writeText(absOf(row.path));
+
+  // scroll to selection when revealPath (status bar / search) selects a row
+  useEffect(() => {
+    if (!selected) return;
+    const index = rows.findIndex((r) => r.path === selected);
+    if (index >= 0) virtualizer.scrollToIndex(index, { align: "auto" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected, rows.length]);
 
   return (
-    <div
-      className="flex h-full flex-col"
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={onDrop}
-    >
+    <div className="flex h-full flex-col">
       <div className="flex items-center gap-1 border-b border-ink-700 px-2 py-1.5 text-ink-300">
         <span className="mr-auto truncate text-[11px] uppercase tracking-wider">Files</span>
         <ToolbarButton title="New folder" onClick={onNewFolder} d="M8 4v8M4 8h8" />
-        <ToolbarButton title="Upload" onClick={() => fileInputRef.current?.click()} d="M8 12V4m0 0L5 7m3-3l3 3M3 13h10" />
         <ToolbarButton title="Refresh" onClick={() => queryClient.invalidateQueries({ queryKey: ["dir"] })} d="M13 8a5 5 0 11-1.5-3.5M13 3v2.5h-2.5" />
       </div>
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files) void uploadFiles(e.target.files);
-          e.target.value = "";
-        }}
-      />
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto py-1">
         <div className="relative" style={{ height: virtualizer.getTotalSize() }}>
           {virtualizer.getVirtualItems().map((vi) => {
@@ -205,6 +192,9 @@ export function FileTree() {
                   if (row.isDir) toggle(row.path);
                   else openPreview({ path: row.path, name: row.name, size: row.size });
                 }}
+                onDoubleClick={() => {
+                  if (row.isDir) cdHere(row);
+                }}
               >
                 {row.isDir ? (
                   <Chevron open={row.expanded} />
@@ -216,11 +206,22 @@ export function FileTree() {
                   {row.name}
                   {row.isSymlink && <span className="ml-1 text-ink-500">⤳</span>}
                 </span>
+                {activeCwd !== undefined && activeCwd === row.path && (
+                  <span
+                    title="active terminal is here"
+                    className="ml-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
+                  />
+                )}
                 <span className="ml-auto hidden shrink-0 items-center gap-1 group-hover:flex">
                   {row.isDir && (
-                    <RowButton title="Open terminal here" onClick={() => void createSession(row.path)} d="M3 4l4 4-4 4M8 12h5" />
+                    <>
+                      <RowButton title="cd here (active terminal)" onClick={() => cdHere(row)} d="M2 8h9m0 0L8 5m3 3l-3 3M13 3v10" />
+                      <RowButton title="Open terminal here" onClick={() => void createSession(row.path)} d="M3 4l4 4-4 4M8 12h5" />
+                    </>
                   )}
-                  <RowButton title="Download" onClick={() => onDownload(row)} d="M8 3v7m0 0L5 7m3 3l3-3M3 13h10" />
+                  <RowButton title="Copy path" onClick={() => copyPath(row)} d="M6 6h7v7H6zM3 10V3h7" />
+                  <RowButton title="Reveal in Finder" onClick={() => void api.openLocal(row.path, true)} d="M2 5h4l1.5 1.5H14V12a1 1 0 01-1 1H3a1 1 0 01-1-1V5zM8 8.5v3m0 0l-1.5-1.5M8 11.5L9.5 10" />
+                  <RowButton title="Open with default app" onClick={() => void api.openLocal(row.path)} d="M6 3H3v10h10v-3M9 3h4v4M13 3L7 9" />
                   <RowButton title="Rename" onClick={() => void onRename(row)} d="M11 3l2 2-7 7H4v-2l7-7z" />
                   <RowButton title="Delete" onClick={() => void onDelete(row)} d="M4 5h8m-7 0v7m3-7v7m3-7v7M6 5V3h4v2" danger />
                 </span>

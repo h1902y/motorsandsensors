@@ -6,6 +6,7 @@ export type PreviewCategory =
   | "video"
   | "audio"
   | "csv"
+  | "cast"
   | "binary";
 
 /** Text previews above this size show a "too large" card instead. */
@@ -110,6 +111,7 @@ export function categorize(name: string): PreviewCategory {
   const lower = name.toLowerCase();
   const ext = extOf(lower);
   if (MARKDOWN.has(ext)) return "markdown";
+  if (ext === "cast") return "cast";
   if (IMAGE.has(ext)) return "image";
   if (ext === "pdf") return "pdf";
   if (VIDEO.has(ext)) return "video";

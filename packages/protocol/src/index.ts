@@ -33,8 +33,16 @@ export const ServerOp = {
   Replay: 0x02,
   /** payload: JSON TitlePayload */
   Title: 0x03,
+  /** payload: JSON CwdPayload — the shell's working directory changed */
+  Cwd: 0x04,
 } as const;
 export type ServerOp = (typeof ServerOp)[keyof typeof ServerOp];
+
+export interface CwdPayload {
+  /** workspace-relative ("" = root) unless outside is true, then absolute */
+  cwd: string;
+  outside?: boolean;
+}
 
 export interface ResizePayload {
   cols: number;
@@ -69,6 +77,11 @@ export interface SessionInfo {
   /** true while the PTY process is alive */
   alive: boolean;
   createdAt: number;
+}
+
+export interface SaveRecordingRequest {
+  /** workspace-relative path for the .cast file */
+  path: string;
 }
 
 export interface CreateSessionRequest {
@@ -129,4 +142,40 @@ export type FsServerMessage = {
 
 export interface ApiError {
   error: string;
+}
+
+// ── Content search (GET /api/search) ────────────────────────────────────
+export interface SearchMatch {
+  line: number;
+  text: string;
+  /** [start, end) byte offsets of match highlights within text */
+  ranges: [number, number][];
+}
+
+export interface SearchFileResult {
+  path: string;
+  matches: SearchMatch[];
+}
+
+export interface SearchResponse {
+  results: SearchFileResult[];
+  total: number;
+  truncated: boolean;
+  engine: "rg" | "grep";
+}
+
+/**
+ * POSIX single-quote escaping for paths injected into the terminal
+ * (e.g. the tree's "cd here" action): wraps in single quotes, with embedded
+ * single quotes as '\'' so the shell never interprets the content.
+ */
+export function shellQuote(s: string): string {
+  return `'${s.replace(/'/g, `'\\''`)}'`;
+}
+
+// ── Local open (POST /api/fs/open) ──────────────────────────────────────
+export interface OpenRequest {
+  path: string;
+  /** reveal in the system file manager instead of opening the file */
+  reveal?: boolean;
 }

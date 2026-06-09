@@ -1,5 +1,7 @@
 import os from "node:os";
 import crypto from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import pty from "@lydell/node-pty";
 import type { IPty } from "@lydell/node-pty";
 import xtermHeadless from "@xterm/headless";
@@ -14,11 +16,41 @@ import {
   ServerOp,
   FLOW_HIGH_WATER,
   FLOW_LOW_WATER,
+  type CwdPayload,
   type SessionInfo,
 } from "@webcode/protocol";
 import { encodeFrame } from "./frames.js";
+import { toRel } from "./safe-path.js";
+
+const execFileAsync = promisify(execFile);
 
 const SCROLLBACK = 10_000;
+const CWD_POLL_MS = 2_500;
+/** asciicast ring buffer caps */
+const REC_MAX_BYTES = 2 * 1024 * 1024;
+const REC_MAX_EVENTS = 10_000;
+
+type CastEvent = [number, "o" | "r", string];
+
+/** Resolve the live working directory of a process, shell-agnostically. */
+async function processCwd(pid: number): Promise<string | null> {
+  try {
+    if (process.platform === "linux") {
+      const { stdout } = await execFileAsync("readlink", [`/proc/${pid}/cwd`], { timeout: 1000 });
+      return stdout.trim() || null;
+    }
+    // darwin: -Fn prints "p<pid>" then "n<path>" lines
+    const { stdout } = await execFileAsync(
+      "lsof",
+      ["-a", "-p", String(pid), "-d", "cwd", "-Fn"],
+      { timeout: 2000 },
+    );
+    const line = stdout.split("\n").find((l) => l.startsWith("n"));
+    return line ? line.slice(1) : null;
+  } catch {
+    return null;
+  }
+}
 
 function pickShell(): string {
   if (process.platform === "win32") return process.env.COMSPEC ?? "cmd.exe";
@@ -40,6 +72,8 @@ export class Session {
   readonly createdAt = Date.now();
   title: string;
   alive = true;
+  /** live working directory of the shell (absolute) */
+  cwdAbs: string;
   private readonly pty: IPty;
   private readonly mirror: HeadlessTerminal;
   private readonly serializer = new SerializeAddon();
@@ -47,13 +81,21 @@ export class Session {
   private inflight = 0;
   private paused = false;
   private exitPayload: string | null = null;
+  private cwdTimer: NodeJS.Timeout | null = null;
+  private cwdPolling = false;
+  // asciicast v2 ring buffer ("o" + "r" only — input is never recorded)
+  private readonly castEvents: CastEvent[] = [];
+  private castBytes = 0;
+  castTruncated = false;
 
   constructor(
     readonly cwd: string,
+    private readonly root: string,
     cols = 80,
     rows = 24,
     private readonly onUpdate: () => void,
   ) {
+    this.cwdAbs = cwd;
     const shell = pickShell();
     this.title = shell.split("/").pop() ?? shell;
     this.mirror = new Terminal({ cols, rows, scrollback: SCROLLBACK, allowProposedApi: true });
@@ -73,6 +115,7 @@ export class Session {
 
     this.pty.onData((data) => {
       this.mirror.write(data);
+      this.recordEvent("o", data);
       const proc = this.pty.process;
       if (proc && proc !== this.title) {
         this.title = proc;
@@ -107,16 +150,87 @@ export class Session {
     this.resetFlow();
     const snapshot = this.serializer.serialize({ scrollback: SCROLLBACK });
     ws.send(encodeFrame(ServerOp.Replay, snapshot));
+    ws.send(encodeFrame(ServerOp.Cwd, JSON.stringify(this.cwdPayload())));
     if (!this.alive && this.exitPayload) {
       ws.send(encodeFrame(ServerOp.Exit, this.exitPayload));
     }
+    this.startCwdPolling();
   }
 
   detach(ws: WebSocket): void {
     if (this.socket === ws) {
       this.socket = null;
       this.resetFlow();
+      this.stopCwdPolling();
     }
+  }
+
+  // ── cwd tracking ───────────────────────────────────────────────────
+
+  private cwdPayload(): CwdPayload {
+    const inside =
+      this.cwdAbs === this.root || this.cwdAbs.startsWith(this.root + "/");
+    return inside
+      ? { cwd: toRel(this.root, this.cwdAbs) }
+      : { cwd: this.cwdAbs, outside: true };
+  }
+
+  private startCwdPolling(): void {
+    if (this.cwdTimer || !this.alive) return;
+    this.cwdTimer = setInterval(() => {
+      if (this.cwdPolling) return;
+      this.cwdPolling = true;
+      void processCwd(this.pty.pid)
+        .then((dir) => {
+          if (dir && dir !== this.cwdAbs) {
+            this.cwdAbs = dir;
+            this.send(encodeFrame(ServerOp.Cwd, JSON.stringify(this.cwdPayload())));
+            this.onUpdate();
+          }
+        })
+        .finally(() => {
+          this.cwdPolling = false;
+        });
+    }, CWD_POLL_MS);
+  }
+
+  private stopCwdPolling(): void {
+    if (this.cwdTimer) {
+      clearInterval(this.cwdTimer);
+      this.cwdTimer = null;
+    }
+  }
+
+  // ── asciicast recording ────────────────────────────────────────────
+
+  private recordEvent(code: "o" | "r", data: string): void {
+    this.castEvents.push([(Date.now() - this.createdAt) / 1000, code, data]);
+    this.castBytes += data.length;
+    while (
+      this.castEvents.length > REC_MAX_EVENTS ||
+      (this.castBytes > REC_MAX_BYTES && this.castEvents.length > 1)
+    ) {
+      const dropped = this.castEvents.shift()!;
+      this.castBytes -= dropped[2].length;
+      this.castTruncated = true;
+    }
+  }
+
+  /** Serialize the buffer as asciicast v2 (NDJSON). */
+  recording(): string {
+    const header = {
+      version: 2,
+      width: this.pty.cols,
+      height: this.pty.rows,
+      timestamp: Math.floor(this.createdAt / 1000),
+      title: `webcode — ${this.title}`,
+      env: { SHELL: process.env.SHELL ?? "", TERM: "xterm-256color" },
+    };
+    const lines = [JSON.stringify(header)];
+    for (const ev of this.castEvents) {
+      lines.push(JSON.stringify([Math.round(ev[0] * 1000) / 1000, ev[1], ev[2]]));
+    }
+    return lines.join("\n") + "\n";
   }
 
   write(data: string): void {
@@ -128,6 +242,7 @@ export class Session {
     if (cols < 2 || rows < 1 || cols > 1000 || rows > 1000) return;
     this.mirror.resize(cols, rows);
     if (this.alive) this.pty.resize(cols, rows);
+    this.recordEvent("r", `${cols}x${rows}`);
   }
 
   /** Client reports bytes it has finished rendering. */
@@ -156,6 +271,7 @@ export class Session {
   }
 
   kill(): void {
+    this.stopCwdPolling();
     this.socket?.close(1000, "session closed");
     this.socket = null;
     if (this.alive) {
@@ -172,7 +288,7 @@ export class Session {
     return {
       id: this.id,
       title: this.title,
-      cwd: this.cwd,
+      cwd: this.cwdAbs,
       alive: this.alive,
       createdAt: this.createdAt,
     };
@@ -185,7 +301,7 @@ export class SessionManager {
   constructor(private readonly defaultCwd: string = os.homedir()) {}
 
   create(cwd?: string, cols?: number, rows?: number): Session {
-    const session = new Session(cwd ?? this.defaultCwd, cols, rows, () => {});
+    const session = new Session(cwd ?? this.defaultCwd, this.defaultCwd, cols, rows, () => {});
     this.sessions.set(session.id, session);
     return session;
   }

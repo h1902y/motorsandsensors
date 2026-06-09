@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import { Readable, Writable } from "node:stream";
-import { pipeline } from "node:stream/promises";
+import { spawn } from "node:child_process";
+import { Readable } from "node:stream";
 import { Hono } from "hono";
 import { ZipArchive } from "archiver";
 import type {
@@ -11,6 +11,7 @@ import type {
   FsEntry,
   ListResponse,
   MkdirRequest,
+  OpenRequest,
   RenameRequest,
 } from "@webcode/protocol";
 import { PathError, resolveSafe, toRel } from "./safe-path.js";
@@ -193,28 +194,25 @@ export function createFsApi(root: string): Hono {
     return new Response(Readable.toWeb(fs.createReadStream(abs)) as ReadableStream, { headers });
   });
 
-  app.post("/upload", async (c) => {
-    const dir = await resolveSafe(root, c.req.query("dir") ?? "");
-    const name = c.req.query("name") ?? "";
-    if (!name || name.includes("/") || name.includes("\\") || name === "." || name === "..") {
-      return c.json({ error: "invalid file name" }, 400);
+  // Open with the OS default app, or reveal in the system file manager —
+  // the local-native replacement for download/upload.
+  app.post("/open", async (c) => {
+    const body = await c.req.json<OpenRequest>();
+    const abs = await resolveSafe(root, body.path ?? "");
+    await fsp.access(abs); // 404 if missing
+    let cmd: string;
+    let args: string[];
+    if (process.platform === "darwin") {
+      cmd = "open";
+      args = body.reveal ? ["-R", abs] : [abs];
+    } else if (process.platform === "win32") {
+      cmd = "explorer";
+      args = body.reveal ? [`/select,${abs}`] : [abs];
+    } else {
+      cmd = "xdg-open";
+      args = [body.reveal ? path.dirname(abs) : abs];
     }
-    const target = await resolveSafe(root, path.posix.join(toRel(root, dir) || ".", name));
-    if (c.req.query("overwrite") !== "1") {
-      try {
-        await fsp.access(target);
-        return c.json({ error: "file exists" }, 409);
-      } catch {
-        // does not exist — good
-      }
-    }
-    const body = c.req.raw.body;
-    if (!body) return c.json({ error: "empty body" }, 400);
-    await fsp.mkdir(path.dirname(target), { recursive: true });
-    await pipeline(
-      Readable.fromWeb(body as import("node:stream/web").ReadableStream),
-      fs.createWriteStream(target),
-    );
+    spawn(cmd, args, { stdio: "ignore", detached: true }).unref();
     return c.json({ ok: true });
   });
 

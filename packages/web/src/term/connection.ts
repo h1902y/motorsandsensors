@@ -1,5 +1,5 @@
 import type { Terminal } from "@xterm/xterm";
-import { ACK_INTERVAL, ClientOp, ServerOp } from "@webcode/protocol";
+import { ACK_INTERVAL, ClientOp, ServerOp, type CwdPayload } from "@webcode/protocol";
 import { wsUrl } from "../lib/api";
 
 const encoder = new TextEncoder();
@@ -17,6 +17,7 @@ export interface ConnectionEvents {
   onTitle: (title: string) => void;
   onExit: (exitCode: number) => void;
   onStatus: (status: "connecting" | "open" | "reconnecting" | "closed") => void;
+  onCwd: (cwd: CwdPayload) => void;
 }
 
 /**
@@ -76,6 +77,9 @@ export class TermConnection {
           this.events.onTitle(title);
           break;
         }
+        case ServerOp.Cwd:
+          this.events.onCwd(JSON.parse(decoder.decode(payload)) as CwdPayload);
+          break;
       }
     };
 

@@ -10,12 +10,17 @@ import { getCookie, setCookie } from "hono/cookie";
 import { serve } from "@hono/node-server";
 import type { ServerType } from "@hono/node-server";
 import { WebSocketServer } from "ws";
-import type { CreateSessionRequest, WorkspaceInfo } from "@webcode/protocol";
+import type {
+  CreateSessionRequest,
+  SaveRecordingRequest,
+  WorkspaceInfo,
+} from "@webcode/protocol";
 import { SessionManager } from "./sessions.js";
 import { createFsApi } from "./fs-api.js";
+import { search } from "./search.js";
 import { handleTermSocket } from "./ws-term.js";
 import { handleFsSocket } from "./ws-fs.js";
-import { safeJoin } from "./safe-path.js";
+import { PathError, resolveSafe, safeJoin } from "./safe-path.js";
 
 const AUTH_COOKIE = "webcode_auth";
 const COOKIE_MAX_AGE = 30 * 24 * 3600;
@@ -150,6 +155,50 @@ export class WebcodeServer {
     app.delete("/api/sessions/:id", (c) => {
       const ok = this.sessions.close(c.req.param("id"));
       return ok ? c.json({ ok: true }) : c.json({ error: "no such session" }, 404);
+    });
+
+    // Save the session's output ring buffer as an asciicast v2 file INSIDE
+    // the workspace — it shows up in the tree and replays in the preview.
+    app.post("/api/sessions/:id/recording", async (c) => {
+      const session = this.sessions.get(c.req.param("id"));
+      if (!session) return c.json({ error: "no such session" }, 404);
+      let body: SaveRecordingRequest;
+      try {
+        body = await c.req.json<SaveRecordingRequest>();
+      } catch {
+        return c.json({ error: "path required" }, 400);
+      }
+      if (!body.path?.endsWith(".cast")) return c.json({ error: "path must end in .cast" }, 400);
+      let abs: string;
+      try {
+        abs = await resolveSafe(cfg.root, body.path);
+      } catch (err) {
+        if (err instanceof PathError) return c.json({ error: err.message }, 403);
+        throw err;
+      }
+      await fsp.mkdir(path.dirname(abs), { recursive: true });
+      await fsp.writeFile(abs, session.recording(), "utf8");
+      return c.json({ ok: true, path: body.path, truncated: session.castTruncated });
+    });
+
+    app.get("/api/search", async (c) => {
+      const query = c.req.query("q") ?? "";
+      if (!query) return c.json({ error: "q required" }, 400);
+      let searchRoot: string;
+      try {
+        searchRoot = await resolveSafe(cfg.root, c.req.query("path") ?? "");
+      } catch (err) {
+        if (err instanceof PathError) return c.json({ error: err.message }, 403);
+        throw err;
+      }
+      const res = await search({
+        query,
+        searchRoot,
+        root: cfg.root,
+        regex: c.req.query("regex") === "1",
+        caseSensitive: c.req.query("case") === "1",
+      });
+      return c.json(res);
     });
 
     app.route("/api/fs", createFsApi(cfg.root));

@@ -6,8 +6,13 @@ import { SearchAddon } from "@xterm/addon-search";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
+import { useQueryClient } from "@tanstack/react-query";
+import type { WorkspaceInfo } from "@webcode/protocol";
 import { TermConnection } from "./connection";
+import { termRegistry } from "./registry";
+import { registerPathLinks } from "./links";
 import { useSessions } from "../state/sessions";
+import { useExplorer } from "../state/explorer";
 
 const FONT_FAMILY = '"JetBrains Mono Variable", ui-monospace, Menlo, monospace';
 
@@ -43,7 +48,9 @@ export function TermView({ sessionId, active }: { sessionId: string; active: boo
   const [status, setStatus] = useState<Status>("connecting");
   const [exitCode, setExitCode] = useState<number | null>(null);
   const setTitle = useSessions((s) => s.setTitle);
+  const setCwd = useSessions((s) => s.setCwd);
   const markExited = useSessions((s) => s.markExited);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const host = hostRef.current;
@@ -78,6 +85,19 @@ export function TermView({ sessionId, active }: { sessionId: string; active: boo
         markExited(sessionId);
       },
       onStatus: setStatus,
+      onCwd: (cwd) => setCwd(sessionId, cwd),
+    });
+    termRegistry.set(sessionId, conn);
+
+    const linkDisposable = registerPathLinks(term, {
+      rootAbs: () =>
+        queryClient.getQueryData<WorkspaceInfo>(["workspace"])?.root,
+      cwdRel: () => {
+        const tab = useSessions.getState().tabs.find((t) => t.id === sessionId);
+        if (!tab?.cwdLive || tab.cwdLive.outside) return undefined;
+        return tab.cwdLive.cwd;
+      },
+      openPreview: (rel) => useExplorer.getState().openPreviewPath(rel),
     });
 
     term.onData((data) => conn.sendInput(data));
@@ -116,11 +136,13 @@ export function TermView({ sessionId, active }: { sessionId: string; active: boo
     return () => {
       disposed = true;
       ro.disconnect();
+      linkDisposable.dispose();
+      termRegistry.delete(sessionId);
       conn.dispose();
       term.dispose();
       termRef.current = null;
     };
-  }, [sessionId, setTitle, markExited]);
+  }, [sessionId, setTitle, setCwd, markExited, queryClient]);
 
   useEffect(() => {
     if (active) termRef.current?.focus();
