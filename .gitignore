@@ -12,3 +12,8 @@ experiments/**/out/
 .mns/traces/
 # Transient liveness state for in-flight sessions (like .git/ session state).
 .mns/live/
+
+# Local host-enablement config written by `mns enable` (regenerable; not ours to track)
+.opencode/
+.claude/settings.json
+.claude/settings.local.json

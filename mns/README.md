@@ -6,7 +6,7 @@ Verb-first, entire.io-style, **zero dependencies, no build**. The user-facing su
 mns status                  # detected hosts + recorded sessions
 mns capture [--host NAME]   # capture a session → git-native trace + index entry
 mns trace [--last | FILE]   # print a captured trace's span tree
-mns enable | disable        # turn live, invisible capture on/off (hooks)
+mns enable | disable        # live, invisible capture on/off — Claude hooks, or --host opencode (plugin)
 mns hook <Event>            # internal: the callback Claude Code's hooks invoke
 mns doctor                  # environment + session health (reconciles lost sessions)
 mns version | help
