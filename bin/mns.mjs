@@ -17,6 +17,8 @@ import { status } from '../mns/commands/status.mjs';
 import { capture } from '../mns/commands/capture.mjs';
 import { trace } from '../mns/commands/trace.mjs';
 import { doctor } from '../mns/commands/doctor.mjs';
+import { enable, disable } from '../mns/commands/enable.mjs';
+import { runHook } from '../mns/commands/hook.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -43,12 +45,14 @@ usage: mns <command> [options]
   capture [--host NAME]     capture a session → .mns/traces + .mns/sessions.json
           [--session ID] [--file PATH]
   trace [--last | FILE]     print a captured trace's span tree
-  doctor                    environment + session health
+  enable                    install background hooks → invisible live capture
+  disable                   remove the background hooks
+  doctor                    environment + session health (reconciles lost sessions)
   version                   print version
   help                      this message
 
-Phase 1 captures from existing transcripts (post-hoc). Live, invisible capture
-across the session lifecycle (\`mns enable\`) is planned — see QUICKSTART.md.`);
+\`mns capture\` works post-hoc on existing transcripts. \`mns enable\` turns on
+live, invisible capture across the session lifecycle — see QUICKSTART.md.`);
 }
 
 const [cmd, ...rest] = process.argv.slice(2);
@@ -58,6 +62,9 @@ switch (cmd) {
   case 'status': status(); break;
   case 'capture': capture(args); break;
   case 'trace': trace(args); break;
+  case 'enable': enable(); break;
+  case 'disable': disable(); break;
+  case 'hook': runHook(args._[0]); break;
   case 'doctor': doctor(); break;
   case 'version': case '--version': case '-v': version(); break;
   case undefined: case 'help': case '--help': case '-h': help(); break;

@@ -1,11 +1,8 @@
-// `mns capture` — parse a host transcript, write a git-native trace + session record.
+// `mns capture` — post-hoc: parse a host transcript into a git-native trace + record.
 
 import { ADAPTERS, byName, detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
-import { eventsToSpans } from '../../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { toExportRequest } from '../../experiments/experiment-1-trace-capture/core/otlp.mjs';
-import { EventKind, Status } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
-import { makeSession } from '../session.mjs';
-import { writeTrace, upsertSession, gitInfo, paths } from '../store.mjs';
+import { captureTrace } from '../capture-core.mjs';
+import { paths } from '../store.mjs';
 
 function chooseRef(adapter, args) {
   if (args.file) return args.file;
@@ -23,29 +20,7 @@ export function capture(args) {
     process.exit(1);
   }
 
-  const trace = adapter.parse(chooseRef(adapter, args));
-  const { traceId, spans } = eventsToSpans(trace);
-  const request = toExportRequest({ traceId, spans }, { host: trace.host, sessionId: trace.sessionId });
-  const traceRef = writeTrace(trace.host, trace.sessionId, [request]);
-
-  const root = trace.events.find((e) => e.kind === EventKind.SESSION) || trace.events[0];
-  const counts = {
-    turns: trace.events.filter((e) => e.kind === EventKind.TURN).length,
-    tools: trace.events.filter((e) => e.kind === EventKind.TOOL_CALL).length,
-    errors: trace.events.filter((e) => e.kind === EventKind.TOOL_CALL && e.status === Status.ERROR).length,
-  };
-  const record = makeSession({
-    id: trace.sessionId,
-    host: trace.host,
-    startedAt: new Date(root.startMs).toISOString(),
-    endedAt: new Date(root.endMs).toISOString(),
-    traceId,
-    traceRef,
-    git: gitInfo(),
-    counts,
-  });
-  upsertSession(record);
-
+  const { record, spans, traceRef, counts } = captureTrace({ adapter, ref: chooseRef(adapter, args) });
   const { index } = paths();
   console.log(`captured ${record.host} session ${record.id}`);
   console.log(`  status   : ${record.status}`);
