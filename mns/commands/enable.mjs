@@ -48,12 +48,15 @@ function writeSettings(path, obj) {
   writeFileSync(path, JSON.stringify(obj, null, 2) + '\n');
 }
 
-// --- OpenCode: install a project plugin (.opencode/plugin/mns.js) that fires the
-// mns hook on lifecycle events. Spawns the real node (with node:sqlite), not bun.
+// --- OpenCode: install a project plugin (.opencode/plugins/mns.js) that fires the
+// mns hook on lifecycle events + gates tools. Spawns the real node (with node:sqlite), not bun.
+// plural dir (.opencode/plugins/) is the documented default; singular (.opencode/plugin/) also loads
+// but we migrate to plural on enable and clean both on disable.
 const NODE = process.execPath;
-const opencodePluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugin', 'mns.js');
-const opencodePlugin = () => `// installed by \`mns enable --host opencode\` — live capture shim (graceful: never throws into OpenCode).
-import { spawn } from "node:child_process";
+const opencodePluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugins', 'mns.js');
+const opencodeLegacyPluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugin', 'mns.js'); // pre-2026-06 singular
+const opencodePlugin = () => `// installed by \`mns enable --host opencode\` — live capture + guardrails gate (graceful: never breaks OpenCode).
+import { spawn, spawnSync } from "node:child_process";
 const NODE = ${JSON.stringify(NODE)};
 const MNS = ${JSON.stringify(BIN)};
 const fire = (event, id) => { try { spawn(NODE, [MNS, "hook", event, "--host", "opencode", "--session", id], { stdio: "ignore", detached: true }).unref(); } catch {} };
@@ -67,7 +70,54 @@ export const Mns = async () => ({
       else if (event.type === "session.deleted") fire("session.deleted", id);
     } catch {}
   },
+  // The guardrails gate: tool.execute.before fires for every tool (real-wire verified).
+  // input = { tool, sessionID, callID }; output = { args }. Throw to block. Fail-open.
+  "tool.execute.before": async (input, output) => {
+    let deny = null;
+    try {
+      const payload = JSON.stringify({ tool_name: input?.tool, tool_input: output?.args, session_id: input?.sessionID });
+      const res = spawnSync(NODE, [MNS, "hook", "PreToolUse", "--host", "opencode"], { input: payload, encoding: "utf8", timeout: 5000 });
+      const out = (res && res.stdout) || "";
+      let decision = null;
+      for (const line of out.split("\\n")) { const t = line.trim(); if (t.startsWith("{")) { try { decision = JSON.parse(t); } catch {} } }
+      if (decision && decision.decision === "deny") deny = decision.reason || "blocked by mns guardrail";
+    } catch { /* any gate/spawn error fails OPEN (deny stays null → tool proceeds) */ }
+    // Throw OUTSIDE the try: only an intentional deny blocks; an engine error can never be mistaken for one.
+    if (deny) throw new Error(deny);
+  },
 });
+`;
+
+const piExtPath = (cwd) => join(repoRoot(cwd), '.pi', 'extensions', 'mns.ts');
+const piExtension = () => `// installed by \`mns enable --host pi\` — live capture + guardrails gate (graceful: never breaks pi).
+import { spawn, spawnSync } from "node:child_process";
+const NODE = ${JSON.stringify(NODE)};
+const MNS = ${JSON.stringify(BIN)};
+export default function (pi) {
+  const fire = (event, ctx) => {
+    try {
+      const file = ctx?.sessionManager?.getSessionFile?.();
+      if (!file) return;
+      spawn(NODE, [MNS, "hook", event, "--host", "pi", "--session", file], { stdio: "ignore", detached: true }).unref();
+    } catch {}
+  };
+  pi.on("session_start", async (_e, ctx) => fire("session_start", ctx));
+  pi.on("turn_end", async (_e, ctx) => fire("turn_end", ctx));
+  pi.on("session_shutdown", async (_e, ctx) => fire("session_shutdown", ctx));
+  // gate: tool_call → run the shared mns gate; block on deny. Fail-open.
+  pi.on("tool_call", async (event, ctx) => {
+    try {
+      const file = ctx?.sessionManager?.getSessionFile?.();
+      const payload = JSON.stringify({ tool_name: event?.toolName, tool_input: event?.input, session_id: file });
+      const res = spawnSync(NODE, [MNS, "hook", "PreToolUse", "--host", "pi"], { input: payload, encoding: "utf8", timeout: 5000 });
+      const out = (res && res.stdout) || "";
+      let decision = null;
+      for (const line of out.split("\\n")) { const t = line.trim(); if (t.startsWith("{")) { try { decision = JSON.parse(t); } catch {} } }
+      if (decision && decision.decision === "deny") return { block: true, reason: decision.reason || "blocked by mns guardrail" };
+    } catch {}
+    return undefined; // allow / no-match / any error → proceed (fail-open)
+  });
+}
 `;
 
 export function enable(args = {}) {
@@ -86,11 +136,24 @@ export function enable(args = {}) {
     const path = opencodePluginPath();
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, opencodePlugin());
-    console.log('mns enabled for OpenCode — live capture plugin installed');
+    const legacy = opencodeLegacyPluginPath();
+    if (existsSync(legacy)) rmSync(legacy, { force: true }); // migrate singular → plural
+    console.log('mns enabled for OpenCode — live capture + guardrails gate installed');
     console.log(`  plugin : ${path}`);
-    console.log('  events : session.created → active · session.idle → re-capture (per turn)');
+    console.log('  events : session.created/idle/deleted (capture) · tool.execute.before (gate)');
     console.log('  note   : no clean end signal — ended/killed sessions reconcile via `mns doctor`');
     console.log('  scope  : new OpenCode sessions in this repo; disable: mns disable --host opencode');
+    return;
+  }
+  if (args.host === 'pi') {
+    const path = piExtPath();
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, piExtension());
+    console.log('mns enabled for pi — live capture + guardrails gate installed');
+    console.log(`  extension : ${path}`);
+    console.log('  events    : session_start/turn_end/session_shutdown (capture) · tool_call (gate)');
+    console.log('  note      : headless `pi -p` needs `--approve` to load project extensions; no clean end → `mns doctor` reconciles');
+    console.log('  disable   : mns disable --host pi');
     return;
   }
   const path = settingsPath();
@@ -111,9 +174,17 @@ export function disable(args = {}) {
     return;
   }
   if ((args.host || 'claude-code') === 'opencode') {
-    const path = opencodePluginPath();
-    if (existsSync(path)) rmSync(path, { force: true });
-    console.log(`mns disabled for OpenCode — plugin removed (${path})`);
+    let removed = false;
+    for (const p of [opencodePluginPath(), opencodeLegacyPluginPath()]) {
+      if (existsSync(p)) { rmSync(p, { force: true }); removed = true; }
+    }
+    console.log(removed ? 'mns disabled for OpenCode — plugin removed' : 'nothing to disable (no OpenCode plugin)');
+    return;
+  }
+  if (args.host === 'pi') {
+    const path = piExtPath();
+    if (existsSync(path)) { rmSync(path, { force: true }); console.log(`mns disabled for pi — extension removed (${path})`); }
+    else console.log('nothing to disable (no pi extension)');
     return;
   }
   const path = settingsPath();

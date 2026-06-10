@@ -637,3 +637,46 @@ A throwaway `mns/live/probe.mjs` recorded exactly what each host hands a hook (a
 
 - All **four** hosts now have live capture; **all four** have an enforced PreToolUse-equivalent gate (Claude, OpenCode, Gemini, Codex). The Stage-1 wrapper is no longer "thinner on Gemini/Codex" — it's parity, host-honestly scoped (Codex interactive-only).
 - **The real-wire-data rule paid for itself five times:** project-level Gemini hooks work (docs silent), Codex exec fires nothing (docs implied otherwise), repo-local Codex hooks work interactively (#17532 is exec-only), the probe stdin-blocking hang, and the pre-existing quoted-`SIGNATURE` bug — none visible from docs, all caught by observing + dogfooding real runs.
+
+---
+
+## Experiment 12 — OpenCode gate + pi as a host: capture + gate (2026-06-10)
+
+**Hypothesis:** close the last gate rung (OpenCode) and bring **pi** (`@earendil-works/pi-coding-agent`) to capture+gate parity as a 5th wrapped host — each wired from *real* captured payloads, not docs.
+
+> **Correction to exp-11:** that entry's conclusion claimed all four hosts already had an enforced gate "(Claude, OpenCode, Gemini, Codex)". That overstated OpenCode — its gate did **not** exist until this experiment. exp-11 shipped OpenCode *capture* only; the OpenCode *gate* is delivered here.
+
+### Method — doc-read THEN probe (real-wire), and the credential saga
+
+Both hosts ship detailed docs on disk (OpenCode: `@opencode-ai/plugin` types; pi: `docs/extensions.md`/`sdk.md`/`session-format.md`) — read first, so the API shape was doc-verified before probing. Then Phase-0 probes confirmed behavior on the installed binaries. The probes were initially **blocked by dead model credentials** — OpenCode Zen key `Invalid API key`, pi's Google key `429 quota exceeded (free-tier=0)` — which masked as "headless hangs." Once an **OpenRouter** key was added to both and an ultracheap model used (`openrouter/google/gemini-2.5-flash`), both probed cleanly. Goldens: `tests/fixtures/hooks/{opencode,pi}.probe.jsonl`.
+
+### What the probes overturned (why real-wire matters, again)
+
+- **OpenCode `permission.ask` does NOT fire for auto-allowed tools** — only `tool.execute.before` fires for every tool. The doc-derived plan had `permission.ask` as the primary gate; the probe flipped it to **`tool.execute.before` throw-on-deny**.
+- **A web-sourced "bug" was false on the installed version:** the claim that `session.created`/`deleted` carry the id only at `properties.info.id` — on OpenCode 1.16.2 `properties.sessionID` is present on **every** session event. Existing capture was already correct; no "fix" applied. (Both `.opencode/plugin/` and `.opencode/plugins/` load; standardized on the documented plural.)
+- **pi's tool result is a `message` with `role:"toolResult"`** (not a distinct entry type the plan guessed) — the adapter was built against the real session file.
+
+### What was built
+
+- **OpenCode gate** (`enable.mjs`): the plugin (now `.opencode/plugins/mns.js`) gained a `tool.execute.before(input,output)` handler — `input.tool`/`input.sessionID`, args on `output.args` — that `spawnSync`s the shared mns gate and **throws on deny** (5 s timeout; fail-open: only an intentional `guardrail …` deny re-throws, every other error proceeds). Capture unchanged. `hook.mjs`: opencode joins the `{decision}` serializer + reads stdin for the gate event (lifecycle stays `--session`).
+- **pi as the 5th host:** a new adapter (`adapters/pi.mjs`) parses pi's session JSONL (`{type:"session",…}` header + `id`/`parentId` tree → SESSION→TURN→TOOL, real durations from paired `toolResult` messages); registered in `registry.mjs`. `enable --host pi` writes `.pi/extensions/mns.ts` (`.ts` loads natively via jiti) — capture on `session_start`/`turn_end`/`session_shutdown` (path via `ctx.sessionManager.getSessionFile()`), gate on `tool_call` returning `{block:true,reason}` on deny (timeout + fail-open; print-mode auto-decides). `hook.mjs` maps pi's events + the `{decision}` serializer.
+- **Bug fixed (found by the pi dogfood):** the guardrails audit log was named `guardrails-${session_id}.jsonl`; pi's `session_id` is the session-file *path*, so the slashes made the write silently fail into a non-existent nested dir. Now sanitized to a flat filename — the gate veto had worked, but the audit trail wasn't writing. (Affected only hosts that pass a path as the id.)
+
+### Verified — both hosts, end-to-end (real sessions, OpenRouter)
+
+178 hermetic tests (incl. the pi adapter, the per-host gate serializers, the sanitized-filename regression, idempotent enable/disable). **Dogfood, real hosts (headless, self-served):**
+- **OpenCode** (`opencode run -m openrouter/google/gemini-2.5-flash`): the gate **blocked** a `read` of a gated `notes.txt` — OpenCode surfaced `Error: guardrail block-notes: notes are gated`, the model reported being blocked, decision logged `{host:"opencode",tool:"read",action:"deny"}`; a live session was captured alongside (`ses_14d4…` + trace blob, 1/1/1 with the blocked-read error).
+- **pi** (`pi --approve --provider openrouter --model google/gemini-2.5-flash -p`): the gate **blocked** `cat notes.txt` — model reported *"access was blocked by a guardrail"*, decision logged `{host:"pi",tool:"bash",action:"deny",rule:"block-notes"}`; live session captured via the extension + new adapter (`019eb2bb`, 1/1/1).
+
+### Honest limits
+
+- **The probes needed working model credentials** — the integration plumbing (plugin/extension loading, hooks, capture) was fine; only the model calls were dead. OpenRouter + an ultracheap model unblocked both. Native Zen/Google keys remain broken (user-side).
+- **OpenCode `ask` defers** — `permission.ask` is unreliable (doesn't fire for auto-allowed tools), so the gate is `tool.execute.before` throw = **deny hard-blocks; ask defers** to OpenCode's own flow (an optional `permission.ask` native-ask handler is a later, additive rung).
+- **`opencode run` has a known upstream post-tool hang (#17516)** + needs `-m`; the gate fires *before* the tool, so the decision lands regardless. pi headless needs `--approve` to load the project extension; print-mode UI is a no-op (gate auto-decides).
+- The pi guardrails-log filename is sanitized-but-ugly (the path mangled to a flat name) — functional + unique; a uuid-based name is a future tidy-up.
+
+### Conclusions
+
+- **All five hosts now have live capture; all five have an enforced gate** (Claude · Gemini · Codex · OpenCode · pi). The Stage-1 host-agnostic wrapper is complete across the full host set, host-honestly scoped (Codex interactive-only; OpenCode/pi deny-blocks, ask-defers).
+- pi — the Stage-3 owned-harness target — is now also a *wrapped* host (observe parity). Building the owned harness *on* pi remains gated on the efficiency benchmark; this is coverage only.
+- **The real-wire rule paid again:** OpenRouter unmasked the credential blocker, the probe flipped the OpenCode gate mechanism (`permission.ask`→`tool.execute.before`), disproved a web-sourced sessionID "bug," corrected pi's tool-result shape, and the dogfood caught the path-as-filename log bug. None were visible from docs.
