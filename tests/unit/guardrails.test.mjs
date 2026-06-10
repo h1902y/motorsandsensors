@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadRules, evaluate, toPreToolUseDecision } from '../../mns/guardrails.mjs';
+import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../../mns/guardrails.mjs';
 import { LAYOUT } from '../../mns/scaffold.mjs';
 
 function withRulesFile(content, fn) {
@@ -77,6 +77,16 @@ test('seeded force-push rule catches the real exp-8 bypass (git -C … --force-w
     assert.equal(evaluate(rules, { tool: 'Bash', input: { command: 'git push --force origin main' } })?.action, 'ask');
     assert.equal(evaluate(rules, { tool: 'Bash', input: { command: 'git push origin main' } }), null);
   });
+});
+
+test('toGeminiDecision: deny → {decision:deny,reason}; ask/allow → null (defer)', () => {
+  assert.deepEqual(
+    toGeminiDecision({ action: 'deny', rule: 'no-secret-reads', reason: 'secrets' }),
+    { decision: 'deny', reason: 'guardrail no-secret-reads: secrets' },
+  );
+  assert.equal(toGeminiDecision({ action: 'ask', rule: 'r', reason: 'x' }), null);
+  assert.equal(toGeminiDecision({ action: 'allow', rule: 'r', reason: 'x' }), null);
+  assert.equal(toGeminiDecision(null), null);
 });
 
 test('toPreToolUseDecision maps to the verified hookSpecificOutput schema', () => {

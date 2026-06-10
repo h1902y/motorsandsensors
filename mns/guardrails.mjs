@@ -66,6 +66,16 @@ export function evaluate(rules, { tool, input }) {
   return winner;
 }
 
+/**
+ * Gemini CLI block shape: stdout JSON { decision: "deny", reason } (exit 0).
+ * Gemini has no "ask" decision → defer (null) so its own approval flow runs.
+ * Only an explicit deny blocks.
+ */
+export function toGeminiDecision(verdict) {
+  if (!verdict || verdict.action !== 'deny') return null;
+  return { decision: 'deny', reason: `guardrail ${verdict.rule}: ${verdict.reason}` };
+}
+
 /** Map a verdict to Claude Code's PreToolUse hookSpecificOutput (verified schema). */
 export function toPreToolUseDecision(verdict) {
   if (!verdict || verdict.action === 'allow') return null; // no output → normal flow (fail-open / explicit allow)
