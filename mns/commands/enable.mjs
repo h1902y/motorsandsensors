@@ -88,6 +88,38 @@ export const Mns = async () => ({
 });
 `;
 
+const piExtPath = (cwd) => join(repoRoot(cwd), '.pi', 'extensions', 'mns.ts');
+const piExtension = () => `// installed by \`mns enable --host pi\` — live capture + guardrails gate (graceful: never breaks pi).
+import { spawn, spawnSync } from "node:child_process";
+const NODE = ${JSON.stringify(NODE)};
+const MNS = ${JSON.stringify(BIN)};
+export default function (pi) {
+  const fire = (event, ctx) => {
+    try {
+      const file = ctx?.sessionManager?.getSessionFile?.();
+      if (!file) return;
+      spawn(NODE, [MNS, "hook", event, "--host", "pi", "--session", file], { stdio: "ignore", detached: true }).unref();
+    } catch {}
+  };
+  pi.on("session_start", async (_e, ctx) => fire("session_start", ctx));
+  pi.on("turn_end", async (_e, ctx) => fire("turn_end", ctx));
+  pi.on("session_shutdown", async (_e, ctx) => fire("session_shutdown", ctx));
+  // gate: tool_call → run the shared mns gate; block on deny. Fail-open.
+  pi.on("tool_call", async (event, ctx) => {
+    try {
+      const file = ctx?.sessionManager?.getSessionFile?.();
+      const payload = JSON.stringify({ tool_name: event?.toolName, tool_input: event?.input, session_id: file });
+      const res = spawnSync(NODE, [MNS, "hook", "PreToolUse", "--host", "pi"], { input: payload, encoding: "utf8", timeout: 5000 });
+      const out = (res && res.stdout) || "";
+      let decision = null;
+      for (const line of out.split("\\n")) { const t = line.trim(); if (t.startsWith("{")) { try { decision = JSON.parse(t); } catch {} } }
+      if (decision && decision.decision === "deny") return { block: true, reason: decision.reason || "blocked by mns guardrail" };
+    } catch {}
+    return undefined; // allow / no-match / any error → proceed (fail-open)
+  });
+}
+`;
+
 export function enable(args = {}) {
   if (args.host === 'gemini-cli' || args.host === 'codex') {
     const spec = HOST_HOOKS[args.host];
@@ -113,6 +145,17 @@ export function enable(args = {}) {
     console.log('  scope  : new OpenCode sessions in this repo; disable: mns disable --host opencode');
     return;
   }
+  if (args.host === 'pi') {
+    const path = piExtPath();
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, piExtension());
+    console.log('mns enabled for pi — live capture + guardrails gate installed');
+    console.log(`  extension : ${path}`);
+    console.log('  events    : session_start/turn_end/session_shutdown (capture) · tool_call (gate)');
+    console.log('  note      : headless `pi -p` needs `--approve` to load project extensions; no clean end → `mns doctor` reconciles');
+    console.log('  disable   : mns disable --host pi');
+    return;
+  }
   const path = settingsPath();
   writeSettings(path, addHooks(readSettings(path), commandFor));
   console.log('mns enabled — live capture installed (Claude Code)');
@@ -136,6 +179,12 @@ export function disable(args = {}) {
       if (existsSync(p)) { rmSync(p, { force: true }); removed = true; }
     }
     console.log(removed ? 'mns disabled for OpenCode — plugin removed' : 'nothing to disable (no OpenCode plugin)');
+    return;
+  }
+  if (args.host === 'pi') {
+    const path = piExtPath();
+    if (existsSync(path)) { rmSync(path, { force: true }); console.log(`mns disabled for pi — extension removed (${path})`); }
+    else console.log('nothing to disable (no pi extension)');
     return;
   }
   const path = settingsPath();
