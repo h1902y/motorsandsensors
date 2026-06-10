@@ -21,6 +21,7 @@ import { doctor } from '../mns/commands/doctor.mjs';
 import { enable, disable } from '../mns/commands/enable.mjs';
 import { runHook } from '../mns/commands/hook.mjs';
 import { remember, recall, knowledge } from '../mns/commands/knowledge.mjs';
+import { review, proposals } from '../mns/commands/review.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -57,6 +58,9 @@ usage: mns <command> [options]
   recall "query" [--type t] [--attr k=v] [--related-to id] [--semantic]
                             search knowledge: lexical · graph · semantic
   knowledge reindex|audit   rebuild the search index · check registry/items health
+  review                    walk pending knowledge proposals (y/n/e/s/q)
+  proposals list|show|approve|reject <id>
+                            the same gate, non-interactive
   enable                    background hooks: invisible live capture + guardrails gate
   disable                   remove the background hooks
   doctor                    environment + session health (reconciles lost sessions)
@@ -75,6 +79,8 @@ switch (cmd) {
   case 'remember': remember(args); break;
   case 'recall': await recall(args); break;
   case 'knowledge': await knowledge(args); break;
+  case 'review': await review(args); break;
+  case 'proposals': proposals(args); break;
   case 'status': status(); break;
   case 'capture': capture(args); break;
   case 'trace': trace(args); break;
