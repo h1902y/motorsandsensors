@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadRules, evaluate, toPreToolUseDecision } from '../../mns/guardrails.mjs';
+import { LAYOUT } from '../../mns/scaffold.mjs';
 
 function withRulesFile(content, fn) {
   const dir = mkdtempSync(join(tmpdir(), 'mns-guard-'));
@@ -58,6 +59,23 @@ test('evaluate: severity wins — deny beats ask beats allow', () => {
     assert.equal(both.action, 'deny');
     const ask = evaluate(rules, { tool: 'Bash', input: { command: 'git push origin main --force' } });
     assert.equal(ask.action, 'ask');
+  });
+});
+
+test('seeded force-push rule catches the real exp-8 bypass (git -C … --force-with-lease)', () => {
+  // Pasted from a real live-fire session (exp-8): the agent ran this exact
+  // command and the old adjacent `git\s+push` pattern let it through the gate.
+  withRulesFile(LAYOUT.files['.mns/guardrails/rules.json'], (p) => {
+    const { rules } = loadRules(p);
+    const bypass = evaluate(rules, {
+      tool: 'Bash',
+      input: { command: 'git -C /Users/hkc/Documents/mns-livefire-2 push --force-with-lease origin main' },
+    });
+    assert.equal(bypass?.action, 'ask');
+    assert.equal(bypass?.rule, 'confirm-force-push');
+    // the plain form still matches; a plain push still doesn't
+    assert.equal(evaluate(rules, { tool: 'Bash', input: { command: 'git push --force origin main' } })?.action, 'ask');
+    assert.equal(evaluate(rules, { tool: 'Bash', input: { command: 'git push origin main' } }), null);
   });
 });
 

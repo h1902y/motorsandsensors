@@ -19,7 +19,7 @@
       "id": "confirm-force-push",
       "action": "ask",
       "tool": "Bash",
-      "pattern": "git\\s+push\\s+.*--force",
+      "pattern": "git\\b.*\\bpush\\b.*--force",
       "reason": "force-push rewrites shared history"
     }
   ]

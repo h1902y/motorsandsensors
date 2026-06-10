@@ -73,7 +73,9 @@ const RULES_SEED =
       rules: [
         { id: 'no-root-wipe', action: 'deny', tool: 'Bash', pattern: 'rm\\s+-[a-z]*r[a-z]*\\s+/(\\s|$)', reason: 'destructive delete at filesystem root' },
         { id: 'no-secret-reads', action: 'deny', tool: '*', pattern: '\\.env(\\.|\\b)|id_rsa|\\.pem\\b', reason: 'secret material should not enter the context' },
-        { id: 'confirm-force-push', action: 'ask', tool: 'Bash', pattern: 'git\\s+push\\s+.*--force', reason: 'force-push rewrites shared history' },
+        // \b.*\bpush, not push adjacent to git: a real session bypassed the
+        // adjacent form with `git -C /path push --force-with-lease` (exp-8).
+        { id: 'confirm-force-push', action: 'ask', tool: 'Bash', pattern: 'git\\b.*\\bpush\\b.*--force', reason: 'force-push rewrites shared history' },
       ],
     },
     null,
