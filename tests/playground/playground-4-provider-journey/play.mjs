@@ -5,10 +5,10 @@
 // with no adapter, or an adapter but no data here, is reported as such — not as a
 // pass. Fails only if a provider that HAS data produces an invalid trace.
 
-import { byName } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
-import { eventsToSpans } from '../../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { toExportRequest } from '../../experiments/experiment-1-trace-capture/core/otlp.mjs';
-import { EventKind } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
+import { byName } from '../../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
+import { eventsToSpans } from '../../../experiments/experiment-1-trace-capture/core/spans.mjs';
+import { toExportRequest } from '../../../experiments/experiment-1-trace-capture/core/otlp.mjs';
+import { EventKind } from '../../../experiments/experiment-1-trace-capture/core/event.mjs';
 import { run, check, note, skip, otlpProblems } from '../_harness.mjs';
 
 const PROVIDERS = ['claude-code', 'gemini-cli', 'codex', 'opencode'];
