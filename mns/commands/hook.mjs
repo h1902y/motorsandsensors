@@ -17,7 +17,7 @@ import { byName } from '../../experiments/experiment-1-trace-capture/adapters/re
 import { captureTrace } from '../capture-core.mjs';
 import { SessionState } from '../session.mjs';
 import { openLive, touchLive, closeLive } from '../live/live-store.mjs';
-import { loadRules, evaluate, toPreToolUseDecision } from '../guardrails.mjs';
+import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../guardrails.mjs';
 import { paths } from '../store.mjs';
 import { computeDigest } from '../digest.mjs';
 
@@ -108,6 +108,35 @@ export function gateToolUse({ payload = {}, cwd = process.cwd() } = {}) {
   }
 }
 
+const GATE_EVENTS = new Set(['PreToolUse', 'BeforeTool']);
+
+/**
+ * Evaluate a tool call against rules.json and return the host's block decision
+ * (or null = fail-open / no match → host's normal flow). Logs matched decisions.
+ *   codex + claude-code → hookSpecificOutput · gemini-cli → {decision,reason}
+ */
+export function gateDecision({ host = 'claude-code', payload = {}, cwd = process.cwd() } = {}) {
+  try {
+    const { dir } = paths(cwd);
+    const loaded = loadRules(join(dir, 'guardrails', 'rules.json'));
+    if (!loaded.ok) return null;
+    const verdict = evaluate(loaded.rules, { tool: payload.tool_name, input: payload.tool_input });
+    if (verdict) {
+      try {
+        const liveDir = join(dir, 'live');
+        mkdirSync(liveDir, { recursive: true });
+        appendFileSync(
+          join(liveDir, `guardrails-${payload.session_id || 'unknown'}.jsonl`),
+          JSON.stringify({ at: new Date().toISOString(), host, tool: payload.tool_name, ...verdict }) + '\n',
+        );
+      } catch { /* logging must not affect the gate */ }
+    }
+    return host === 'gemini-cli' ? toGeminiDecision(verdict) : toPreToolUseDecision(verdict);
+  } catch {
+    return null; // fail open
+  }
+}
+
 /**
  * Build Claude Code's SessionStart additionalContext payload from the faculty
  * digest. Returns null on ANY failure (fail-open: the session proceeds with no
@@ -144,8 +173,8 @@ export function runHook(event, { host = 'claude-code', session } = {}) {
     }
   }
   try {
-    if (event === 'PreToolUse') {
-      const decision = gateToolUse({ payload });
+    if (GATE_EVENTS.has(event)) {
+      const decision = gateDecision({ host, payload });
       if (decision) process.stdout.write(JSON.stringify(decision));
     } else {
       try { handleHook({ event, payload, host }); } catch { /* capture failure is silent — never blocks the digest or the host */ }
