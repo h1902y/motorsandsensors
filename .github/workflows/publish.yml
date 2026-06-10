@@ -1,13 +1,16 @@
 name: publish
 # Version-bump-driven: push to main with a bumped package.json version
-# → tests → npm publish with provenance. Unchanged version = no-op.
+# → tests → npm publish via TRUSTED PUBLISHING (OIDC — no token, no secret,
+# no expiry; provenance attestation comes with it). Requires the one-time
+# trusted-publisher registration on npmjs.com (repo h1902y/motorsandsensors,
+# workflow publish.yml). Unchanged version = clean no-op.
 on:
   push:
     branches: [main]
 
 permissions:
   contents: read
-  id-token: write # npm provenance (OIDC)
+  id-token: write # OIDC: trusted publishing + provenance
 
 jobs:
   publish:
@@ -27,7 +30,8 @@ jobs:
           [ "$LOCAL" != "$PUBLISHED" ] && echo "publish=true" >> "$GITHUB_OUTPUT" || echo "publish=false" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.publish == 'true'
         run: npm test
+      # trusted publishing needs npm >= 11.5.1 (node 22 ships an older npm)
       - if: steps.check.outputs.publish == 'true'
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm install -g npm@latest
+      - if: steps.check.outputs.publish == 'true'
+        run: npm publish
