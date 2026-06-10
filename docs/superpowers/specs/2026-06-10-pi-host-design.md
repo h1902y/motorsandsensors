@@ -26,7 +26,11 @@ The pi extension is a **signal + re-capture trigger**, never a span builder (lik
 
 ---
 
-> **Phase-0 status (2026-06-10, blocked):** pi loads + runs headless, but its Google Gemini key returns **429 quota exceeded** (free-tier limit: 0) on `gemini-3.1-pro` — so no model call completes and no events/tool fire. **Blocker: a working model credential** (a paid/quota'd Gemini key, or `pi auth` to another provider). Once the model runs, the probe (below) captures pi's real events.
+> **Phase-0 status (2026-06-10, ✅ DONE).** Probed headless via `pi --approve --provider openrouter --model google/gemini-2.5-flash -p`. Real-wire results (golden: `tests/fixtures/hooks/pi.probe.jsonl`) — **all events fire headless under `-p`**:
+> - `session_start { reason:"startup" }` (open) · `turn_start { turnIndex, timestamp }` / `turn_end { turnIndex, message, toolResults }` (turn) · `agent_start` · `session_shutdown` (end).
+> - **`tool_call { toolName:"bash", toolCallId, input:{command} }`** — the gate point; `event.toolName` + `event.input` confirmed (returning `{block:true,reason}` would veto). Also `tool_execution_start/end`, `tool_result { content, isError }`.
+> - The event payload carries **no session id/path** — confirmed: get it from `ctx.sessionManager.getSessionFile()` (second handler arg). `--approve` was required for the project extension to load headless.
+> - (The earlier 11-min stall was purely the Google free-tier 429; OpenRouter resolved it.)
 
 ## Phase 0 — Observe (probe pi's real events)
 
