@@ -4,7 +4,7 @@
 
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { actionsDir, loadManifest, isSafeSlug } from '../actions/manifest.mjs';
+import { actionsDir, inboxDir, loadManifest, isSafeSlug } from '../actions/manifest.mjs';
 import { toMcpTool, toOpenAITool, toAnthropicTool } from '../actions/convert.mjs';
 
 function manifestStub(slug) {
@@ -31,10 +31,10 @@ export async function main(args) {
 }
 `;
 
-/** Scaffold .mns/actions/<slug>/ — returns { created: string[] }. No-clobber. */
-export function scaffoldAction(mnsDir, slug) {
+/** Scaffold an action dir under `baseDir/<slug>/`. No-clobber. */
+function scaffoldInto(baseDir, slug) {
   if (!isSafeSlug(slug)) throw new Error(`invalid slug '${slug}' — letters, digits, - and _ only`);
-  const dir = join(actionsDir(mnsDir), slug);
+  const dir = join(baseDir, slug);
   mkdirSync(dir, { recursive: true });
   const created = [];
   const write = (name, body) => {
@@ -44,6 +44,16 @@ export function scaffoldAction(mnsDir, slug) {
   write('action.json', manifestStub(slug));
   write('run.mjs', RUN_TEMPLATE);
   return { created };
+}
+
+/** Scaffold a live action (.mns/actions/<slug>/). Humans author here directly. */
+export function scaffoldAction(mnsDir, slug) {
+  return scaffoldInto(actionsDir(mnsDir), slug);
+}
+
+/** Scaffold a PROPOSED action (.mns/actions/inbox/<slug>/) — agents propose here. */
+export function proposeAction(mnsDir, slug) {
+  return scaffoldInto(inboxDir(mnsDir), slug);
 }
 
 export function newAction(mnsDir, slug) {

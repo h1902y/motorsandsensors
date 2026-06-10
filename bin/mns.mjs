@@ -66,6 +66,9 @@ usage: mns <command> [options]
   act [list|show <slug>|new <slug>|schema <slug>]
                             the Actions faculty — runbooks + runnable scripts
   act <slug> [--args JSON]  run a script action
+  act propose <slug>        scaffold a proposed action → actions/inbox/ (for review)
+  act inbox|approve <slug>|reject <slug>
+                            the actions gate (or use \`mns review\`)
   distill [--all|--session ID]
                             mine real sessions → knowledge proposals (default: last)
   review                    walk pending knowledge proposals (y/n/e/s/q)

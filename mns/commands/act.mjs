@@ -13,9 +13,10 @@ import { paths } from '../store.mjs';
 import { allActions, loadManifest, actionsDir, isSafeSlug } from '../actions/manifest.mjs';
 import { runAction } from '../actions/dispatch.mjs';
 import { MARKER } from '../actions/marker.mjs';
-import { newAction, schema as schemaCmd } from './act-author.mjs';
+import { newAction, schema as schemaCmd, proposeAction } from './act-author.mjs';
+import { listProposedActions, activateAction, rejectAction } from '../actions/inbox.mjs';
 
-const RESERVED = new Set(['list', 'show', 'new', 'schema']);
+const RESERVED = new Set(['list', 'show', 'new', 'schema', 'propose', 'inbox', 'approve', 'reject']);
 
 function requireSlug(slug, usage) {
   if (!slug) { console.error(usage); process.exit(1); }
@@ -55,6 +56,32 @@ function run(mnsDir, slug, args) {
   process.exit(r.ok ? 0 : 1);
 }
 
+function propose(mnsDir, slug) {
+  const { created } = proposeAction(mnsDir, slug);
+  if (created.length) console.log(`proposed action '${slug}' → ${created.join(', ')} in .mns/actions/inbox/${slug}/ (review with \`mns review\`)`);
+  else console.log(`proposed action '${slug}' already complete — nothing to do`);
+}
+
+function inbox(mnsDir) {
+  const pending = listProposedActions(mnsDir);
+  if (!pending.length) return console.log('no proposed actions — inbox empty');
+  for (const a of pending.sort((x, y) => x.slug.localeCompare(y.slug))) {
+    console.log(`  ${a.slug}  [${a.kind}]  ${a.promptSnippet}`);
+  }
+}
+
+function approve(mnsDir, slug) {
+  const r = activateAction(mnsDir, slug);
+  console.log(r.ok ? `✓ activated '${slug}'` : `✗ ${r.error}`);
+  process.exit(r.ok ? 0 : 1);
+}
+
+function reject(mnsDir, slug) {
+  const r = rejectAction(mnsDir, slug);
+  console.log(r.ok ? `✓ rejected '${slug}'` : `✗ ${r.error}`);
+  process.exit(r.ok ? 0 : 1);
+}
+
 export function act(args) {
   const mnsDir = paths().dir;
   const sub = args._[0];
@@ -62,6 +89,10 @@ export function act(args) {
   if (sub === 'show') return show(mnsDir, requireSlug(args._[1], 'usage: mns act show <slug>'));
   if (sub === 'new') return newAction(mnsDir, requireSlug(args._[1], 'usage: mns act new <slug>'));
   if (sub === 'schema') return schemaCmd(mnsDir, requireSlug(args._[1], 'usage: mns act schema <slug> [--openai|--anthropic]'), args);
+  if (sub === 'propose') return propose(mnsDir, requireSlug(args._[1], 'usage: mns act propose <slug>'));
+  if (sub === 'inbox') return inbox(mnsDir);
+  if (sub === 'approve') return approve(mnsDir, requireSlug(args._[1], 'usage: mns act approve <slug>'));
+  if (sub === 'reject') return reject(mnsDir, requireSlug(args._[1], 'usage: mns act reject <slug>'));
   // future-reserved guard: extend RESERVED + add a handler above in tandem
   if (RESERVED.has(sub)) { console.error(`unknown: mns act ${sub}`); process.exit(1); }
   return run(mnsDir, requireSlug(sub, 'usage: mns act <slug> [--args JSON]'), args);
