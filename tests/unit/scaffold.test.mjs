@@ -69,3 +69,10 @@ test('ensureGitignore creates/appends without duplicating, preserving content', 
     for (const l of IGNORE_LINES) assert.equal(text.split('\n').filter((x) => x.trim() === l).length, 1);
   });
 });
+
+test('scaffold includes the actions/inbox dir', () => {
+  withTemp((cwd) => {
+    applyScaffold(cwd, { now: 0 });
+    assert.ok(existsSync(join(cwd, '.mns', 'actions', 'inbox')), 'actions/inbox exists');
+  });
+});

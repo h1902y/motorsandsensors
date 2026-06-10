@@ -39,6 +39,7 @@ const ACTIONS_README = `# actions/ — procedural faculty (how to DO things)
 Named, reusable procedures/skills for this project (scripts, runbooks, tool recipes).
 - **Who writes:** the human; later, mns proposes crystallized actions mined from traces (human-approved).
 - **Contract:** one action per file; state what it does, inputs, and how to invoke it.
+- **Propose a reusable action**: \`mns act propose <slug>\` scaffolds into \`actions/inbox/\` for review. A human approves via \`mns review\` (or \`mns act approve <slug>\`). Never write active actions directly from an agent.
 `;
 
 const INSTRUCTIONS_README = `# instructions/ — the Instructions faculty (directive: who the agent is)
@@ -84,7 +85,7 @@ const RULES_SEED =
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/actions', '.mns/instructions', '.mns/guardrails'],
+  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/actions', '.mns/actions/inbox', '.mns/instructions', '.mns/guardrails'],
   files: {
     '.mns/knowledge/README.md': KNOWLEDGE_README,
     '.mns/memory/README.md': MEMORY_README,
