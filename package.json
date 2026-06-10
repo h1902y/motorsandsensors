@@ -1,17 +1,52 @@
 {
   "name": "motorsandsensors",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "type": "module",
-  "description": "Host-agnostic faculties (Memory/Knowledge/Actions/Guardrails) that graduate across generations, grown from observability traces. Design in README.md; built incrementally via experiments/.",
+  "description": "Give the coding agent you already run (Claude Code, Codex, Gemini CLI, OpenCode) evolving faculties — knowledge, memory, actions, instructions, guardrails — with host-agnostic OpenTelemetry session tracing. Zero dependencies.",
+  "keywords": [
+    "ai-agents",
+    "claude-code",
+    "codex",
+    "gemini-cli",
+    "opencode",
+    "opentelemetry",
+    "observability",
+    "tracing",
+    "guardrails",
+    "agent-memory",
+    "cli"
+  ],
+  "homepage": "https://github.com/h1902y/motorsandsensors#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/h1902y/motorsandsensors.git"
+  },
+  "bugs": {
+    "url": "https://github.com/h1902y/motorsandsensors/issues"
+  },
+  "license": "MIT",
+  "author": "Harshit Krishna Choudhary (https://x.com/h1902y)",
+  "engines": {
+    "node": ">=22"
+  },
   "bin": {
     "mns": "bin/mns.mjs"
   },
+  "files": [
+    "bin/",
+    "mns/",
+    "experiments/experiment-1-trace-capture/core/",
+    "experiments/experiment-1-trace-capture/adapters/",
+    "LICENSE",
+    "README.md"
+  ],
   "scripts": {
     "mns": "node bin/mns.mjs",
     "capture": "node experiments/experiment-1-trace-capture/bin/capture.mjs",
     "inspect": "node experiments/experiment-1-trace-capture/bin/inspect-trace.mjs",
     "test": "node --test 'tests/**/*.test.mjs'",
-    "playground": "node tests/playground/run.mjs"
+    "playground": "node tests/playground/run.mjs",
+    "prepublishOnly": "npm test"
   }
 }

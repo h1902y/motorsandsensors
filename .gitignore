@@ -21,3 +21,4 @@ experiments/**/out/
 # Personal/marketing federation layer — local-only, read by the personal vault.
 # (Older copies exist in git history from before this split.)
 .personal/
+*.tgz

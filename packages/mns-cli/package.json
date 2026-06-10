@@ -1,0 +1,14 @@
+{
+  "name": "mns-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The `mns` CLI — alias package for motorsandsensors. Install that instead; this exists so `npx mns-cli` works.",
+  "homepage": "https://github.com/h1902y/motorsandsensors#readme",
+  "repository": { "type": "git", "url": "git+https://github.com/h1902y/motorsandsensors.git" },
+  "license": "MIT",
+  "author": "Harshit Krishna Choudhary (https://x.com/h1902y)",
+  "engines": { "node": ">=22" },
+  "bin": { "mns-cli": "bin.mjs" },
+  "dependencies": { "motorsandsensors": "^0.1.0" },
+  "files": ["bin.mjs", "README.md"]
+}
