@@ -57,7 +57,7 @@ No build step, **zero runtime dependencies** (a deliberate policy — `node:test
 
 ## Key fixed decisions (don't relitigate without cause)
 
-- Evolution engine runtime = **Cloudflare Workflows only** (async evolution loop, never the hot agent loop) · org topology = **strict 1:N tree + mirror aliases** · **interactive-mode-first, never headless** · host integration = **observe model** (entire.io shape), not a driving bridge · Knowledge/Memory substrate = off-edge Postgres/Neon (graph/vector are earned top rungs) · **transcript-parsing is the capture foundation**; hooks are enhancement · OpenCode = candidate **default bundled host** (MNS-as-plugin is built; credits model is a flagged, undecided hypothesis — see DESIGN §6).
+- Evolution engine runtime = **Cloudflare Workflows only** (async evolution loop, never the hot agent loop) · org topology = **strict 1:N tree + mirror aliases** · **interactive-mode-first, never headless** · host integration = **observe model** (entire.io shape), not a driving bridge · Knowledge/Memory substrate = off-edge Postgres/Neon (graph/vector are earned top rungs) · **transcript-parsing is the capture foundation**; hooks are enhancement · product sequence (decided 2026-06-10) = **three stages**: ① host-agnostic wrapper (Claude/Gemini/Codex — building now) → ② OpenCode as **default bundled host** (`mns code` distribution; MNS-as-plugin is built) → ③ owned harness on **pi** for granular context/model control, gated on the efficiency benchmark — never an OpenCode fork, never scratch (DESIGN §6; credits model stays a flagged, undecided hypothesis).
 
 ## Social
 
