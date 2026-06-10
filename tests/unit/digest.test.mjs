@@ -89,3 +89,24 @@ test('a broken faculty does not sink the digest (fail-soft)', () => {
     assert.equal(d.sections.guardrails.ok, false);
   }, { project: FILLED, rules: '{ not json' });
 });
+
+test('budget truncates the knowledge list but keeps instructions + guardrails', () => {
+  withHome((mns) => {
+    for (let i = 0; i < 30; i++) {
+      writeItem(mns, { id: `item-${String(i).padStart(2, '0')}`, type: 'fact', created_at: `2026-06-${String((i % 28) + 1).padStart(2, '0')}T00:00:00Z`, status: 'active', attributes: {}, relations: [], provenance: [], body: `fact number ${i} with some descriptive text here` });
+    }
+    const tiny = computeDigest(mns, { budget: 80 }); // ~320-char knowledge budget
+    // the variable knowledge list was truncated (not all shown)...
+    assert.match(tiny.text, /\(\d+ more/);
+    assert.ok(tiny.sections.knowledge.shown.length < 30);
+    // ...while the fixed sections survive (never dropped)...
+    assert.match(tiny.text, /## Instructions/);
+    assert.match(tiny.text, /## Guardrails/);
+    // ...and it's a real reduction vs an unbounded digest...
+    const full = computeDigest(mns, { budget: 100000, knowledgeLimit: 30 });
+    assert.ok(tiny.text.length < full.text.length);
+    // ...and deterministic.
+    const again = computeDigest(mns, { budget: 80 });
+    assert.equal(tiny.text, again.text);
+  }, { project: '# Project steering\n\nShip daily.\n', rules: RULES });
+});

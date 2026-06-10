@@ -64,10 +64,11 @@ function guardrailsSection(mnsDir) {
 /**
  * Compute the digest for a faculty home.
  * @param {string} mnsDir  path to the .mns directory
- * @param {{ knowledgeLimit?: number }} options
+ * @param {{ knowledgeLimit?: number, budget?: number }} options
  * @returns {{ text: string, sections: object }}
  */
-export function computeDigest(mnsDir, { knowledgeLimit = 5 } = {}) {
+export function computeDigest(mnsDir, { knowledgeLimit = 5, budget = 1500 } = {}) {
+  const charBudget = budget * 4;
   const sections = {};
   const lines = ['# mns faculty digest', ''];
 
@@ -80,10 +81,19 @@ export function computeDigest(mnsDir, { knowledgeLimit = 5 } = {}) {
   const knowledge = knowledgeSection(mnsDir, knowledgeLimit);
   sections.knowledge = knowledge;
   lines.push('## Knowledge');
-  if (!knowledge.count) lines.push('(no items yet — propose facts to knowledge/inbox/)');
-  else {
+  if (!knowledge.count) {
+    lines.push('(no items yet — propose facts to knowledge/inbox/)');
+  } else {
     lines.push(`${knowledge.count} item(s); most recent:`);
-    for (const it of knowledge.shown) lines.push(`- ${it.id} · ${it.type} · ${it.body.split('\n')[0].slice(0, 80)}`);
+    let shown = 0;
+    for (const it of knowledge.shown) {
+      const line = `- ${it.id} · ${it.type} · ${it.body.split('\n')[0].slice(0, 80)}`;
+      if (lines.join('\n').length + line.length > charBudget && shown > 0) break;
+      lines.push(line);
+      shown++;
+    }
+    const dropped = knowledge.count - shown;
+    if (dropped > 0) lines.push(`- … (${dropped} more — \`mns recall\`)`);
   }
   lines.push('');
 
