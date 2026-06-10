@@ -21,7 +21,7 @@ export function loadManifest(mnsDir, slug) {
 
 /** Pull `name` / `description` from a SKILL.md YAML-ish frontmatter (best-effort). */
 function skillFrontmatter(text) {
-  const m = text.match(/^---\n([\s\S]*?)\n---/);
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   const fm = {};
   if (m) {
     for (const line of m[1].split('\n')) {
@@ -49,7 +49,8 @@ export function allActions(mnsDir) {
       const man = loadManifest(mnsDir, name) ?? {};
       out.push({ slug: name, kind: 'script', title: man.title ?? name, promptSnippet: man.promptSnippet ?? man.description ?? name });
     } else if (existsSync(join(d, 'SKILL.md'))) {
-      const fm = skillFrontmatter(readFileSync(join(d, 'SKILL.md'), 'utf8'));
+      let fm = {};
+      try { fm = skillFrontmatter(readFileSync(join(d, 'SKILL.md'), 'utf8')); } catch { /* unreadable → slug fallback */ }
       out.push({ slug: name, kind: 'runbook', title: fm.name ?? name, promptSnippet: fm.description ?? name });
     }
   }

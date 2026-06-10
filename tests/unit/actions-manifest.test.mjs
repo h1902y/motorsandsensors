@@ -59,3 +59,19 @@ test('allActions on a home with no actions dir returns []', () => {
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('script dir without action.json falls back to slug', () => {
+  const root = mkdtempSync(join(tmpdir(), 'mns-noman-'));
+  const A = join(root, '.mns', 'actions', 'bare');
+  mkdirSync(A, { recursive: true });
+  writeFileSync(join(A, 'run.mjs'), 'export async function main(){ return {}; }'); // no action.json
+  try {
+    const list = allActions(join(root, '.mns'));
+    assert.equal(list.length, 1);
+    assert.equal(list[0].kind, 'script');
+    assert.equal(list[0].title, 'bare');
+    assert.equal(list[0].promptSnippet, 'bare');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
