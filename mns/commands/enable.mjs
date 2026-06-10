@@ -73,17 +73,17 @@ export const Mns = async () => ({
   // The guardrails gate: tool.execute.before fires for every tool (real-wire verified).
   // input = { tool, sessionID, callID }; output = { args }. Throw to block. Fail-open.
   "tool.execute.before": async (input, output) => {
+    let deny = null;
     try {
       const payload = JSON.stringify({ tool_name: input?.tool, tool_input: output?.args, session_id: input?.sessionID });
       const res = spawnSync(NODE, [MNS, "hook", "PreToolUse", "--host", "opencode"], { input: payload, encoding: "utf8", timeout: 5000 });
       const out = (res && res.stdout) || "";
       let decision = null;
       for (const line of out.split("\\n")) { const t = line.trim(); if (t.startsWith("{")) { try { decision = JSON.parse(t); } catch {} } }
-      if (decision && decision.decision === "deny") throw new Error(decision.reason || "blocked by mns guardrail");
-    } catch (e) {
-      // Only an intentional deny throws; any gate/spawn error fails OPEN (tool proceeds).
-      if (e && typeof e.message === "string" && e.message.indexOf("guardrail") !== -1) throw e;
-    }
+      if (decision && decision.decision === "deny") deny = decision.reason || "blocked by mns guardrail";
+    } catch { /* any gate/spawn error fails OPEN (deny stays null → tool proceeds) */ }
+    // Throw OUTSIDE the try: only an intentional deny blocks; an engine error can never be mistaken for one.
+    if (deny) throw new Error(deny);
   },
 });
 `;

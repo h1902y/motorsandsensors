@@ -93,30 +93,6 @@ function guardrailsLogName(sessionId) {
   return `guardrails-${safe || 'unknown'}.jsonl`;
 }
 
-export function gateToolUse({ payload = {}, cwd = process.cwd() } = {}) {
-  try {
-    const { dir } = paths(cwd);
-    const loaded = loadRules(join(dir, 'guardrails', 'rules.json'));
-    if (!loaded.ok) return null; // missing/malformed rules → fail open
-    const verdict = evaluate(loaded.rules, { tool: payload.tool_name, input: payload.tool_input });
-    if (verdict) {
-      try {
-        const liveDir = join(dir, 'live');
-        mkdirSync(liveDir, { recursive: true });
-        appendFileSync(
-          join(liveDir, guardrailsLogName(payload.session_id)),
-          JSON.stringify({ at: new Date().toISOString(), tool: payload.tool_name, ...verdict }) + '\n',
-        );
-      } catch {
-        /* logging must not affect the gate */
-      }
-    }
-    return toPreToolUseDecision(verdict);
-  } catch {
-    return null; // fail open, always
-  }
-}
-
 const GATE_EVENTS = new Set(['PreToolUse', 'BeforeTool']);
 
 /**
