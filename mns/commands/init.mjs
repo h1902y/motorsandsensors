@@ -67,7 +67,7 @@ export function init(args = {}) {
     console.log(`Initialized empty mns home in ${join(cwd, '.mns')}/`);
     console.log(`  faculties : knowledge/ memory/ actions/ instructions/ guardrails/  (+ mns.json manifest)`);
     console.log(`  steering  : created ${created.join(' + ')} pointing your agent at its faculties`);
-    console.log(`  next      : \`mns enable\` for live capture · \`mns status\` · start your agent in ${basename(cwd)}/`);
+    console.log(`  next      : \`mns enable\` for live capture · \`mns digest\` to preview the grounding your agent opens with · start your agent in ${basename(cwd)}/`);
   } else {
     console.log(`Initialized mns home in existing project ${join(cwd, '.mns')}/`);
     console.log(`  faculties : knowledge/ memory/ actions/ instructions/ guardrails/  (+ mns.json manifest)`);

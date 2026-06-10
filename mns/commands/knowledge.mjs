@@ -14,6 +14,12 @@ const parsePair = (s) => {
   return [s.slice(0, i), s.slice(i + 1)];
 };
 
+/** Empty-result copy for recall: distinguish "no items" from "no match". */
+export function recallEmptyMessage({ itemCount, query }) {
+  if (!itemCount) return '(no knowledge yet — add facts with `mns remember`)';
+  return `(no matches for "${query}" — try other terms, or \`mns knowledge reindex\`)`;
+}
+
 /** mns remember "text" [--type t] [--id slug] [--attr k=v]... [--rel type=target]... */
 export function remember(args) {
   const text = args._.join(' ').trim();
@@ -90,7 +96,10 @@ export async function recall(args) {
     attr: args.attr ? parsePair(asArray(args.attr)[0]) : null,
     limit: Number(args.limit || 10),
   });
-  if (!rows.length) return console.log('(no matches — try `mns knowledge reindex`?)');
+  if (!rows.length) {
+    const { items } = allItems(mnsDir);
+    return console.log(recallEmptyMessage({ itemCount: items.length, query }));
+  }
   for (const r of rows) console.log(`  [${String(r.score).padStart(3)}] ${r.id}  (${r.type})  ${r.text.slice(0, 70).replace(/\n/g, ' ')}`);
 }
 

@@ -8,20 +8,19 @@ const END = '<!-- <<< mns:faculties <<< -->';
 // matches our block at ANY version (so a v1 block is replaced by a v2 inject)
 const BLOCK_RE = /[ \t]*<!-- >>> mns:faculties:v\d+ >>> -->[\s\S]*?<!-- <<< mns:faculties <<< -->[ \t]*\n?/;
 
-export const BLOCK_VERSION = 3;
+export const BLOCK_VERSION = 4;
 
 /** The block content served to host agents. Keep short — it's steering, not docs. */
 export function facultiesBlock(version = BLOCK_VERSION) {
   return `${BEGIN(version)}
 ## mns — agent faculty home
 
-This project has an mns faculty home at \`.mns/\` (managed by the mns CLI):
+This project has an mns faculty home at \`.mns/\` (managed by the mns CLI). Work to this contract:
 
-- **Read \`.mns/knowledge/\`** — verified project facts/entities. Treat as ground truth.
-- **Follow \`.mns/instructions/\`** — project steering (who/how to be in this project).
-- **Use \`.mns/actions/\`** — named procedures/runbooks for this project.
-- **Respect \`.mns/guardrails/\`** — hard rules, *enforced* on tool calls by the mns gate.
-- **Propose durable learnings**: one fact per file in \`.mns/knowledge/inbox/\` (plain text is fine) — a human reviews via \`mns review\`. Never write \`items/\` directly.
+- **Ground.** At session start you receive an *mns digest* (instructions, knowledge, proposals, guardrails). Trust it as ground truth; don't re-derive what it states or re-read faculty files it already summarized.
+- **Cite in-flight.** When an answer draws on a stored fact, say \`from knowledge: <id>\`; when you follow a runbook/action, name it. Make the faculty visible.
+- **Harvest at close.** Before ending, propose durable learnings as one-fact files in \`.mns/knowledge/inbox/\` (plain text is fine) — a human reviews via \`mns review\`. Never write \`items/\` directly.
+- **Respect \`.mns/guardrails/\`** — hard rules, *enforced* on tool calls by the mns gate; a refusal there is policy, not preference.
 - Do **not** read \`.mns/traces/\` or \`.mns/live/\` (mns observability internals).
 ${END}`;
 }

@@ -23,6 +23,7 @@ import { runHook } from '../mns/commands/hook.mjs';
 import { remember, recall, knowledge } from '../mns/commands/knowledge.mjs';
 import { review, proposals } from '../mns/commands/review.mjs';
 import { distill } from '../mns/commands/distill.mjs';
+import { digest } from '../mns/commands/digest.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -59,6 +60,8 @@ usage: mns <command> [options]
   recall "query" [--type t] [--attr k=v] [--related-to id] [--semantic]
                             search knowledge: lexical · graph · semantic
   knowledge reindex|audit   rebuild the search index · check registry/items health
+  digest [--json] [--budget N]
+                            print the session-start grounding brief
   distill [--all|--session ID]
                             mine real sessions → knowledge proposals (default: last)
   review                    walk pending knowledge proposals (y/n/e/s/q)
@@ -82,6 +85,7 @@ switch (cmd) {
   case 'remember': remember(args); break;
   case 'recall': await recall(args); break;
   case 'knowledge': await knowledge(args); break;
+  case 'digest': digest(args); break;
   case 'distill': distill(args); break;
   case 'review': await review(args); break;
   case 'proposals': proposals(args); break;
