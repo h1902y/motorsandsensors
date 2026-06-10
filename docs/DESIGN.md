@@ -32,6 +32,10 @@ The differentiator versus static wrappers (OpenClaw, Hermes, entire.io): **our f
 
 An agent's components (memory, knowledge, tools, prompt, guardrails) **improve over versioned generations**, and a **human sits in an async, out-of-band loop** to evaluate and promote them. The missing piece the field doesn't have: not just *configuring* faculties, but **growing** them from the trace of real use.
 
+### The efficiency corollary (the business thesis, 2026-06-10)
+
+The graduation hypothesis has a commercial sharp edge: **a workspace that has graduated — good/bad practices and instructions baked in, the optimal tool set, project-specific knowledge and memory — makes an agent extremely efficient *even on a not-so-powerful model*.** Hyper-personalization substitutes for raw model power. That's the pitch in one line: *mns-style working = better agent-AI-first project management*, because the workspace itself is specialized for the project. Falsifiable, and worth proving: **a benchmark suite** showing an mns-equipped weak model beating bare stronger/open setups on project-local tasks (tracked as a roadmap issue; the testing suite grows a benchmarks layer for it).
+
 ### The two axes (the crux — never fuse them)
 Every faculty evolves on **two independent axes**:
 
@@ -184,6 +188,7 @@ The host adapters assume the user *already runs* a host. But a newcomer who runs
 - **Credits via MNS → OpenCode (monetization hypothesis — two models, decide later, neither built):**
   - **(a) MNS-as-gateway** — MNS hosts an OpenAI-compatible endpoint; OpenCode points at it as a custom provider; users buy MNS credits (Razorpay) and MNS proxies upstream + keeps margin. *Controllable, no partnership needed — but real infra/payments/abuse work.*
   - **(b) Zen-reseller** — credits top up OpenCode's own Zen balance. *Simpler conceptually, but depends on an OpenCode partnership; no public reseller API found.*
+  - **(c) mns-credits for internal LLM ops (added 2026-06-10)** — users *without* ollama and *without* host subscriptions (Claude Code/Gemini/Codex) buy mns credits; mns provides the API access for its **specialized internal work** — entity resolution's LLM rung, embeddings, eval-judge, instructions-mining — and external LLM use generally. Natural fit: these ops are exactly the ones DESIGN already routes to "our own cheap model" as the MCP-Sampling stopgap (§6 Need-2) — the credit wallet monetizes that stopgap instead of apologizing for it.
   > Flagged, not decided. The point today: the *plugin + default-host* path is real and partly built; the *credit* path is a business decision parked behind it.
 
 ---
