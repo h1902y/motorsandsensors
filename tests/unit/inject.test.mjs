@@ -37,3 +37,20 @@ test('removeBlock strips our block and only our block', () => {
   assert.ok(!hasBlock(removed));
   assert.ok(removed.includes('Hand-written instructions'));
 });
+
+test('v4 block carries the ground/cite/harvest contract', () => {
+  const out = injectBlock('# proj\n');
+  assert.ok(out.includes('mns:faculties:v4'), 'is v4');
+  assert.match(out, /digest/i);             // ground on the digest
+  assert.match(out, /from knowledge:/);     // cite in-flight
+  assert.match(out, /knowledge\/inbox\//);  // harvest at close
+  assert.match(out, /mns review/);
+});
+
+test('a v3 block upgrades to v4 in place, user text intact', () => {
+  const v3 = injectBlock('# proj\n', facultiesBlock(3)) + '\n## after\n';
+  const v4 = injectBlock(v3);
+  assert.ok(v4.includes('mns:faculties:v4'));
+  assert.ok(!v4.includes('mns:faculties:v3'));
+  assert.ok(v4.includes('## after'));
+});
