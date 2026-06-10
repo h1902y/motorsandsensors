@@ -1,7 +1,7 @@
 # Spec — the OpenCode guardrails gate
 
 **Date:** 2026-06-10
-**Status:** approved design → Phase 0 (probe) then the implementation plan
+**Status:** approved design, **revised 2026-06-10 with doc-verified findings** (see below) → Phase 0 (confirm) then the plan
 **Stage:** the last gate rung. After exp-11, live capture works on all four wrapper hosts and the enforced gate runs on Claude / Gemini / Codex. OpenCode has live capture (plugin) but **no gate** — this closes that gap, giving enforced-gate parity across all four.
 
 ## Goal
@@ -10,7 +10,15 @@
 
 ## The governing constraint — the real-wire-data rule
 
-Per CLAUDE.md, the gate is wired against OpenCode's **actual** plugin behavior, not docs. The docs/research say a plugin that **throws** from `tool.execute.before` blocks the call — Phase 0 confirms (a) the hook's real argument shape (how the tool name + input arrive) and (b) that throwing actually vetoes, by running a real OpenCode session with a probe plugin. OpenCode is installed locally, so this probe is self-served (no user session needed).
+Per CLAUDE.md, the gate is wired against OpenCode's **actual** plugin behavior, not docs alone — Phase 0 confirms by running a real session. But a detailed read of OpenCode's plugin API (the `@opencode-ai/plugin` types + https://opencode.ai/docs/plugins/, against installed v1.16.2) has already settled the wiring shape and surfaced corrections; Phase 0 is now *confirmation*, not discovery.
+
+### Doc-verified findings (2026-06-10) — these change the design
+
+1. **Two veto mechanisms exist; `permission.ask` is the better fit.** `permission.ask(input, output)` lets a plugin set `output.status` to `"deny" | "ask" | "allow"` — a direct match for our `deny > ask > allow` severity (and it handles `ask` *natively*, unlike Gemini where we had to defer). `tool.execute.before(input, output)` blocks only by **throwing** (or mutating `output.args`). → **Use `permission.ask` as the primary gate; `tool.execute.before` throw is the hard-deny fallback** if `permission.ask` proves not to fire for a tool.
+2. **`tool.execute.before` signature footgun:** `input = { tool, sessionID, callID }`, `output = { args }` — the tool **arguments live on `output.args`, not `input`**.
+3. **Existing-capture fix (pre-existing bug):** the lifecycle `event` payload carries the session id **differently per event** — `session.idle → event.properties.sessionID`, but `session.created` / `session.deleted → event.properties.info.id`. Our current plugin reads `.sessionID` for all three, so created/deleted silently get `undefined` (capture still works via the per-turn `idle` re-capture — why exp-8 looked fine — but fix it).
+4. **Plugin directory:** current OpenCode expects **`.opencode/plugins/` (plural)**; our shipped code writes `.opencode/plugin/` (singular, kept only for backcompat). → switch to plural.
+5. **Headless reality:** `opencode run` has a known upstream post-tool-call hang (#17516) and needs `-m <provider/model>` (our self-probe stalled on exactly this). Gate hooks (`permission.ask`/`tool.execute.before`) **are awaited**; the lifecycle `event` hook is **fire-and-forget** (fine for Design B — capture is signal+reconcile). → empirical confirmation runs **interactively** (headless is too flaky here), the Codex pattern.
 
 ## Existing pattern this builds on
 
@@ -19,18 +27,17 @@ Per CLAUDE.md, the gate is wired against OpenCode's **actual** plugin behavior, 
 
 ## The architectural difference (why capture ≠ gate here)
 
-Capture is fire-and-forget (spawn detached, don't wait). A **gate must decide synchronously, before the tool runs**. OpenCode's `tool.execute.before` is `async`, so the plugin can `await`. The canon-correct design: the plugin **spawns `mns hook PreToolUse --host opencode`**, pipes the tool payload on stdin, waits for the decision, and **throws** to veto on `deny`. This keeps `evaluate()` as the single engine (no rules logic duplicated into plugin JS) and matches the cost profile of the other three hosts (one node spawn per tool call) — the only difference is the *plugin* spawns it, not the host.
+Capture is fire-and-forget (spawn detached, don't wait). A **gate must decide synchronously, before the tool runs**. OpenCode's gate hooks are `async` and **awaited**, so the plugin can `await` a spawned `mns hook PreToolUse --host opencode` (tool payload on stdin), keeping `evaluate()` as the single engine — one node spawn per tool call, like the other three hosts, only spawned by the plugin rather than the host.
+
+**Mechanism: `permission.ask` primary, `tool.execute.before` throw as hard-deny fallback.** The plugin's `permission.ask(input, output)` handler runs the mns gate and sets `output.status` = `"deny" | "ask" | "allow"` — mapping our severity directly (this is why OpenCode gets *native ask*, unlike Gemini). If Phase 0 shows `permission.ask` doesn't fire for a given tool, fall back to `tool.execute.before` throwing on hard `deny`. Either way the spawned-engine pattern is identical; only how the decision is *applied* differs.
 
 ---
 
 ## Phase 0 — Observe (self-served; OpenCode is installed)
 
-A throwaway probe plugin records what `tool.execute.before` actually receives and whether throwing blocks:
-- Install a probe plugin in a scratch project that, on `tool.execute.before`, appends `{args, this}` (whatever the hook is handed) to a capture file and — in a second variant — **throws** to test veto.
-- Run a real OpenCode session (headless `opencode run "..."` if it fires plugin hooks, else interactive) that triggers a tool call.
-- **Deliverables (gate the plan):** the real `tool.execute.before` signature (where `tool_name` + `tool_input` live in the args), confirmation that throwing blocks the call (and what OpenCode shows the user), the `session_id` field on the hook, and whether `tool.execute.before` fires in `opencode run` (headless) or interactive-only. Committed as a golden fixture (`tests/fixtures/hooks/opencode.probe.*`).
-
-If the probe shows a different veto mechanism than "throw" (e.g. a returned decision object, or the `permission.ask` hook), the plan adapts to whatever actually works — that is the rule in action.
+The signatures are doc-verified (above); Phase 0 *confirms behavior on the installed binary*: a probe plugin (in `.opencode/plugins/`) that records what `permission.ask` and `tool.execute.before` actually receive, and whether setting `output.status="deny"` / throwing actually blocks.
+- **Run it correctly:** the earlier self-probe stalled because `opencode run` needs `-m <provider/model>` and hits a known post-tool hang (#17516). Retry headless **with `-m`**; if it still hangs after the tool, run **interactively** (a real OpenCode TUI session) — the Codex pattern — since the gate decision is what we need to observe, not headless completion.
+- **Deliverables (confirm before the plan):** that `permission.ask` fires for the gated tool and `output.status="deny"` blocks it (else the `tool.execute.before`-throw fallback); the real arg paths on the installed version; that the lifecycle `event` ids match the per-event shape in finding #3. Committed as a golden fixture (`tests/fixtures/hooks/opencode.probe.*`).
 
 ---
 
@@ -38,25 +45,28 @@ If the probe shows a different veto mechanism than "throw" (e.g. a returned deci
 
 ### 1. The plugin gains a gate handler (`mns/commands/enable.mjs` — the `opencodePlugin()` template)
 
-Add a `tool.execute.before` handler that:
-1. Extracts `tool_name` + `tool_input` + `session_id` from the hook args (exact paths from Phase 0).
-2. Runs the mns gate **synchronously-awaited**: spawn `node "<BIN>" hook PreToolUse --host opencode`, pipe `JSON.stringify({tool_name, tool_input, session_id})` on stdin, capture stdout.
-3. If the decision is `deny` → `throw new Error("guardrail <rule>: <reason>")` (OpenCode blocks the tool, surfaces the reason).
-4. **Fail-open + never-break-the-host:** wrap the whole handler in try/catch — on *any* error (spawn failure, timeout, parse error, malformed rules) → **return normally** (the tool proceeds; a gate bug must never block a tool, and the plugin must never throw a non-deny error into OpenCode). Only an explicit `deny` throws.
-5. Keep the existing `event` lifecycle handler unchanged (capture stays fire-and-forget).
+Also **fix the install + capture** while here (findings #3, #4): write the plugin to **`.opencode/plugins/` (plural)**; in the `event` handler, read the session id per-event — `event.properties.sessionID` for `session.idle`, `event.properties.info.id` for `session.created`/`session.deleted`.
+
+Add a **`permission.ask(input, output)`** handler (primary gate) that:
+1. Extracts `tool` + args + `sessionID` (args on `output.args` for the tool hook; `permission.ask`'s `input` is a `Permission` — exact field paths confirmed in Phase 0).
+2. Runs the mns gate **awaited**: spawn `node "<BIN>" hook PreToolUse --host opencode`, pipe `JSON.stringify({tool_name, tool_input, session_id})` on stdin, read the verdict.
+3. Apply: `deny` → `output.status = "deny"`; `ask` → `output.status = "ask"`; otherwise leave `output.status` untouched (defer to OpenCode's normal flow).
+4. **Fail-open + never-break-the-host:** wrap in try/catch — on *any* error (spawn/timeout/parse/malformed rules) → leave `output.status` untouched and never throw (a gate bug must never block a tool or break OpenCode). Add a spawn timeout.
+5. Fallback (only if Phase 0 shows `permission.ask` doesn't fire for a tool): a `tool.execute.before` handler that **throws** on hard `deny` (same engine call), wrapped so only an intentional deny throws.
+6. Keep capture fire-and-forget.
 
 ### 2. `hook.mjs` — gate path for opencode
 
 - `runHook`: for the **gate** event invoked by the plugin (PreToolUse), read the piped stdin JSON even though host is opencode (lifecycle events still use `--session`, no stdin). I.e. opencode + a `GATE_EVENTS` event → parse fd 0.
 - `gateDecision`: already host-aware. Add an opencode decision the plugin can unambiguously parse for deny vs not (e.g. reuse the `{decision:"deny",reason}` shape, or emit the existing `hookSpecificOutput`; the plugin only needs "is this a deny"). Matched decisions still log to `.mns/live/guardrails-<session>.jsonl` with `host:"opencode"`.
 
-### 3. `ask` action
+### 3. `ask` action — natively supported
 
-`ask` → **defer** (no throw), like Gemini: OpenCode's own permission flow handles approval; only `deny` hard-blocks in v1. (OpenCode's `permission.ask` plugin hook is a later rung if we want mns-driven asks.)
+Because OpenCode exposes `permission.ask`, `ask` maps to `output.status = "ask"` (OpenCode then runs its own approval prompt) — OpenCode is the **first host with a native ask** (Claude maps ask→its prompt via the decision schema; Gemini/Codex deny-only or defer). `deny → output.status="deny"`.
 
 ### Honest-outcome handling
 
-If Phase 0 shows `tool.execute.before` doesn't fire in `opencode run` (headless) — same as Codex's interactive-only finding — ship the gate as interactive-only and record it. If throwing doesn't veto and no alternative veto exists in this OpenCode version, ship capture-only and record the gap (no gate that the host won't honor).
+If Phase 0 shows the gate hooks fire only interactively (the Codex finding) — ship the gate interactive-only and record it. If `permission.ask` doesn't fire but `tool.execute.before` does, ship the throw fallback (deny-only). If neither vetoes in this version, ship capture-only and record the gap (no gate the host won't honor).
 
 ---
 
@@ -68,9 +78,8 @@ If Phase 0 shows `tool.execute.before` doesn't fire in `opencode run` (headless)
 
 ## Explicitly NOT in scope (YAGNI)
 
-- mns-driven `ask` via OpenCode's `permission.ask` hook (deny-only gate in v1).
-- Any change to the capture path, the other three hosts, or the shared `evaluate()` engine.
-- **pi** — the separate queued spec (opens once pi is installed + authed; user is setting that up).
+- Any change to the other three hosts or the shared `evaluate()` engine. (The OpenCode capture path *is* lightly touched — finding #3 sessionID fix + the plural dir — since they're in the same plugin we're editing.)
+- **pi** — its own spec (`2026-06-10-pi-host-design.md`), written next. pi is now installed + authed; its capture+gate is a separate new-host effort.
 
 ## Sequencing note
 
