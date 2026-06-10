@@ -37,7 +37,7 @@ export function validate(schema, value, path = '$') {
   else if (type === 'integer' && !Number.isInteger(value)) errors.push(`${path}: expected integer`);
   else if (type === 'boolean' && typeof value !== 'boolean') errors.push(`${path}: expected boolean`);
 
-  if (schema.enum && !schema.enum.includes(value)) errors.push(`${path}: must be one of ${schema.enum.join(', ')}`);
+  if (schema.enum && errors.length === 0 && !schema.enum.includes(value)) errors.push(`${path}: must be one of ${schema.enum.join(', ')}`);
   if (typeof value === 'string') {
     if (schema.minLength != null && value.length < schema.minLength) errors.push(`${path}: shorter than minLength ${schema.minLength}`);
     if (schema.maxLength != null && value.length > schema.maxLength) errors.push(`${path}: longer than maxLength ${schema.maxLength}`);

@@ -48,3 +48,22 @@ test('validateOutputs requires an object, then validates', () => {
   assert.equal(validateOutputs(schema, null).ok, false);
   assert.ok(validateOutputs(schema, { ok: 'x' }).error.includes('boolean'));
 });
+
+test('array: items validated with indexed path', () => {
+  const schema = { type: 'array', items: { type: 'integer' } };
+  assert.deepEqual(validate(schema, [1, 2, 3]), []);
+  const errs = validate(schema, [1, 'two', 3]);
+  assert.equal(errs.length, 1);
+  assert.ok(errs[0].includes('[1]'));          // indexed path
+  assert.ok(errs[0].includes('integer'));
+  assert.ok(validate(schema, 'not-array')[0].includes('array'));
+});
+
+test('nested object: recursion builds dotted path + nested required', () => {
+  const schema = { type: 'object', properties: { user: { type: 'object', properties: { age: { type: 'integer' } }, required: ['id'] } } };
+  assert.deepEqual(validate(schema, { user: { id: 'x', age: 30 } }), []);
+  const missing = validate(schema, { user: { age: 30 } });          // user.id missing
+  assert.ok(missing.some((e) => e.includes('$.user.id')));
+  const badType = validate(schema, { user: { id: 'x', age: 'old' } });
+  assert.ok(badType.some((e) => e.includes('$.user.age') && e.includes('integer')));
+});
