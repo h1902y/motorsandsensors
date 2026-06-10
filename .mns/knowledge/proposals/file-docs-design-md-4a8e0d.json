@@ -1,0 +1,31 @@
+{
+  "id": "file-docs-design-md-4a8e0d",
+  "kind": "item",
+  "status": "pending",
+  "created_at": "2026-06-10T06:45:39.213Z",
+  "source": "distill",
+  "candidate": {
+    "id": "file-docs-design-md",
+    "type": "entity",
+    "body": "Hot file in this project: `/Users/hkc/Documents/motorsandsensors/docs/DESIGN.md` (touched 5× across 1 sessions).",
+    "attributes": {
+      "path": "/Users/hkc/Documents/motorsandsensors/docs/DESIGN.md"
+    },
+    "relations": [],
+    "provenance": [
+      {
+        "session": "20410eef-3e0b-43c3-878f-5a15c016d2a5",
+        "ref": "distill:hot-files"
+      }
+    ]
+  },
+  "evidence": {
+    "occurrences": 5,
+    "sessions": 1
+  },
+  "er": {
+    "verdict": "new",
+    "confidence": 1,
+    "reason": "no sufficiently similar item"
+  }
+}

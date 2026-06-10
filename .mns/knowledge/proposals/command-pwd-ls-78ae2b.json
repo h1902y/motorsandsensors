@@ -1,0 +1,48 @@
+{
+  "id": "command-pwd-ls-78ae2b",
+  "kind": "item",
+  "status": "pending",
+  "created_at": "2026-06-10T06:45:39.210Z",
+  "source": "distill",
+  "candidate": {
+    "id": "command-pwd-ls",
+    "type": "command",
+    "body": "Recurring project command: `pwd && ls` (used 5× across 5 sessions).",
+    "attributes": {
+      "command": "pwd && ls"
+    },
+    "relations": [],
+    "provenance": [
+      {
+        "session": "348c9a1f-cd4c-4e0d-8e5a-46544745f279",
+        "ref": "distill:commands"
+      },
+      {
+        "session": "d8d2f22b-05bf-469a-8164-f2229b99cfb5",
+        "ref": "distill:commands"
+      },
+      {
+        "session": "372e0dcb-d868-432b-803a-1e2a1ea7ac96",
+        "ref": "distill:commands"
+      },
+      {
+        "session": "40effa4a-53f7-43c0-83c9-bb95d0cac3de",
+        "ref": "distill:commands"
+      },
+      {
+        "session": "f8c22695-9da4-4258-9ddb-f7166c017b5b",
+        "ref": "distill:commands"
+      }
+    ]
+  },
+  "evidence": {
+    "occurrences": 5,
+    "sessions": 5,
+    "failures": 0
+  },
+  "er": {
+    "verdict": "new",
+    "confidence": 1,
+    "reason": "no sufficiently similar item"
+  }
+}

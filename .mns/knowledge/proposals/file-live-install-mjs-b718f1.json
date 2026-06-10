@@ -1,0 +1,47 @@
+{
+  "id": "file-live-install-mjs-b718f1",
+  "kind": "item",
+  "status": "pending",
+  "created_at": "2026-06-10T06:45:39.212Z",
+  "source": "distill",
+  "candidate": {
+    "id": "file-live-install-mjs",
+    "type": "entity",
+    "body": "Hot file in this project: `/Users/hkc/Documents/motorsandsensors/mns/live/install.mjs` (touched 12× across 6 sessions).",
+    "attributes": {
+      "path": "/Users/hkc/Documents/motorsandsensors/mns/live/install.mjs"
+    },
+    "relations": [],
+    "provenance": [
+      {
+        "session": "20410eef-3e0b-43c3-878f-5a15c016d2a5",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "4e4ce52c-dff1-4b3b-973d-e0b5de606fa6",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "d2a5dc47-c6c5-4a9d-bd8e-7fd0aecb64f6",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "efd93b19-75cb-495d-96ca-a727cf5bc3f1",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "ae32be2f-7de0-4f9c-9775-8b4561a5112c",
+        "ref": "distill:hot-files"
+      }
+    ]
+  },
+  "evidence": {
+    "occurrences": 12,
+    "sessions": 6
+  },
+  "er": {
+    "verdict": "new",
+    "confidence": 1,
+    "reason": "no sufficiently similar item"
+  }
+}

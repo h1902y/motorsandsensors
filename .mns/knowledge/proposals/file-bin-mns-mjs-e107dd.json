@@ -1,0 +1,47 @@
+{
+  "id": "file-bin-mns-mjs-e107dd",
+  "kind": "item",
+  "status": "pending",
+  "created_at": "2026-06-10T06:45:39.212Z",
+  "source": "distill",
+  "candidate": {
+    "id": "file-bin-mns-mjs",
+    "type": "entity",
+    "body": "Hot file in this project: `/Users/hkc/Documents/motorsandsensors/bin/mns.mjs` (touched 14× across 7 sessions).",
+    "attributes": {
+      "path": "/Users/hkc/Documents/motorsandsensors/bin/mns.mjs"
+    },
+    "relations": [],
+    "provenance": [
+      {
+        "session": "20410eef-3e0b-43c3-878f-5a15c016d2a5",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "348c9a1f-cd4c-4e0d-8e5a-46544745f279",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "57059ac9-c6ae-4950-9453-b3ef13d388e7",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "3a815367-ad3a-4a13-b7ac-2679b0ebb43f",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "efd93b19-75cb-495d-96ca-a727cf5bc3f1",
+        "ref": "distill:hot-files"
+      }
+    ]
+  },
+  "evidence": {
+    "occurrences": 14,
+    "sessions": 7
+  },
+  "er": {
+    "verdict": "new",
+    "confidence": 1,
+    "reason": "no sufficiently similar item"
+  }
+}

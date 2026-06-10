@@ -1,0 +1,39 @@
+{
+  "id": "file-commands-init-mjs-cf2709",
+  "kind": "item",
+  "status": "pending",
+  "created_at": "2026-06-10T06:45:39.213Z",
+  "source": "distill",
+  "candidate": {
+    "id": "file-commands-init-mjs",
+    "type": "entity",
+    "body": "Hot file in this project: `/Users/hkc/Documents/motorsandsensors/mns/commands/init.mjs` (touched 9× across 3 sessions).",
+    "attributes": {
+      "path": "/Users/hkc/Documents/motorsandsensors/mns/commands/init.mjs"
+    },
+    "relations": [],
+    "provenance": [
+      {
+        "session": "20410eef-3e0b-43c3-878f-5a15c016d2a5",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "d2a5dc47-c6c5-4a9d-bd8e-7fd0aecb64f6",
+        "ref": "distill:hot-files"
+      },
+      {
+        "session": "efd93b19-75cb-495d-96ca-a727cf5bc3f1",
+        "ref": "distill:hot-files"
+      }
+    ]
+  },
+  "evidence": {
+    "occurrences": 9,
+    "sessions": 3
+  },
+  "er": {
+    "verdict": "new",
+    "confidence": 1,
+    "reason": "no sufficiently similar item"
+  }
+}

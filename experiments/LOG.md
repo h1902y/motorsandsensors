@@ -462,3 +462,29 @@ Schema checked against the hooks docs *before* wiring (real-wire-data rule); end
 - Pattern-matching over stringified tool input is v1 coarseness — no structured per-field matching, no input *rewriting* (`updatedInput` exists in the schema; unused).
 - Claude Code only; OpenCode's `tool.execute.before` is the next rung. The full inspector pipeline (PII/injection/moderation, output side) remains design.
 - The gate sits on the hot path (every tool call spawns node) — fast in practice; measure before optimizing.
+
+## Experiment 7 — Knowledge substrate + entity resolution (issue #6 · v0.2)
+
+### Hypothesis
+
+The Knowledge faculty can be real on day one — items with **text + attributes + typed relations + provenance**, registry-governed, searchable three ways (SQL · graph · semantic) — with candidates flowing from real sessions through **entity resolution** and a **human gate**, all zero-dep and local-first.
+
+### What was built
+
+- **Files as truth, SQLite as the index** (the AGE pattern, zero-dep): canonical items are git-diffable markdown (`.mns/knowledge/items/`); the derived `index.db` (`node:sqlite`, git-ignored, regenerable) serves lexical search, attribute/type filters (SQL), graph traversal via recursive CTEs, and a vector store. This is the substrate ladder's L0→L1 in one move — Cypher *syntax* arrives only at the real AGE rung.
+- **Registry governance** (refined from the Notes vault): types/attributes/relations with value validation and relation **inverses**; where Notes silently auto-registers keys at ≥3 uses, here repeated unknown keys file a **registry proposal** — the human gate covers the schema too.
+- **Entity resolution** (mechanical v1): exact/slug id → same-type stemmed-token fuzzy + shared-attribute corroboration → `new | duplicate | enrich`, biased toward `new` (a false duplicate silently loses knowledge; a false new is just a reviewable proposal). `enrich` merges without overwriting.
+- **Proposals** — the first build of DESIGN's Proposal entity, as files with evidence; resolved ones archive (auditable). **`mns review`**: interactive y/n/e/s/q gate; `mns proposals` for non-TTY.
+- **Two candidate sources**: `mns distill` (mechanical miners over real host transcripts: recurring commands, hot files, failing tools — our OTLP traces carry byte-sizes only by privacy design, so mining reads the host log directly, on-machine) and the **agent inbox** (faculty block v3: agents propose one fact per file in `knowledge/inbox/`, never write items directly).
+- **Embeddings**: ollama-if-present (optional local service; no npm deps, no keys); absent → semantic search honestly unavailable.
+
+### Verified
+
+95 tests (round-trip grammar, registry validation, deterministic reindex, CTE traversal, ER goldens incl. the duplicate-vs-enrich boundary, proposal lifecycle, registry-proposal flow, piped review through the real binary, miner goldens). **Real data:** `mns distill --all` over this repo's 29 real sessions → 23 evidence-backed proposals — the hot files are genuinely this repo's hot files, the failing-tool facts match lived experience. Smoke caught two real bugs pre-test: a readline-pipe race in `mns review`, and an ER threshold sunk by morphology (fixed with a light stemmer).
+
+### Honest limits
+
+- ER is mechanical: same-type constraint + token overlap — cross-type near-dupes and paraphrases land as `new` for the human to merge; an LLM-judge pass is a later, separate rung.
+- The distill miners are Claude-Code-only v1 (richest transcript); other hosts need per-host miners.
+- Semantic search requires a local ollama; un-embedded until then (the vector tier is earned, not faked).
+- The 23 real proposals from this repo await the actual human gate — approval is the user's, by design.

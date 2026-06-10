@@ -22,3 +22,6 @@ experiments/**/out/
 # (Older copies exist in git history from before this split.)
 .personal/
 *.tgz
+
+# mns: local-only observability data
+.mns/knowledge/index.db

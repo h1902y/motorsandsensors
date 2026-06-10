@@ -12,15 +12,19 @@
 
 import { join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
+import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from './knowledge/registry.mjs';
 
 export const MANIFEST_VERSION = 1;
 
-const KNOWLEDGE_README = `# knowledge/ — semantic faculty (what's TRUE)
+const KNOWLEDGE_README = `# knowledge/ — the Knowledge faculty (what's TRUE)
 
-Project facts, entities, and relations the agent should treat as ground truth.
-- **Who writes:** the human, and (soon) mns's entity-resolution pipeline distilling sessions into facts.
-- **Contract:** one fact per line/section, declarative, no speculation. Wrong facts get deleted, not argued with.
-- **Graduates:** contents are promoted (md → richer substrates) via human-approved proposals — never silently.
+Items in \`items/\` — one fact/entity per file: prose body + typed attributes +
+typed relations (registry-governed: \`registry/\`) + provenance. The derived
+search index (\`index.db\`, git-ignored) gives lexical/graph/semantic recall:
+\`mns recall\`. Candidates arrive in \`inbox/\` (from agents or \`mns distill\`),
+become \`proposals/\`, and a human approves via \`mns review\` — never silently.
+\`mns remember\` writes directly (the human IS the gate). \`mns knowledge audit\`
+checks health.
 `;
 
 const MEMORY_README = `# memory/ — episodic faculty (what HAPPENED)
@@ -78,7 +82,7 @@ const RULES_SEED =
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['.mns', '.mns/knowledge', '.mns/memory', '.mns/actions', '.mns/instructions', '.mns/guardrails'],
+  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/actions', '.mns/instructions', '.mns/guardrails'],
   files: {
     '.mns/knowledge/README.md': KNOWLEDGE_README,
     '.mns/memory/README.md': MEMORY_README,
@@ -87,11 +91,14 @@ export const LAYOUT = {
     '.mns/instructions/project.md': PROJECT_SEED,
     '.mns/guardrails/README.md': GUARDRAILS_README,
     '.mns/guardrails/rules.json': RULES_SEED,
+    '.mns/knowledge/registry/types.json': JSON.stringify(SEED_TYPES, null, 2) + '\n',
+    '.mns/knowledge/registry/attributes.json': JSON.stringify(SEED_ATTRIBUTES, null, 2) + '\n',
+    '.mns/knowledge/registry/relations.json': JSON.stringify(SEED_RELATIONS, null, 2) + '\n',
   },
 };
 
 /** Gitignore lines the project needs (trace blobs + liveness state stay local). */
-export const IGNORE_LINES = ['.mns/traces/', '.mns/live/'];
+export const IGNORE_LINES = ['.mns/traces/', '.mns/live/', '.mns/knowledge/index.db'];
 
 export function manifest(initializedAt) {
   return {

@@ -1,0 +1,37 @@
+[
+  {
+    "key": "status",
+    "value": {
+      "enum": [
+        "active",
+        "superseded"
+      ]
+    },
+    "description": "Item lifecycle state"
+  },
+  {
+    "key": "domain",
+    "value": "string",
+    "description": "Subject area the item belongs to"
+  },
+  {
+    "key": "command",
+    "value": "string",
+    "description": "The literal command line (command items)"
+  },
+  {
+    "key": "path",
+    "value": "string",
+    "description": "Filesystem path (entity items that are files/dirs)"
+  },
+  {
+    "key": "url",
+    "value": "url",
+    "description": "External reference"
+  },
+  {
+    "key": "decided_on",
+    "value": "date",
+    "description": "When a decision was made"
+  }
+]

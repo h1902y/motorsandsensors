@@ -1,6 +1,6 @@
 {
   "name": "motorsandsensors",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": false,
   "type": "module",
   "description": "Give the coding agent you already run (Claude Code, Codex, Gemini CLI, OpenCode) evolving faculties — knowledge, memory, actions, instructions, guardrails — with host-agnostic OpenTelemetry session tracing. Zero dependencies.",

@@ -1,0 +1,44 @@
+{
+  "id": "failing-tool-read-a5d8e7",
+  "kind": "item",
+  "status": "pending",
+  "created_at": "2026-06-10T06:45:39.213Z",
+  "source": "distill",
+  "candidate": {
+    "id": "failing-tool-read",
+    "type": "fact",
+    "body": "Tool `Read` fails frequently in this project (32 failures observed) — worth investigating why.",
+    "attributes": {},
+    "relations": [],
+    "provenance": [
+      {
+        "session": "348c9a1f-cd4c-4e0d-8e5a-46544745f279",
+        "ref": "distill:failures"
+      },
+      {
+        "session": "d8d2f22b-05bf-469a-8164-f2229b99cfb5",
+        "ref": "distill:failures"
+      },
+      {
+        "session": "57059ac9-c6ae-4950-9453-b3ef13d388e7",
+        "ref": "distill:failures"
+      },
+      {
+        "session": "5214366c-ebdd-47d0-bc87-fa6d5a5b021f",
+        "ref": "distill:failures"
+      },
+      {
+        "session": "66d228a4-910f-405f-8108-708567977c4f",
+        "ref": "distill:failures"
+      }
+    ]
+  },
+  "evidence": {
+    "occurrences": 32
+  },
+  "er": {
+    "verdict": "new",
+    "confidence": 1,
+    "reason": "no sufficiently similar item"
+  }
+}

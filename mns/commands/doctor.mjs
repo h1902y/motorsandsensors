@@ -2,13 +2,18 @@
 // real problems (warnings don't fail). Phase 2 will also reconcile lost sessions.
 
 import { mkdirSync, accessSync, constants } from 'node:fs';
+import { join } from 'node:path';
 import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 import { paths, gitInfo } from '../store.mjs';
 import { listLive } from '../live/live-store.mjs';
 import { reconcile } from '../live/reconcile.mjs';
 import { planScaffold, homeExists } from '../scaffold.mjs';
+import { loadRegistry } from '../knowledge/registry.mjs';
+import { allItems } from '../knowledge/items.mjs';
+import { listProposals } from '../knowledge/proposals.mjs';
+import { detectEmbedder } from '../knowledge/embed.mjs';
 
-export function doctor() {
+export async function doctor() {
   let problems = 0;
   const ok = (m) => console.log(`  ✓ ${m}`);
   const warn = (m) => console.log(`  ⚠ ${m}`);
@@ -49,6 +54,21 @@ export function doctor() {
     const gaps = missing.dirs.length + missing.files.length + (missing.manifestMissing ? 1 : 0);
     if (gaps) warn(`faculty home incomplete (${gaps} piece(s) missing) — rerun \`mns init\``);
     else ok('faculty home complete (knowledge/ memory/ actions/ instructions/ guardrails/)');
+  }
+
+  // knowledge faculty
+  if (homeExists(root)) {
+    const reg = loadRegistry(join(root, '.mns'));
+    if (!reg.ok) bad('knowledge registry unparseable');
+    else {
+      const { items, errors } = allItems(join(root, '.mns'));
+      if (errors.length) warn(`${errors.length} knowledge item(s) unparseable`);
+      const pending = listProposals(join(root, '.mns')).length;
+      ok(`knowledge: ${items.length} item(s), ${pending} pending proposal(s)${pending ? ' — run \`mns review\`' : ''}`);
+      const e = await detectEmbedder();
+      if (!e.available) warn(`semantic search off — ${e.reason}`);
+      else ok(`embeddings available (ollama/${e.model})`);
+    }
   }
 
   // hosts

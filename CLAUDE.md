@@ -75,7 +75,7 @@ This project owns its activities in [`.personal/tasks/`](.personal/tasks/) — m
 - When task state changes materially, reflect the headline in [`.personal/STATUS.md`](.personal/STATUS.md) so the personal vault's dashboard stays current — that's the only cross-repo obligation.
 - Some migrated tasks carry `[[wikilinks]]` to notes that stayed in the personal vault; those are cross-repo and won't resolve in Obsidian — leave them as references.
 
-<!-- >>> mns:faculties:v2 >>> -->
+<!-- >>> mns:faculties:v3 >>> -->
 ## mns — agent faculty home
 
 This project has an mns faculty home at `.mns/` (managed by the mns CLI):
@@ -84,6 +84,6 @@ This project has an mns faculty home at `.mns/` (managed by the mns CLI):
 - **Follow `.mns/instructions/`** — project steering (who/how to be in this project).
 - **Use `.mns/actions/`** — named procedures/runbooks for this project.
 - **Respect `.mns/guardrails/`** — hard rules, *enforced* on tool calls by the mns gate.
-- **Record durable, verified learnings** in `.mns/knowledge/` (facts only, no speculation).
+- **Propose durable learnings**: one fact per file in `.mns/knowledge/inbox/` (plain text is fine) — a human reviews via `mns review`. Never write `items/` directly.
 - Do **not** read `.mns/traces/` or `.mns/live/` (mns observability internals).
 <!-- <<< mns:faculties <<< -->

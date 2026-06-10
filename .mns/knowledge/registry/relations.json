@@ -1,0 +1,27 @@
+[
+  {
+    "name": "relates-to",
+    "inverse": "relates-to",
+    "description": "Generic association (symmetric)"
+  },
+  {
+    "name": "part-of",
+    "inverse": "has-part",
+    "description": "Composition"
+  },
+  {
+    "name": "depends-on",
+    "inverse": "blocks",
+    "description": "A needs B"
+  },
+  {
+    "name": "supersedes",
+    "inverse": "superseded-by",
+    "description": "A replaces B"
+  },
+  {
+    "name": "derived-from",
+    "inverse": "source-of",
+    "description": "A was distilled/derived from B"
+  }
+]
