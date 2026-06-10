@@ -13,10 +13,22 @@ import { allItems } from '../knowledge/items.mjs';
 import { listProposals } from '../knowledge/proposals.mjs';
 import { detectEmbedder } from '../knowledge/embed.mjs';
 
+/** The closing line: honest about warnings, never "all good" under them. */
+export function summaryLine(problems, warnings) {
+  if (problems) return `\n${problems} problem(s) found`;
+  if (warnings) return `\n${warnings} warning(s) — see ⚠ above`;
+  return '\nall good';
+}
+
 export async function doctor() {
   let problems = 0;
+  let warnings = 0;
   const ok = (m) => console.log(`  ✓ ${m}`);
-  const warn = (m) => console.log(`  ⚠ ${m}`);
+  const info = (m) => console.log(`  · ${m}`);
+  const warn = (m) => {
+    console.log(`  ⚠ ${m}`);
+    warnings++;
+  };
   const bad = (m) => {
     console.log(`  ✗ ${m}`);
     problems++;
@@ -33,7 +45,7 @@ export async function doctor() {
   // git
   const { commit, branch } = gitInfo();
   if (commit) ok(`git repo on ${branch} @ ${commit.slice(0, 8)}`);
-  else warn('not a git repo — capture works but sessions won’t be linked to a commit');
+  else info("not a git repo — capture works; sessions just won’t link to a commit");
 
   // .mns writable
   const { dir } = paths();
@@ -84,6 +96,6 @@ export async function doctor() {
   if (live) ok(`${live} live session(s) active`);
   else if (!before) ok('no live sessions');
 
-  console.log(problems ? `\n${problems} problem(s) found` : '\nall good');
+  console.log(summaryLine(problems, warnings));
   process.exit(problems ? 1 : 0);
 }
