@@ -4,6 +4,8 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { computeDigest } from '../../mns/digest.mjs';
+import { writeItem } from '../../mns/knowledge/items.mjs';
+import { createProposal } from '../../mns/knowledge/proposals.mjs';
 
 // Build a throwaway .mns home; return its path (the mnsDir).
 function withHome(fn, seed = {}) {
@@ -46,4 +48,40 @@ test('missing instructions file → interview directive', () => {
     assert.match(d.text, /steering is empty/i);
     assert.equal(d.sections.instructions.empty, true);
   }); // no seed.project written
+});
+
+const FILLED = '# Project steering\n\nShip daily.\n';
+const RULES = JSON.stringify({
+  version: 1,
+  rules: [{ id: 'no-secret-reads', action: 'deny', tool: '*', pattern: '\\.env', reason: 'secrets' }],
+});
+
+test('knowledge section lists items newest-first, capped', () => {
+  withHome((mns) => {
+    writeItem(mns, { id: 'older', type: 'fact', created_at: '2026-06-01T00:00:00Z', status: 'active', attributes: {}, relations: [], provenance: [], body: 'older fact' });
+    writeItem(mns, { id: 'newer', type: 'command', created_at: '2026-06-09T00:00:00Z', status: 'active', attributes: {}, relations: [], provenance: [], body: 'newer fact' });
+    const d = computeDigest(mns, { knowledgeLimit: 5 });
+    assert.equal(d.sections.knowledge.count, 2);
+    assert.ok(d.text.indexOf('newer') < d.text.indexOf('older'));
+    assert.match(d.text, /## Knowledge/);
+  }, { project: FILLED });
+});
+
+test('proposals + guardrails sections reflect state', () => {
+  withHome((mns) => {
+    createProposal(mns, { candidate: { type: 'fact', body: 'releases must be tagged' }, source: 'test', evidence: {} });
+    const d = computeDigest(mns);
+    assert.equal(d.sections.proposals.pending, 1);
+    assert.match(d.text, /mns review/);
+    assert.equal(d.sections.guardrails.count, 1);
+    assert.match(d.text, /enforced/i);
+  }, { project: FILLED, rules: RULES });
+});
+
+test('a broken faculty does not sink the digest (fail-soft)', () => {
+  withHome((mns) => {
+    const d = computeDigest(mns);
+    assert.match(d.text, /## Instructions/);
+    assert.match(d.text, /## Knowledge/);
+  }, { project: FILLED, rules: '{ not json' });
 });

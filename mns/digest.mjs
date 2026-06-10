@@ -6,6 +6,9 @@
 
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { allItems } from './knowledge/items.mjs';
+import { listProposals } from './knowledge/proposals.mjs';
+import { loadRules } from './guardrails.mjs';
 
 const PLACEHOLDER_MARK = '<!-- Fill in:';
 
@@ -27,12 +30,42 @@ const INTERVIEW = [
   '.mns/instructions/project.md from their answers, and get their approval.',
 ].join(' ');
 
+function knowledgeSection(mnsDir, limit) {
+  try {
+    const { items } = allItems(mnsDir);
+    const ranked = [...items]
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+      .slice(0, limit);
+    return { count: items.length, shown: ranked.map((i) => ({ id: i.id, type: i.type, body: i.body })) };
+  } catch {
+    return { count: 0, shown: [] };
+  }
+}
+
+function proposalsSection(mnsDir) {
+  try {
+    return { pending: listProposals(mnsDir).length };
+  } catch {
+    return { pending: 0 };
+  }
+}
+
+function guardrailsSection(mnsDir) {
+  try {
+    const loaded = loadRules(join(mnsDir, 'guardrails', 'rules.json'));
+    return { ok: loaded.ok, count: loaded.ok ? loaded.rules.length : 0 };
+  } catch {
+    return { ok: false, count: 0 };
+  }
+}
+
 /**
  * Compute the digest for a faculty home.
  * @param {string} mnsDir  path to the .mns directory
+ * @param {{ knowledgeLimit?: number }} options
  * @returns {{ text: string, sections: object }}
  */
-export function computeDigest(mnsDir) {
+export function computeDigest(mnsDir, { knowledgeLimit = 5 } = {}) {
   const sections = {};
   const lines = ['# mns faculty digest', ''];
 
@@ -40,6 +73,30 @@ export function computeDigest(mnsDir) {
   sections.instructions = instr;
   lines.push('## Instructions');
   lines.push(instr.empty ? INTERVIEW : instr.text);
+  lines.push('');
+
+  const knowledge = knowledgeSection(mnsDir, knowledgeLimit);
+  sections.knowledge = knowledge;
+  lines.push('## Knowledge');
+  if (!knowledge.count) lines.push('(no items yet — propose facts to knowledge/inbox/)');
+  else {
+    lines.push(`${knowledge.count} item(s); most recent:`);
+    for (const it of knowledge.shown) lines.push(`- ${it.id} · ${it.type} · ${it.body.split('\n')[0].slice(0, 80)}`);
+  }
+  lines.push('');
+
+  const proposals = proposalsSection(mnsDir);
+  sections.proposals = proposals;
+  if (proposals.pending > 0) {
+    lines.push('## Proposals');
+    lines.push(`${proposals.pending} pending — remind the human to run \`mns review\`.`);
+    lines.push('');
+  }
+
+  const guardrails = guardrailsSection(mnsDir);
+  sections.guardrails = guardrails;
+  lines.push('## Guardrails');
+  lines.push(guardrails.count ? `${guardrails.count} rule(s) — the enforced gate is on; refusals are policy.` : 'no rules configured.');
   lines.push('');
 
   return { text: lines.join('\n').trimEnd() + '\n', sections };
