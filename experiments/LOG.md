@@ -595,3 +595,45 @@ Surveyed two real tool-infra sources and lifted *patterns*, not their execution 
 - The Actions faculty is real and graduating: author-or-propose → gate → serve → run → observe, zero-dep and host-safe. The manifest authored once for `mns act` is also an MCP/OpenAI/Anthropic tool def — the Stage-2/OpenCode bridge exists before Stage 2 does.
 - **Crystallization is now built, not just asserted** (DESIGN's "Actions crystallization = the same governed pipeline as Knowledge"): the same `mns review` gate, the same inbox→human→activate shape, kept deliberately *out* of the knowledge ER/registry machinery.
 - Three of the project's load-bearing invariants were enforced under adversarial review — never-break-the-host (timeout), result integrity (anchored stdout marker), and containment (slug guard at both layers) — none of which the happy-path tests would have caught.
+
+## Experiment 11 — Gemini CLI + Codex: live capture + the guardrails gate (2026-06-10)
+
+### Hypothesis
+
+The Stage-1 wrapper gap closes: bring Gemini CLI and Codex up to live-capture + enforced-gate parity with Claude Code and OpenCode — `mns enable --host gemini-cli|codex` installs each host's native lifecycle + pre-tool hooks, Design B unchanged. **The real-wire-data rule governs:** no event mapping or gate code written from docs; observe each host's actual hook payloads first.
+
+### Method — probe-first (Phase 0 → Phase 1)
+
+A throwaway `mns/live/probe.mjs` recorded exactly what each host hands a hook (argv + stdin + cwd). Installed per-host for every candidate event; sessions run for real; captures committed as golden fixtures (`tests/fixtures/hooks/{gemini-cli,codex}.probe.jsonl`). **The plan was written *from* the captures**, never the docs.
+
+### Phase-0 findings (real-wire — several contradict the docs)
+
+- **Gemini CLI** — fires hooks **headless and interactive**; **project-level `.gemini/settings.json` is honored** (docs were silent). Events: SessionStart(open) · BeforeAgent/AfterAgent(turn) · BeforeTool(gate: `tool_name`+`tool_input`) · AfterTool · **SessionEnd (a clean end** — rarer than Claude/OpenCode). Payload = stdin JSON, Claude-shaped (`session_id`, `transcript_path`, `hook_event_name`). Block = stdout `{decision:"deny",reason}` (exit 0).
+- **Codex** — **`codex exec` (headless) fires NOTHING**: not hooks (repo-local *or* global config.toml), not `notify` — proven three ways. Hooks are **interactive-TUI-only** in 0.138.0. Interactively, all fire: SessionStart(open) · UserPromptSubmit/Stop(turn) · PreToolUse(gate) · PostToolUse. Payload = stdin JSON, essentially Claude-identical (`session_id`, `turn_id`, `transcript_path` = the rollout JSONL, `tool_name`="Bash", `tool_input`). **Block schema is byte-identical to Claude's `hookSpecificOutput`.** Interactive honors **repo-local `.codex/hooks.json` alone** (the #17532 "repo-local ignored" bug is exec-specific). No clean end (Stop is per-turn) → staleness reconcile, like Claude.
+- **Probe bug found + fixed:** a blocking `readFileSync(0)` hung Codex hooks for 36 min (Codex leaves stdin open; Gemini closes it). Fix: read stdin only when fd 0 is a pipe/file.
+
+### What was built (Phase 1 — 6 wiring commits, from the captures)
+
+- **`toGeminiDecision`** (`guardrails.mjs`) — Gemini's `{decision:"deny",reason}` block shape; Codex/Claude reuse `toPreToolUseDecision` unchanged (identical schema).
+- **`hook.mjs`** — TURN gains `AfterAgent`(gemini)+`UserPromptSubmit`(codex); `runHook` parses stdin JSON for claude/gemini/codex (opencode stays `--session`); per-host capture `ref` (gemini derives `logs.json` from `transcript_path`; codex/claude use `transcript_path` directly; opencode=id); `gateDecision({host})` routes both `PreToolUse`+`BeforeTool` with the per-host serializer, fail-open, logs `{host,…}`.
+- **`install.mjs`** — extracted host-agnostic `addHookEntries`/`removeHookEntries` (the `{hooks:{Event:[…]}}` shape is shared across all three).
+- **`enable.mjs`** — `mns enable/disable --host gemini-cli` (project `.gemini/settings.json`, events SessionStart/AfterAgent/SessionEnd/BeforeTool) + `--host codex` (repo `.codex/hooks.json`, SessionStart/Stop/PreToolUse); generated configs git-ignored.
+- **Bug fixed (pre-existing, all hosts):** `SIGNATURE='mns.mjs hook'` never matched the real *quoted* command `node "…/mns.mjs" hook …`, so re-enable duplicated hooks and disable was a no-op — for Claude too. Now `SIGNATURE='mns.mjs'` (quote-agnostic), with a regression test using the real quoted form.
+
+### Verified — both hosts, end-to-end (real sessions)
+
+172 hermetic tests (incl. the golden fixtures, per-host gate serializers, event mapping, idempotent install). **Dogfood, real hosts:**
+- **Gemini** (headless, self-served): live session captured via the mns hooks (`f82fafcb` in the arena index); the gate **blocked** a `read_file` on a gated file — model reported *"blocked by an mns guardrail (block-notes)"*, decision logged `{host:"gemini-cli",tool:"read_file",action:"deny"}`. (SessionStart digest injection also fired — the model noticed the empty `project.md`.)
+- **Codex** (interactive, user-run): live session captured (`019eb241` + trace blob) via repo-local `.codex/hooks.json` **alone**; the gate **blocked** a Bash read, logged `{host:"codex",tool:"Bash",action:"deny"}`.
+
+### Honest limits
+
+- **Codex live/gate are interactive-only** — `codex exec` fires no hooks/notify in 0.138.0. This fits interactive-first canon (it's not a compromise), but headless Codex gets post-hoc `mns capture` only.
+- The first Gemini `.env` attempt **self-censored** (the exp-8 pattern) — a compliant model can mask whether the gate fired; the clean test used a neutrally-named gated file to force the tool call. Gate enforcement is real, but "did the model even try" is a confound to watch.
+- Gemini capture still uses the prompt-only `logs.json` adapter (the richer per-session `chats/*.json` transcript with tool calls is a later capture-depth rung, deliberately out of scope).
+- Codex "ask"-action rules: Gemini has no `ask` decision → `toGeminiDecision` defers ask to Gemini's own approval (only `deny` hard-blocks).
+
+### Conclusions
+
+- All **four** hosts now have live capture; **all four** have an enforced PreToolUse-equivalent gate (Claude, OpenCode, Gemini, Codex). The Stage-1 wrapper is no longer "thinner on Gemini/Codex" — it's parity, host-honestly scoped (Codex interactive-only).
+- **The real-wire-data rule paid for itself five times:** project-level Gemini hooks work (docs silent), Codex exec fires nothing (docs implied otherwise), repo-local Codex hooks work interactively (#17532 is exec-only), the probe stdin-blocking hang, and the pre-existing quoted-`SIGNATURE` bug — none visible from docs, all caught by observing + dogfooding real runs.
