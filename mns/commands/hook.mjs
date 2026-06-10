@@ -12,7 +12,7 @@
 // session. `runHook` wraps everything; failures degrade silently.
 
 import { readFileSync, appendFileSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { byName } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 import { captureTrace } from '../capture-core.mjs';
 import { SessionState } from '../session.mjs';
@@ -25,11 +25,19 @@ import { computeDigest } from '../digest.mjs';
 //   open  — session starts
 //   turn  — agent finished a response turn (per-turn "still alive"); re-capture
 //   end   — clean session end (rare: most hosts have none → staleness reconciles)
-// Claude: SessionStart / Stop / SessionEnd. OpenCode: session.created / session.idle
-// / session.deleted (deleted is delete-only, so end is effectively staleness too).
+// Claude: SessionStart/Stop/SessionEnd · OpenCode: session.created/idle/deleted
+// Gemini: SessionStart/AfterAgent/SessionEnd · Codex: SessionStart/UserPromptSubmit/Stop (no clean end)
 const OPEN = new Set(['SessionStart', 'session.created']);
-const TURN = new Set(['Stop', 'session.idle']);
+const TURN = new Set(['Stop', 'session.idle', 'AfterAgent', 'UserPromptSubmit']);
 const END = new Set(['SessionEnd', 'session.deleted']);
+
+/** Gemini's adapter reads logs.json filtered by sessionId; derive it from the
+ *  hook's transcript_path (~/.gemini/tmp/<proj>/chats/session-*.json → ../../logs.json). */
+export function geminiRef(payload = {}) {
+  const tp = payload.transcript_path || '';
+  const projDir = dirname(dirname(tp)); // .../chats/x.json → .../<proj>
+  return { file: join(projDir, 'logs.json'), sessionId: payload.session_id };
+}
 
 function safeCapture(adapter, ref, status, cwd) {
   if (!adapter || !ref) return;
@@ -48,7 +56,10 @@ function safeCapture(adapter, ref, status, cwd) {
 export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Date.now(), host = 'claude-code' }) {
   const id = payload.session_id;
   if (!id) return { event, skipped: 'no session_id' };
-  const ref = host === 'claude-code' ? payload.transcript_path : id; // opencode: sessionId → adapter reads its DB
+  let ref;
+  if (host === 'opencode') ref = id;                 // adapter reads its DB by id
+  else if (host === 'gemini-cli') ref = geminiRef(payload);
+  else ref = payload.transcript_path;                 // claude-code, codex: the transcript/rollout file
   const adapter = byName(host);
 
   if (OPEN.has(event)) {
@@ -120,7 +131,10 @@ export function sessionStartContext(cwd = process.cwd()) {
  */
 export function runHook(event, { host = 'claude-code', session } = {}) {
   let payload = {};
-  if (host === 'claude-code') {
+  if (host === 'opencode') {
+    payload = { session_id: session };
+  } else {
+    // claude-code, gemini-cli, codex all pipe a JSON payload on fd 0
     try {
       // fd 0, not '/dev/stdin' — the device-path form breaks for piped stdin on
       // Linux (CI caught this; macOS masked it).
@@ -128,8 +142,6 @@ export function runHook(event, { host = 'claude-code', session } = {}) {
     } catch {
       /* no/garbage stdin */
     }
-  } else {
-    payload = { session_id: session };
   }
   try {
     if (event === 'PreToolUse') {
