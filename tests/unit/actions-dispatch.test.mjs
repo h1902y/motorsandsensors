@@ -80,3 +80,81 @@ test('a hung action times out cleanly (never hangs mns)', async () => {
       assert.equal(r.error, 'timeout');
     });
 });
+
+test('invalid_input: missing required arg, action never runs', async () => {
+  await withAction(
+    'needs',
+    { inputs: { type: 'object', properties: { x: { type: 'integer' } }, required: ['x'] }, outputs: { type: 'object' } },
+    `export async function main() { return { ran: true }; }`,
+    async (mns) => {
+      const r = await runAction(mns, 'needs', {});
+      assert.equal(r.ok, false);
+      assert.equal(r.error, 'invalid_input');
+    },
+  );
+});
+
+test('invalid_output: main returns a non-object / schema mismatch', async () => {
+  await withAction(
+    'badout',
+    { inputs: { type: 'object' }, outputs: { type: 'object', properties: { n: { type: 'integer' } } } },
+    `export async function main() { return { n: 'not-an-int' }; }`,
+    async (mns) => {
+      const r = await runAction(mns, 'badout', {});
+      assert.equal(r.ok, false);
+      assert.equal(r.error, 'invalid_output');
+    },
+  );
+});
+
+test('throw-to-fail: a throwing action becomes script_error', async () => {
+  await withAction(
+    'boom',
+    { inputs: { type: 'object' }, outputs: { type: 'object' } },
+    `export async function main() { throw new Error('kaboom'); }`,
+    async (mns) => {
+      const r = await runAction(mns, 'boom', {});
+      assert.equal(r.ok, false);
+      assert.equal(r.error, 'script_error');
+      assert.match(r.detail, /kaboom/);
+    },
+  );
+});
+
+test('not_found for a slug with no action.json', async () => {
+  await withAction('x', { inputs: { type: 'object' }, outputs: { type: 'object' } },
+    `export async function main(){ return {}; }`,
+    async (mns) => {
+      assert.equal((await runAction(mns, 'nope', {})).error, 'not_found');
+    });
+});
+
+test('prepareArguments folds legacy args before validation', async () => {
+  await withAction(
+    'legacy',
+    { inputs: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] }, outputs: { type: 'object' } },
+    `export function prepareArguments(a){ return a.fullName ? { name: a.fullName } : a; }
+     export async function main(args){ return { name: args.name }; }`,
+    async (mns) => {
+      const r = await runAction(mns, 'legacy', { fullName: 'Ada' });
+      assert.equal(r.ok, true);
+      assert.deepEqual(r.value, { name: 'Ada' });
+    },
+  );
+});
+
+test('depth cap: MNS_ACT_DEPTH at the limit refuses', async () => {
+  await withAction('deep', { inputs: { type: 'object' }, outputs: { type: 'object' } },
+    `export async function main(){ return {}; }`,
+    async (mns) => {
+      const prev = process.env.MNS_ACT_DEPTH;
+      process.env.MNS_ACT_DEPTH = '8';
+      try {
+        const r = runAction(mns, 'deep', {});
+        assert.equal(r.ok, false);
+        assert.equal(r.error, 'depth_exceeded');
+      } finally {
+        if (prev === undefined) delete process.env.MNS_ACT_DEPTH; else process.env.MNS_ACT_DEPTH = prev;
+      }
+    });
+});
