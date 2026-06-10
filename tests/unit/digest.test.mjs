@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync as _mkdirA, writeFileSync as _writeA } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { computeDigest } from '../../mns/digest.mjs';
@@ -113,4 +114,25 @@ test('budget truncates the knowledge list but keeps instructions + guardrails', 
     assert.ok(tiny.sections.knowledge.renderedCount >= 1);
     assert.ok(tiny.sections.knowledge.renderedCount <= tiny.sections.knowledge.shown.length);
   }, { project: '# Project steering\n\nShip daily.\n', rules: RULES });
+});
+
+test('digest Actions section lists slug · snippet (progressive disclosure)', () => {
+  withHome((mns) => {
+    const a = join(mns, 'actions', 'run-tests');
+    _mkdirA(a, { recursive: true });
+    _writeA(join(a, 'action.json'), JSON.stringify({ slug: 'run-tests', promptSnippet: 'run the suite', inputs: { type: 'object' }, outputs: { type: 'object' } }));
+    _writeA(join(a, 'run.mjs'), 'export async function main(){ return {}; }');
+    const d = computeDigest(mns);
+    assert.match(d.text, /## Actions/);
+    assert.match(d.text, /run-tests · run the suite/);
+    assert.equal(d.sections.actions.count, 1);
+    assert.equal(d.sections.actions.renderedCount, 1);
+  }, { project: '# Project steering\n\nShip daily.\n' });
+});
+
+test('digest omits the Actions section when there are none', () => {
+  withHome((mns) => {
+    const d = computeDigest(mns);
+    assert.doesNotMatch(d.text, /## Actions/);
+  }, { project: '# Project steering\n\nShip daily.\n' });
 });

@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { allItems } from './knowledge/items.mjs';
 import { listProposals } from './knowledge/proposals.mjs';
 import { loadRules } from './guardrails.mjs';
+import { allActions } from './actions/manifest.mjs';
 
 const PLACEHOLDER_MARK = '<!-- Fill in:';
 
@@ -49,6 +50,15 @@ function proposalsSection(mnsDir) {
     return { pending: pending.length };
   } catch {
     return { pending: 0 };
+  }
+}
+
+function actionsSection(mnsDir, limit) {
+  try {
+    const list = allActions(mnsDir);
+    return { count: list.length, shown: list.slice(0, limit).map((a) => ({ slug: a.slug, kind: a.kind, promptSnippet: a.promptSnippet })) };
+  } catch {
+    return { count: 0, shown: [] };
   }
 }
 
@@ -100,6 +110,27 @@ export function computeDigest(mnsDir, { knowledgeLimit = 5, budget = 1500 } = {}
   }
   lines.push('');
 
+  const actions = actionsSection(mnsDir, knowledgeLimit);
+  sections.actions = actions;
+  if (actions.count) {
+    lines.push('## Actions');
+    lines.push(`${actions.count} available; run with \`mns act <slug>\`:`);
+    let shownA = 0;
+    for (const a of actions.shown) {
+      const line = `- ${a.slug} · ${a.promptSnippet}`;
+      if (lines.join('\n').length + line.length > charBudget && shownA > 0) break;
+      lines.push(line);
+      shownA++;
+    }
+    const droppedA = actions.count - shownA;
+    if (droppedA > 0) lines.push(`- … (${droppedA} more — \`mns act list\`)`);
+    lines.push('');
+    // mirror the Knowledge contract: shown reflects what actually rendered
+    sections.actions = { ...actions, shown: actions.shown.slice(0, shownA), renderedCount: shownA };
+  } else {
+    sections.actions = { ...actions, renderedCount: 0 };
+  }
+
   const proposals = proposalsSection(mnsDir);
   sections.proposals = proposals;
   if (proposals.pending > 0) {
@@ -113,10 +144,6 @@ export function computeDigest(mnsDir, { knowledgeLimit = 5, budget = 1500 } = {}
   lines.push('## Guardrails');
   lines.push(guardrails.count ? `${guardrails.count} rule(s) — the enforced gate is on; refusals are policy.` : 'no rules configured.');
   lines.push('');
-
-  // NOTE: the Actions index section is intentionally deferred to Spec 2 (the
-  // actions engine). When added, extend `sections` with `actions` — additive,
-  // not a breaking change to the existing --json shape.
 
   return { text: lines.join('\n').trimEnd() + '\n', sections };
 }

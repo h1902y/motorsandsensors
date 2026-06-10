@@ -1,0 +1,10 @@
+{
+  "slug": "run-tests",
+  "title": "Run the mns test suite",
+  "description": "Runs `npm test` and reports pass/fail counts.",
+  "promptSnippet": "run the hermetic test suite (npm test)",
+  "inputs": { "type": "object", "properties": {}, "required": [] },
+  "outputs": { "type": "object", "properties": { "ok": { "type": "boolean" }, "summary": { "type": "string" } }, "required": ["ok"] },
+  "default_args": {},
+  "requires": []
+}
