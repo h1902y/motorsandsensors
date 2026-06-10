@@ -14,7 +14,7 @@ Built so far (verified): the **observe** layer — host-agnostic trace capture (
 npm test                                   # full hermetic suite (node:test, zero deps)
 node --test tests/unit/ids.test.mjs        # a single test file
 npm run playground                         # real-data smoke checks (pass/skip/fail)
-node playground/run.mjs 4                  # one playground by number
+node tests/playground/run.mjs 4                  # one playground by number
 node bin/mns.mjs <cmd>                     # the CLI (or `mns` after npm link)
 #   init · status · capture [--host h] · trace [--last] · enable|disable [--host opencode] · doctor
 ```
@@ -51,7 +51,7 @@ No build step, **zero runtime dependencies** (a deliberate policy — `node:test
 ## Docs canon
 
 - `README.md` = front door (what works, quickstart). `docs/DESIGN.md` = **canonical design** (was the repo README until 2026-06-10 — older docs/comments citing "README §N" mean DESIGN.md). `experiments/LOG.md` = the **build journal** (all experiment records, one append-only file — append corrections, don’t rewrite history). That’s the whole doc set; module knowledge lives in code comments, not READMEs.
-- `inspiration/` = audit records; they contain intentionally-dead links to pre-consolidation filenames — do **not** recreate those files. Preserve every verified-vs-directional honesty split.
+- `docs/inspiration/` = audit records; they contain intentionally-dead links to pre-consolidation filenames — do **not** recreate those files. Preserve every verified-vs-directional honesty split.
 - Older docs say "zuzu/zuzuagents" — expected, not an error. Dates are absolute (`2026-06-09`).
 - `STATUS.md` / `SOCIAL.md` / `tasks/` / `engagement/` stay at the repo root — the personal vault reads them at these paths (federation contract).
 

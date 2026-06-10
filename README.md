@@ -25,7 +25,7 @@ mns doctor      # health + lost-session reconciliation
 | live capture | ✅ hooks | — | — | ✅ plugin |
 | guardrails gate | ✅ PreToolUse | — | — | ⏳ next |
 
-All four verified against **real sessions** — never fixtures ([`playground-4`](playground/playground-4-provider-journey/play.mjs)).
+All four verified against **real sessions** — never fixtures ([`playground-4`](tests/playground/playground-4-provider-journey/play.mjs)).
 
 **Prerequisites:** Node ≥ 22 and git — that's it (zero dependencies, nothing else installs). You need at least one supported agent you've already used, so a session exists to capture.
 
@@ -65,10 +65,8 @@ All four verified against **real sessions** — never fixtures ([`playground-4`]
 | [`mns/`](mns/) + `bin/mns.mjs` | the CLI — capture, live lifecycle, faculty home (product surface) |
 | [`experiments/`](experiments/) | spike code + [`LOG.md`](experiments/LOG.md) — the build journal (hypothesis → real-data proof → conclusions per experiment) |
 | [`app/`](app/) | the durable application skeleton (be / run / evolve) — proven code harvests here |
-| [`playground/`](playground/) | real-data smoke checks (pass / skip / fail) |
-| [`tests/`](tests/) | hermetic unit + regression suite (`npm test`) |
-| [`docs/DESIGN.md`](docs/DESIGN.md) | the canonical design — architecture, decisions, roadmap |
-| [`inspiration/`](inspiration/) | the research shelf: a 100-project field survey + 5 source-level audits |
+| [`tests/`](tests/) | hermetic unit + regression (`npm test`) + real-data smoke playgrounds (`npm run playground`) |
+| [`docs/`](docs/) | [`DESIGN.md`](docs/DESIGN.md) (the canon) + [`inspiration/`](docs/inspiration/) (the research shelf: 100-project survey + 5 audits) |
 
 ## How this is built (the method)
 

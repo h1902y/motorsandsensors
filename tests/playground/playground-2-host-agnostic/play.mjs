@@ -4,9 +4,9 @@
 // each yields a valid trace. The point is plural: it needs ≥2 hosts to actually
 // demonstrate agnosticity, so it skips if fewer than two are present.
 
-import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
-import { eventsToSpans } from '../../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { EventKind } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
+import { detected } from '../../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
+import { eventsToSpans } from '../../../experiments/experiment-1-trace-capture/core/spans.mjs';
+import { EventKind } from '../../../experiments/experiment-1-trace-capture/core/event.mjs';
 import { run, check, note, skip } from '../_harness.mjs';
 
 await run('same core, multiple hosts → valid traces (agnosticity)', async () => {

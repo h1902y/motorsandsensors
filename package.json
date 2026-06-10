@@ -12,6 +12,6 @@
     "capture": "node experiments/experiment-1-trace-capture/bin/capture.mjs",
     "inspect": "node experiments/experiment-1-trace-capture/bin/inspect-trace.mjs",
     "test": "node --test 'tests/**/*.test.mjs'",
-    "playground": "node playground/run.mjs"
+    "playground": "node tests/playground/run.mjs"
   }
 }

@@ -3,9 +3,9 @@
 // Captures this repo's latest Claude session through the full pipeline and
 // asserts the result is a sane tree. Skips if no Claude session exists here.
 
-import { claudeCode } from '../../experiments/experiment-1-trace-capture/adapters/claude-code.mjs';
-import { eventsToSpans } from '../../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { EventKind } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
+import { claudeCode } from '../../../experiments/experiment-1-trace-capture/adapters/claude-code.mjs';
+import { eventsToSpans } from '../../../experiments/experiment-1-trace-capture/core/spans.mjs';
+import { EventKind } from '../../../experiments/experiment-1-trace-capture/core/event.mjs';
 import { run, check, note, skip } from '../_harness.mjs';
 
 await run('capture a real Claude Code session and verify the tree', async () => {

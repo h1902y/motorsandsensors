@@ -2,8 +2,8 @@
 // Playground runner. Discovers playground-N-*/play.mjs, runs each in its own
 // process, and tallies pass / skip / fail by exit code (0 / 2 / other).
 //
-//   node playground/run.mjs        # run all
-//   node playground/run.mjs 2      # run only playground-2-*
+//   node tests/playground/run.mjs        # run all
+//   node tests/playground/run.mjs 2      # run only playground-2-*
 
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
