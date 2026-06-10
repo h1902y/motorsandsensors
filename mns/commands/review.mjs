@@ -11,6 +11,7 @@ import { paths } from '../store.mjs';
 import { processInbox } from '../knowledge/inbox.mjs';
 import { listProposals, getProposal, approveProposal, rejectProposal, proposalsDir } from '../knowledge/proposals.mjs';
 import { readItem } from '../knowledge/items.mjs';
+import { listProposedActions, activateAction, rejectAction } from '../actions/inbox.mjs';
 
 function card(mnsDir, p, i, total) {
   const lines = [];
@@ -39,8 +40,9 @@ export async function review() {
   const inbox = processInbox(mnsDir);
   if (inbox.processed) console.log(`(processed ${inbox.processed} inbox candidate(s) → proposals)`);
   const pending = listProposals(mnsDir);
-  if (!pending.length) {
-    console.log('no pending proposals — inbox empty, knowledge is current');
+  const proposedCount = listProposedActions(mnsDir).length;
+  if (!pending.length && !proposedCount) {
+    console.log('nothing to review — knowledge and actions are current');
     return;
   }
   // Line-queue instead of rl.question: with piped stdin, lines that arrive
@@ -73,6 +75,22 @@ export async function review() {
       waiter = res;
     });
   };
+  // --- Actions gate: walk proposed actions first ---
+  const proposed = listProposedActions(mnsDir);
+  for (let i = 0; i < proposed.length; i++) {
+    const a = proposed[i];
+    console.log(`\n━━ action ${i + 1}/${proposed.length} ── ${a.slug} ── ${a.kind} ━━`);
+    console.log(`  ${a.promptSnippet}`);
+    let acted = false;
+    while (!acted) {
+      const ans = (await ask('  [y]activate [n]reject [s]kip [q]uit > ')).trim().toLowerCase();
+      if (ans === 'y') { const r = activateAction(mnsDir, a.slug); console.log(r.ok ? '  ✓ activated' : `  ✗ ${r.error}`); acted = true; }
+      else if (ans === 'n') { rejectAction(mnsDir, a.slug); console.log('  ✗ rejected'); acted = true; }
+      else if (ans === 's') { acted = true; }
+      else if (ans === 'q' || ans === '') { rl.close(); console.log('\nreview: quit'); return; }
+    }
+  }
+
   let approved = 0, rejected = 0, skipped = 0;
   for (let i = 0; i < pending.length; i++) {
     const p = pending[i];
