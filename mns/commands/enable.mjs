@@ -7,12 +7,28 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
 import { repoRoot } from '../store.mjs';
-import { addHooks, removeHooks, isInstalled, LIFECYCLE_EVENTS, GATE_EVENTS } from '../live/install.mjs';
+import { addHooks, removeHooks, isInstalled, LIFECYCLE_EVENTS, GATE_EVENTS, addHookEntries, removeHookEntries } from '../live/install.mjs';
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'mns.mjs');
 
 // `|| true` → exit 0 even if node/mns is absent (graceful degradation).
 const commandFor = (event) => `node "${BIN}" hook ${event} || true`;
+
+// Gemini settings.json + Codex hooks.json share Claude's hook shape; only the
+// path + event names differ. Events from the Phase-0 real-wire captures.
+const HOST_HOOKS = {
+  'gemini-cli': {
+    file: (cwd) => join(repoRoot(cwd), '.gemini', 'settings.json'),
+    events: ['SessionStart', 'AfterAgent', 'SessionEnd', 'BeforeTool'],
+    note: 'fires headless + interactive; project-level honored',
+  },
+  codex: {
+    file: (cwd) => join(repoRoot(cwd), '.codex', 'hooks.json'),
+    events: ['SessionStart', 'Stop', 'PreToolUse'],
+    note: 'INTERACTIVE only (codex exec fires no hooks); no clean end → `mns doctor` reconciles',
+  },
+};
+const hostCommandFor = (host) => (event) => `node "${BIN}" hook ${event} --host ${host} || true`;
 
 function settingsPath(cwd) {
   return join(repoRoot(cwd), '.claude', 'settings.json');
@@ -55,6 +71,17 @@ export const Mns = async () => ({
 `;
 
 export function enable(args = {}) {
+  if (args.host === 'gemini-cli' || args.host === 'codex') {
+    const spec = HOST_HOOKS[args.host];
+    const path = spec.file();
+    writeSettings(path, addHookEntries(readSettings(path), hostCommandFor(args.host), spec.events));
+    console.log(`mns enabled — live capture + gate installed (${args.host})`);
+    console.log(`  config : ${path}`);
+    console.log(`  hooks  : ${spec.events.join(', ')}`);
+    console.log(`  note   : ${spec.note}`);
+    console.log(`  disable: mns disable --host ${args.host}`);
+    return;
+  }
   if ((args.host || 'claude-code') === 'opencode') {
     const path = opencodePluginPath();
     mkdirSync(dirname(path), { recursive: true });
@@ -76,6 +103,13 @@ export function enable(args = {}) {
 }
 
 export function disable(args = {}) {
+  if (args.host === 'gemini-cli' || args.host === 'codex') {
+    const path = HOST_HOOKS[args.host].file();
+    if (!existsSync(path)) { console.log(`nothing to disable (no ${path})`); return; }
+    writeSettings(path, removeHookEntries(readSettings(path)));
+    console.log(`mns disabled — hooks removed from ${path}`);
+    return;
+  }
   if ((args.host || 'claude-code') === 'opencode') {
     const path = opencodePluginPath();
     if (existsSync(path)) rmSync(path, { force: true });
