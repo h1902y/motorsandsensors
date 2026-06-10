@@ -136,10 +136,12 @@ export function runHook(event, { host = 'claude-code', session } = {}) {
       const decision = gateToolUse({ payload });
       if (decision) process.stdout.write(JSON.stringify(decision));
     } else {
-      handleHook({ event, payload, host });
+      try { handleHook({ event, payload, host }); } catch { /* capture failure is silent — never blocks the digest or the host */ }
       if (event === 'SessionStart') {
-        const ctx = sessionStartContext();
-        if (ctx) process.stdout.write(JSON.stringify(ctx));
+        try {
+          const ctx = sessionStartContext();
+          if (ctx) process.stdout.write(JSON.stringify(ctx));
+        } catch { /* digest failure is silent (fail-open) */ }
       }
     }
   } catch {

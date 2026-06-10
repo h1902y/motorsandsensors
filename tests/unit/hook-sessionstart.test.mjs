@@ -29,11 +29,12 @@ test('sessionStartContext returns the Claude additionalContext shape', () => {
   }, '# Project steering\n\nShip daily.\n');
 });
 
-test('sessionStartContext returns null when the home is absent (fail-open)', () => {
+test('sessionStartContext on an absent home degrades gracefully (no throw, well-formed)', () => {
   const root = mkdtempSync(join(tmpdir(), 'mns-nohome-'));
   try {
-    const out = sessionStartContext(root);
-    assert.ok(out === null || typeof out.hookSpecificOutput === 'object');
+    const out = sessionStartContext(root); // must not throw
+    assert.equal(out.hookSpecificOutput.hookEventName, 'SessionStart');
+    assert.match(out.hookSpecificOutput.additionalContext, /mns faculty digest/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
