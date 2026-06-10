@@ -39,7 +39,7 @@ test('removeBlock strips our block and only our block', () => {
 });
 
 test('v4 block carries the ground/cite/harvest contract', () => {
-  const out = injectBlock('# proj\n');
+  const out = injectBlock('# proj\n', facultiesBlock(4));
   assert.ok(out.includes('mns:faculties:v4'), 'is v4');
   assert.match(out, /digest/i);             // ground on the digest
   assert.match(out, /from knowledge:/);     // cite in-flight
@@ -49,8 +49,22 @@ test('v4 block carries the ground/cite/harvest contract', () => {
 
 test('a v3 block upgrades to v4 in place, user text intact', () => {
   const v3 = injectBlock('# proj\n', facultiesBlock(3)) + '\n## after\n';
-  const v4 = injectBlock(v3);
+  const v4 = injectBlock(v3, facultiesBlock(4));
   assert.ok(v4.includes('mns:faculties:v4'));
   assert.ok(!v4.includes('mns:faculties:v3'));
   assert.ok(v4.includes('## after'));
+});
+
+test('v5 block tells agents to propose actions via the gate', () => {
+  const out = injectBlock('# proj\n');
+  assert.ok(out.includes('mns:faculties:v5'), 'is v5');
+  assert.match(out, /mns act propose/);
+});
+
+test('a v4 block upgrades to v5 in place', () => {
+  const v4 = injectBlock('# proj\n', facultiesBlock(4)) + '\n## after\n';
+  const v5 = injectBlock(v4);
+  assert.ok(v5.includes('mns:faculties:v5'));
+  assert.ok(!v5.includes('mns:faculties:v4'));
+  assert.ok(v5.includes('## after'));
 });

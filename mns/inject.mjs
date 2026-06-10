@@ -8,7 +8,7 @@ const END = '<!-- <<< mns:faculties <<< -->';
 // matches our block at ANY version (so a v1 block is replaced by a v2 inject)
 const BLOCK_RE = /[ \t]*<!-- >>> mns:faculties:v\d+ >>> -->[\s\S]*?<!-- <<< mns:faculties <<< -->[ \t]*\n?/;
 
-export const BLOCK_VERSION = 4;
+export const BLOCK_VERSION = 5;
 
 /** The block content served to host agents. Keep short — it's steering, not docs. */
 export function facultiesBlock(version = BLOCK_VERSION) {
@@ -19,7 +19,7 @@ This project has an mns faculty home at \`.mns/\` (managed by the mns CLI). Work
 
 - **Ground.** At session start you receive an *mns digest* (instructions, knowledge, proposals, guardrails). Trust it as ground truth; don't re-derive what it states or re-read faculty files it already summarized.
 - **Cite in-flight.** When an answer draws on a stored fact, say \`from knowledge: <id>\`; when you follow a runbook/action, name it. Make the faculty visible.
-- **Harvest at close.** Before ending, propose durable learnings as one-fact files in \`.mns/knowledge/inbox/\` (plain text is fine) — a human reviews via \`mns review\`. Never write \`items/\` directly.
+- **Harvest at close.** Before ending, propose durable learnings as one-fact files in \`.mns/knowledge/inbox/\` (plain text is fine), and propose any reusable procedure with \`mns act propose <slug>\` (it lands in \`actions/inbox/\`). A human reviews both via \`mns review\`. Never write \`knowledge/items/\` or active \`actions/\` directly.
 - **Respect \`.mns/guardrails/\`** — hard rules, *enforced* on tool calls by the mns gate; a refusal there is policy, not preference.
 - Do **not** read \`.mns/traces/\` or \`.mns/live/\` (mns observability internals).
 ${END}`;
