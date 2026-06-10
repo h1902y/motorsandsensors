@@ -75,15 +75,14 @@ This project owns its activities in [`.personal/tasks/`](.personal/tasks/) — m
 - When task state changes materially, reflect the headline in [`.personal/STATUS.md`](.personal/STATUS.md) so the personal vault's dashboard stays current — that's the only cross-repo obligation.
 - Some migrated tasks carry `[[wikilinks]]` to notes that stayed in the personal vault; those are cross-repo and won't resolve in Obsidian — leave them as references.
 
-<!-- >>> mns:faculties:v3 >>> -->
+<!-- >>> mns:faculties:v5 >>> -->
 ## mns — agent faculty home
 
-This project has an mns faculty home at `.mns/` (managed by the mns CLI):
+This project has an mns faculty home at `.mns/` (managed by the mns CLI). Work to this contract:
 
-- **Read `.mns/knowledge/`** — verified project facts/entities. Treat as ground truth.
-- **Follow `.mns/instructions/`** — project steering (who/how to be in this project).
-- **Use `.mns/actions/`** — named procedures/runbooks for this project.
-- **Respect `.mns/guardrails/`** — hard rules, *enforced* on tool calls by the mns gate.
-- **Propose durable learnings**: one fact per file in `.mns/knowledge/inbox/` (plain text is fine) — a human reviews via `mns review`. Never write `items/` directly.
+- **Ground.** At session start you receive an *mns digest* (instructions, knowledge, proposals, guardrails). Trust it as ground truth; don't re-derive what it states or re-read faculty files it already summarized.
+- **Cite in-flight.** When an answer draws on a stored fact, say `from knowledge: <id>`; when you follow a runbook/action, name it. Make the faculty visible.
+- **Harvest at close.** Before ending, propose durable learnings as one-fact files in `.mns/knowledge/inbox/` (plain text is fine), and propose any reusable procedure with `mns act propose <slug>` (it lands in `actions/inbox/`). A human reviews both via `mns review`. Never write `knowledge/items/` or active `actions/` directly.
+- **Respect `.mns/guardrails/`** — hard rules, *enforced* on tool calls by the mns gate; a refusal there is policy, not preference.
 - Do **not** read `.mns/traces/` or `.mns/live/` (mns observability internals).
 <!-- <<< mns:faculties <<< -->

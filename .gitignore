@@ -25,3 +25,7 @@ experiments/**/out/
 
 # mns: local-only observability data
 .mns/knowledge/index.db
+
+# mns: local-only observability data
+.gemini/settings.json
+.codex/hooks.json
