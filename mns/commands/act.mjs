@@ -15,6 +15,7 @@ import { runAction } from '../actions/dispatch.mjs';
 import { MARKER } from '../actions/marker.mjs';
 import { newAction, schema as schemaCmd, proposeAction } from './act-author.mjs';
 import { listProposedActions, activateAction, rejectAction } from '../actions/inbox.mjs';
+import { recordOutcome } from '../actions/trail.mjs';
 
 const RESERVED = new Set(['list', 'show', 'new', 'schema', 'propose', 'inbox', 'approve', 'reject']);
 
@@ -49,6 +50,7 @@ function run(mnsDir, slug, args) {
     catch { console.error('--args must be valid JSON'); process.exit(1); }
   }
   const r = runAction(mnsDir, slug, callerArgs);
+  recordOutcome(mnsDir, { slug, ok: r.ok, error: r.ok ? undefined : r.error });
   if (r.logs) process.stdout.write(r.logs + '\n');
   console.log(MARKER + JSON.stringify(r.ok ? { ok: true, value: r.value } : { ok: false, error: r.error, detail: r.detail }));
   if (r.ok) console.log(`✓ ${slug} ok`);
