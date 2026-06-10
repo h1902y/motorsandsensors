@@ -16,25 +16,25 @@ npm install -g motorsandsensors   # zero dependencies — installs the `mns` com
 mns init        # scaffold your project's agent faculty home (.mns/) — git-style
 mns capture     # turn your latest agent session into an OpenTelemetry trace
 mns trace --last
-mns enable [--host gemini-cli|codex|opencode]   # live capture + the guardrails gate
+mns enable [--host gemini-cli|codex|opencode|pi]   # live capture + the guardrails gate
 mns doctor      # health + lost-session reconciliation
 ```
 
-| | Claude Code | Gemini CLI | Codex | OpenCode |
-|---|---|---|---|---|
-| post-hoc capture | ✅ rich | ✅ thin | ✅ rich | ✅ rich |
-| live capture | ✅ hooks | ✅ hooks | ✅ hooks¹ | ✅ plugin |
-| guardrails gate | ✅ PreToolUse | ✅ BeforeTool | ✅ PreToolUse¹ | ⏳ next |
+| | Claude Code | Gemini CLI | Codex | OpenCode | pi |
+|---|---|---|---|---|---|
+| post-hoc capture | ✅ rich | ✅ thin | ✅ rich | ✅ rich | ✅ rich |
+| live capture | ✅ hooks | ✅ hooks | ✅ hooks¹ | ✅ plugin | ✅ extension |
+| guardrails gate | ✅ PreToolUse | ✅ BeforeTool | ✅ PreToolUse¹ | ✅ tool.execute.before | ✅ tool_call |
 
 ¹ **Codex is interactive-only** — `codex exec` (headless) fires no hooks (verified, v0.138.0), so live capture + gate work when you run Codex interactively; headless Codex still gets post-hoc `mns capture`.
 
-All four verified against **real sessions** — never fixtures ([`playground-4`](tests/playground/playground-4-provider-journey/play.mjs)); live capture + gate for Gemini & Codex were wired from **real captured hook payloads** and dogfooded end-to-end ([`experiments/LOG.md` exp-11](experiments/LOG.md)).
+All five verified against **real sessions** — never fixtures; every host's live capture + gate was wired from **real captured hook payloads** and dogfooded end-to-end ([`experiments/LOG.md`](experiments/LOG.md) exp-11 Gemini/Codex, exp-12 OpenCode/pi). Gate semantics are host-honest: deny hard-blocks everywhere; `ask` maps to a native prompt on Claude, defers to the host elsewhere.
 
 **Prerequisites:** Node ≥ 22 — that's it. You need at least one supported agent you've already used, so a session exists to capture. (Hacking on mns itself? `git clone https://github.com/h1902y/motorsandsensors && cd motorsandsensors && npm link`.)
 
 **`mns init`** behaves like `git init`: empty dir → scaffolds the faculty home + `AGENTS.md`/`CLAUDE.md`; existing project → adds `.mns/` and injects a small delimiter-marked block into your existing instruction files (your text is never touched); already initialized → restores missing pieces only. The home: `knowledge/` (verified facts) · `memory/` (curated episodes) · `actions/` (runbooks) · `instructions/` (steering + rules).
 
-**Live capture** (`mns enable`) is invisible by design: a minimal lifecycle hook set (Claude Code, Gemini CLI, Codex) or a bus plugin (OpenCode), wrapped so it **always exits 0 — it can never break your agent**. The same hooks carry the guardrails gate (Gemini blocks via `{decision:"deny"}`, Codex via Claude's `hookSpecificOutput` schema). Most hosts emit no clean end-signal when a terminal is killed, so `mns doctor` *reconciles* lost sessions afterward from the transcript still on disk (nothing lost).
+**Live capture** (`mns enable`) is invisible by design: a minimal lifecycle hook set (Claude Code, Gemini CLI, Codex), a bus plugin (OpenCode), or an extension (pi) — each wrapped so it **always exits 0 / fails open — it can never break your agent**. The same hook carries the guardrails gate, applied in each host's own idiom (Claude/Codex `hookSpecificOutput`, Gemini `{decision:"deny"}`, OpenCode throws from `tool.execute.before`, pi returns `{block:true}` from `tool_call`). Most hosts emit no clean end-signal when a terminal is killed, so `mns doctor` *reconciles* lost sessions afterward from the transcript still on disk (nothing lost).
 
 **Where your data lives:** transcripts are read **read-only**; output is git-native in your repo — `.mns/sessions.json` (small tracked index, each session linked to a commit) + `.mns/traces/*.otlp.jsonl` (local, git-ignored). **Nothing is uploaded**; no raw tool input/output on the trace (byte sizes only).
 
