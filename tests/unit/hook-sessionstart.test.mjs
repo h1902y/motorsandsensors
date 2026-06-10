@@ -32,6 +32,9 @@ test('sessionStartContext returns the Claude additionalContext shape', () => {
 test('sessionStartContext on an absent home degrades gracefully (no throw, well-formed)', () => {
   const root = mkdtempSync(join(tmpdir(), 'mns-nohome-'));
   try {
+    // No .mns/ here, yet computeDigest is fail-soft per faculty and still
+    // renders headers (interview directive + empty knowledge + guardrails) →
+    // a non-empty digest, so we get a well-formed payload, never null/throw.
     const out = sessionStartContext(root); // must not throw
     assert.equal(out.hookSpecificOutput.hookEventName, 'SessionStart');
     assert.match(out.hookSpecificOutput.additionalContext, /mns faculty digest/);
