@@ -39,3 +39,11 @@ test('filled instructions → steering text appears, not the directive', () => {
     assert.equal(d.sections.instructions.empty, false);
   }, { project: '# Project steering\n\nShip daily. Tests before merge.\n' });
 });
+
+test('missing instructions file → interview directive', () => {
+  withHome((mns) => {
+    const d = computeDigest(mns);
+    assert.match(d.text, /steering is empty/i);
+    assert.equal(d.sections.instructions.empty, true);
+  }); // no seed.project written
+});

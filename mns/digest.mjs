@@ -4,7 +4,7 @@
 // I/O-free: callers (the CLI + the SessionStart hook) handle output. Every
 // reader is wrapped so a single broken faculty never sinks the whole digest.
 
-import { existsSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const PLACEHOLDER_MARK = '<!-- Fill in:';
@@ -14,9 +14,9 @@ function readInstructions(mnsDir) {
   const path = join(mnsDir, 'instructions', 'project.md');
   let raw = '';
   try {
-    if (existsSync(path)) raw = readFileSync(path, 'utf8');
-  } catch { /* unreadable → treat as empty */ }
-  const stripped = raw.replace(/^#.*$/m, '').trim();
+    raw = readFileSync(path, 'utf8');
+  } catch { /* missing or unreadable → treat as empty */ }
+  const stripped = raw.replace(/^#.*$/gm, '').trim();
   const empty = !stripped || raw.includes(PLACEHOLDER_MARK);
   return { empty, text: empty ? '' : raw.trim() };
 }
