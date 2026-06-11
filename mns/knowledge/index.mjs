@@ -16,7 +16,7 @@ import { createRequire } from 'node:module';
 import { allItems } from './items.mjs';
 
 const require = createRequire(import.meta.url);
-export const indexPath = (mnsDir) => join(mnsDir, 'knowledge', 'index.db');
+export const indexPath = (mnsDir) => join(mnsDir, 'knowledge', '.index.db');
 
 function open(mnsDir, { readOnly = false } = {}) {
   const { DatabaseSync } = require('node:sqlite');
