@@ -8,8 +8,10 @@
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { event, trace, EventKind, Status } from '../core/event.mjs';
 
+const require = createRequire(import.meta.url);
 const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 
 // Claude encodes the project's cwd into the dir name by replacing non-alphanumerics with '-'.
@@ -52,6 +54,21 @@ export const claudeCode = {
 
   detect() {
     return existsSync(PROJECTS_DIR);
+  },
+
+  // Cross-host distill: delegate to the canonical Claude signal extractor.
+  // Lazy import avoids an import-time cycle (distill.mjs imports this adapter);
+  // mineTranscript is only called at runtime, so the cycle is harmless.
+  mineSignals(ref) {
+    try {
+      const file = typeof ref === 'string' ? ref : ref.ref;
+      // eslint-disable-next-line global-require
+      const { mineTranscript } = require('../../../mns/knowledge/distill.mjs');
+      const { sessionId, ...sig } = mineTranscript(file);
+      return sig;
+    } catch {
+      return { commands: [], files: [], failures: [], sequences: [], correctionTurns: [], destructiveFailures: [] };
+    }
   },
 
   listSessions(opts = {}) {

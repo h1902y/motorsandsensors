@@ -19,8 +19,23 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs';
 import { event, trace, EventKind, Status } from '../core/event.mjs';
+import { assembleSignals, emptySignals } from './signals.mjs';
 
 const SESSIONS_DIR = join(homedir(), '.codex', 'sessions');
+
+// Codex shell tool (real-wire): function_call name "exec_command", arguments is a
+// JSON string {cmd:"…"} (older/other builds use "shell" with {command:[…]}). The
+// paired function_call_output carries no error flag — but its text begins with
+// "Process exited with code N", so N≠0 ⇒ failed.
+const CODEX_SHELL = new Set(['exec_command', 'shell', 'local_shell', 'bash']);
+function codexCmdText(args) {
+  const a = typeof args === 'string' ? (() => { try { return JSON.parse(args); } catch { return {}; } })() : args ?? {};
+  if (typeof a.cmd === 'string') return a.cmd;
+  if (typeof a.command === 'string') return a.command;
+  if (Array.isArray(a.command)) return a.command.join(' ');
+  return '';
+}
+const codexFailed = (output) => /Process exited with code\s+([0-9]+)/i.test(String(output || '')) && !/Process exited with code\s+0\b/i.test(String(output || ''));
 const ms = (iso) => (iso ? Date.parse(iso) : NaN);
 const clean = (s) => String(s).replace(/\s+/g, ' ').trim();
 const truncate = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
@@ -56,6 +71,30 @@ export const codex = {
         return { sessionId: m ? m[1] : f, ref: path, label: 'codex', mtime: statSync(path).mtimeMs };
       })
       .sort((a, b) => b.mtime - a.mtime);
+  },
+
+  // Cross-host distill: shell command TEXT + failed flag from the raw rollout.
+  mineSignals(ref) {
+    try {
+      const file = typeof ref === 'string' ? ref : ref.ref;
+      const rows = readJsonl(file);
+      const outputs = new Map(); // call_id -> output text
+      for (const r of rows) {
+        const p = r.payload || {};
+        if (r.type === 'response_item' && p.type === 'function_call_output') outputs.set(p.call_id, p.output);
+      }
+      const shellCalls = [];
+      for (const r of rows) {
+        const p = r.payload || {};
+        if (r.type === 'response_item' && p.type === 'function_call' && CODEX_SHELL.has(p.name)) {
+          const cmd = codexCmdText(p.arguments);
+          if (cmd) shellCalls.push({ cmd, failed: codexFailed(outputs.get(p.call_id)), tool: p.name });
+        }
+      }
+      return assembleSignals(shellCalls);
+    } catch {
+      return emptySignals();
+    }
   },
 
   parse(ref) {

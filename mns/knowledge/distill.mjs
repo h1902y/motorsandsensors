@@ -12,7 +12,7 @@
 //   failures  — tools failing ≥3× → `fact` candidates (worth knowing!)
 
 import { readFileSync } from 'node:fs';
-import { claudeCode } from '../../experiments/experiment-1-trace-capture/adapters/claude-code.mjs';
+import * as registry from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 import { slugify } from './items.mjs';
 import { createProposal, fileRegistryProposals } from './proposals.mjs';
 
@@ -188,25 +188,50 @@ export function aggregate(sessions, { minCmdCount = 3, minCmdSessions = 2, minFi
   return candidates;
 }
 
-/** Run the full distill: mine sessions → candidates → ER → proposals. */
-export function distillSessions(mnsDir, transcriptFiles) {
-  const mined = transcriptFiles.map((f) => {
-    try {
-      return mineTranscript(f);
-    } catch {
-      return null;
-    }
-  }).filter(Boolean);
+/**
+ * Mine one {host, ref} pair into the per-session signal superset (tagged with a
+ * host-prefixed sessionId so cross-host provenance is legible). Tolerant.
+ */
+export function mineHostSession({ host, ref, sessionId }) {
+  try {
+    const adapter = registry.byName(host);
+    if (!adapter || typeof adapter.mineSignals !== 'function') return null;
+    const sig = adapter.mineSignals(ref);
+    const sid = sessionId || (typeof ref === 'string' ? ref : ref?.sessionId) || host;
+    return { sessionId: `${host}:${sid}`, host, ...sig };
+  } catch {
+    return null;
+  }
+}
+
+/** Run the full distill: mine sessions (all hosts) → candidates → ER → proposals. */
+export function distillSessions(mnsDir, pairs) {
+  const mined = pairs.map(mineHostSession).filter(Boolean);
   const candidates = aggregate(mined);
   const proposals = candidates.map((c) => createProposal(mnsDir, { candidate: c.candidate, source: 'distill', evidence: c.evidence }));
   const registryProposals = fileRegistryProposals(mnsDir);
   return { sessionsMined: mined.length, proposals, registryProposals };
 }
 
-/** Resolve which transcripts to mine. */
+/**
+ * Resolve which transcripts to mine across ALL detected hosts.
+ * Returns `[{host, ref}]`, newest-first, honoring `scope` ('last'|'all') and a
+ * `session` substring filter. (Was claude-only — that starved 4 of 5 hosts.)
+ */
 export function transcriptsFor({ scope = 'all', session = null, cwd = process.cwd() }) {
-  const sessions = claudeCode.listSessions({ cwd });
-  if (session) return sessions.filter((s) => s.sessionId.includes(session)).map((s) => s.ref);
-  if (scope === 'last') return sessions.slice(0, 1).map((s) => s.ref);
-  return sessions.map((s) => s.ref);
+  const pairs = [];
+  for (const adapter of registry.detected()) {
+    let sessions = [];
+    try {
+      sessions = adapter.listSessions({ cwd });
+    } catch {
+      continue; // a flaky host (e.g. SQLite on old Node) must not break the rest
+    }
+    for (const s of sessions) pairs.push({ host: adapter.name, ref: s.ref, sessionId: s.sessionId, mtime: s.mtime ?? 0 });
+  }
+  pairs.sort((a, b) => (b.mtime ?? 0) - (a.mtime ?? 0));
+  let filtered = pairs;
+  if (session) filtered = pairs.filter((p) => String(p.sessionId).includes(session));
+  else if (scope === 'last') filtered = pairs.slice(0, 1);
+  return filtered.map((p) => ({ host: p.host, ref: p.ref, sessionId: p.sessionId }));
 }
