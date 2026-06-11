@@ -8,10 +8,13 @@
 // Pure core:   migrateProposals(mnsDir) → { scanned, migrated, skipped }
 // CLI surface: migrate(args) — resolves mnsDir, runs core, prints summary.
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
-import { paths } from '../store.mjs';
+import { paths, repoRoot } from '../store.mjs';
 import { proposalsDir, archiveDir } from '../faculty/contract.mjs';
+import { ensureGitignore } from '../scaffold.mjs';
+import { injectBlock, BLOCK_VERSION } from '../inject.mjs';
+import { enable } from './enable.mjs';
 
 // ---------------------------------------------------------------------------
 // pure core — testable without process.*
@@ -113,7 +116,57 @@ export function migrateProposals(mnsDir) {
 // CLI surface
 // ---------------------------------------------------------------------------
 
-export function migrate(_args = {}) {
+/**
+ * One-shot HOME migration: legacy hidden `.mns/` → visible `agent/` with
+ * dot-prefixed internals (traces→.traces, live→.live, knowledge/index.db→
+ * knowledge/.index.db) and mns.json→agent.json. Idempotent + fail-open; NEVER
+ * clobbers an existing agent/. Pure FS move (renameSync, git-native).
+ * @returns {{migrated: boolean}}
+ */
+export function migrateHome(root = repoRoot()) {
+  const legacy = join(root, '.mns');
+  const agent = join(root, 'agent');
+  if (existsSync(agent) || !existsSync(legacy)) return { migrated: false };
+
+  renameSync(legacy, agent); // move the whole home (atomic on same filesystem)
+
+  const mv = (from, to) => {
+    const f = join(agent, from), t = join(agent, to);
+    if (existsSync(f) && !existsSync(t)) renameSync(f, t);
+  };
+  mv('traces', '.traces');
+  mv('live', '.live');
+  mv('mns.json', 'agent.json');
+  mv(join('knowledge', 'index.db'), join('knowledge', '.index.db'));
+
+  rewriteGitignore(root);
+  return { migrated: true };
+}
+
+/** Drop legacy `.mns/` ignore lines, then append the canonical agent/ ones. */
+function rewriteGitignore(root) {
+  const path = join(root, '.gitignore');
+  if (existsSync(path)) {
+    const kept = readFileSync(path, 'utf8')
+      .split('\n')
+      .filter((l) => !l.trim().startsWith('.mns/'))
+      .join('\n');
+    writeFileSync(path, kept.endsWith('\n') || kept === '' ? kept : kept + '\n');
+  }
+  ensureGitignore(root); // appends agent/.traces/, agent/.live/, agent/knowledge/.index.db
+}
+
+export function migrate(args = {}) {
+  if (args.home) {
+    const root = repoRoot(process.cwd());
+    const { migrated } = migrateHome(root);
+    if (!migrated) { console.log('migrate --home: nothing to do (already agent/ or no legacy .mns/)'); return; }
+    // re-inject the v7 block into host files + re-enable to rewrite host deny rules
+    try { reinjectHostBlocks(root); } catch { /* fail-open */ }
+    try { enable({ host: 'opencode', quiet: true, cwd: root }); } catch { /* fail-open */ }
+    console.log('migrate --home: .mns/ → agent/ (internals dot-prefixed, block v7, deny rules rewritten)');
+    return;
+  }
   const mnsDir = paths().dir;
   const { scanned, migrated, skipped } = migrateProposals(mnsDir);
   console.log(`migrate: scanned ${scanned} proposal(s) — migrated ${migrated}, skipped ${skipped}`);
@@ -121,5 +174,16 @@ export function migrate(_args = {}) {
     console.log('  legacy candidate/er keys rewritten to payload/analysis.er + faculty:knowledge');
   } else {
     console.log('  nothing to migrate (all records already in new shape)');
+  }
+}
+
+/** Re-inject the current faculties block into any existing host instruction files. */
+function reinjectHostBlocks(root) {
+  for (const f of ['CLAUDE.md', 'AGENTS.md', 'GEMINI.md']) {
+    const p = join(root, f);
+    if (existsSync(p)) {
+      const text = readFileSync(p, 'utf8');
+      if (!text.includes(`mns:faculties:v${BLOCK_VERSION}`)) writeFileSync(p, injectBlock(text));
+    }
   }
 }

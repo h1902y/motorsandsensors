@@ -12,6 +12,7 @@ import { applyScaffold, ensureGitignore, homeExists } from '../scaffold.mjs';
 import { injectBlock, facultiesBlock, hasBlock, BLOCK_VERSION } from '../inject.mjs';
 import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 import { repoRoot } from '../store.mjs';
+import { migrateHome } from './migrate.mjs';
 
 const HOST_FILES = ['CLAUDE.md', 'AGENTS.md', 'GEMINI.md'];
 // dotfiles/dirs that don't make a directory "a project" for emptiness purposes
@@ -56,6 +57,11 @@ export function init(args = {}) {
   // agent/), falling back to cwd — one project, one home, like .git/.
   const cwd = repoRoot(process.cwd());
   if (cwd !== process.cwd()) console.log(`(project root: ${cwd})`);
+  // Auto-migrate a legacy hidden home into the visible agent/ on the next init.
+  if (existsSync(join(cwd, '.mns')) && !existsSync(join(cwd, 'agent'))) {
+    const { migrated } = migrateHome(cwd);
+    if (migrated) console.log('Migrated legacy .mns/ → agent/ (faculties now visible; internals dot-prefixed)');
+  }
   const reinit = homeExists(cwd);
   const greenfield = !reinit && isEmptyDir(cwd);
 

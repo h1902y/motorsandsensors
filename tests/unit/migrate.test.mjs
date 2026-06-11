@@ -3,12 +3,50 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { migrateProposals } from '../../mns/commands/migrate.mjs';
+import { migrateProposals, migrateHome } from '../../mns/commands/migrate.mjs';
 import { readProposal } from '../../mns/faculty/proposal.mjs';
+
+function withTempRepo(fn) {
+  const root = mkdtempSync(join(tmpdir(), 'mns-mig-'));
+  try { return fn(root); } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+test('migrateHome renames .mns→agent, dot-prefixes internals, rewrites gitignore; idempotent', () => {
+  withTempRepo((root) => {
+    mkdirSync(join(root, '.mns', 'traces'), { recursive: true });
+    mkdirSync(join(root, '.mns', 'live'), { recursive: true });
+    mkdirSync(join(root, '.mns', 'knowledge'), { recursive: true });
+    writeFileSync(join(root, '.mns', 'mns.json'), '{"version":2}\n');
+    writeFileSync(join(root, '.mns', 'knowledge', 'index.db'), 'x');
+    writeFileSync(join(root, '.gitignore'), '.mns/traces/\n.mns/live/\n.mns/knowledge/index.db\nnode_modules/\n');
+
+    const r1 = migrateHome(root);
+    assert.equal(r1.migrated, true);
+    assert.ok(existsSync(join(root, 'agent', 'agent.json')), 'mns.json → agent.json');
+    assert.ok(existsSync(join(root, 'agent', '.traces')), 'traces → .traces');
+    assert.ok(existsSync(join(root, 'agent', '.live')), 'live → .live');
+    assert.ok(existsSync(join(root, 'agent', 'knowledge', '.index.db')), 'index.db → .index.db');
+    assert.ok(!existsSync(join(root, '.mns')), 'legacy .mns gone');
+    const gi = readFileSync(join(root, '.gitignore'), 'utf8');
+    assert.ok(gi.includes('agent/.traces/') && !gi.includes('.mns/'), 'gitignore rewritten');
+    assert.ok(gi.includes('node_modules/'), 'user gitignore lines preserved');
+
+    assert.equal(migrateHome(root).migrated, false, 'idempotent second run');
+  });
+});
+
+test('migrateHome no-ops when agent/ already exists (never clobbers)', () => {
+  withTempRepo((root) => {
+    mkdirSync(join(root, 'agent'), { recursive: true });
+    mkdirSync(join(root, '.mns'), { recursive: true });
+    assert.equal(migrateHome(root).migrated, false);
+    assert.ok(existsSync(join(root, '.mns')), 'legacy left untouched when agent/ present');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // helpers
