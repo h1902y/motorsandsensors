@@ -7,6 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { statusData } from '../../zuzuu/commands/status.mjs';
 import { inboxData } from '../../zuzuu/commands/inbox.mjs';
+import { generationListData, generationShowData } from '../../zuzuu/commands/generation.mjs';
+import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zjson-'));
@@ -36,5 +38,18 @@ test('inboxData lists pending proposals with faculty + title + total', () => {
     assert.equal(d.pending[0].faculty, 'knowledge');
     assert.equal(d.pending[0].id, 'p1');
     assert.match(d.pending[0].title, /node:sqlite/);
+  });
+});
+
+test('generationListData returns active + list; showData returns the diff', () => {
+  withHome((dir) => {
+    const lf = mintGeneration(dir, { forkedFrom: null });
+    const list = generationListData(dir);
+    assert.equal(list.active, lf.id);
+    assert.equal(list.generations[0].id, lf.id);
+    const show = generationShowData(dir, lf.id);
+    assert.equal(show.id, lf.id);
+    assert.ok(show.faculties && typeof show.faculties === 'object');
+    assert.equal(generationShowData(dir, 'gen_999'), null);   // unknown id
   });
 });

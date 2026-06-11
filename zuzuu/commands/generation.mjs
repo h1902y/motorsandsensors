@@ -31,6 +31,22 @@ function mint(dir) {
   console.log(`✓ minted ${lf.id}${forkedFrom ? ` (forkedFrom ${forkedFrom})` : ''} — now active`);
 }
 
+/** Pure: generation list payload — the zuzuu-web /generations source. */
+export function generationListData(dir) {
+  const active = activeGeneration(dir);
+  const generations = listGenerations(dir).map((id) => {
+    const lf = readGeneration(dir, id) ?? {};
+    return { id, mintedAt: lf.mintedAt ?? null, mintedFrom: Array.isArray(lf.mintedFrom) ? lf.mintedFrom : [] };
+  });
+  return { active, generations };
+}
+
+/** Pure: generation diff payload, or null for an unknown id — the zuzuu-web /generation/:id source. */
+export function generationShowData(dir, id) {
+  const d = diffGenerations(dir, id);
+  return d ? { id, ...d } : null;
+}
+
 /** Pure: the per-faculty diff lines for `generation show`. */
 export function showLines(dir, id) {
   const d = diffGenerations(dir, id);
@@ -72,9 +88,19 @@ function doRollback(dir, id) {
 export function generation(args) {
   const dir = mnsDir();
   const sub = args._[0];
-  if (!sub || sub === 'list') return list(dir);
+  if (!sub || sub === 'list') {
+    if (args.json) { console.log(JSON.stringify(generationListData(dir))); return; }
+    return list(dir);
+  }
   if (sub === 'mint') return mint(dir);
-  if (sub === 'show') return show(dir, args._[1]);
+  if (sub === 'show') {
+    if (args.json) {
+      const d = generationShowData(dir, args._[1]);
+      if (d == null) { console.error(`no generation '${args._[1]}'`); process.exit(1); }
+      console.log(JSON.stringify(d)); return;
+    }
+    return show(dir, args._[1]);
+  }
   if (sub === 'rollback') return doRollback(dir, args._[1]);
   console.error(`unknown: zuzuu generation ${sub}\nusage: zuzuu generation [list|show <id>|mint|rollback <id>]`);
   process.exit(1);
