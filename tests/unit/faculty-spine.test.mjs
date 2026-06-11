@@ -266,7 +266,7 @@ test('recordTrail appends a JSONL line with at + entry fields', () => {
   withHome((mns) => {
     recordTrail(mns, 'knowledge', { action: 'proposal-created', id: 'abc' });
     recordTrail(mns, 'knowledge', { action: 'proposal-archived', id: 'abc', status: 'approved' });
-    const path = join(mns, 'live', 'knowledge.jsonl');
+    const path = join(mns, '.live', 'knowledge.jsonl');
     assert.ok(existsSync(path));
     const lines = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     assert.equal(lines.length, 2);
@@ -286,8 +286,8 @@ test('recordTrail uses the faculty name for the file (knowledge.jsonl vs actions
   withHome((mns) => {
     recordTrail(mns, 'actions', { action: 'run' });
     recordTrail(mns, 'guardrails', { action: 'denied' });
-    assert.ok(existsSync(join(mns, 'live', 'actions.jsonl')));
-    assert.ok(existsSync(join(mns, 'live', 'guardrails.jsonl')));
+    assert.ok(existsSync(join(mns, '.live', 'actions.jsonl')));
+    assert.ok(existsSync(join(mns, '.live', 'guardrails.jsonl')));
   });
 });
 

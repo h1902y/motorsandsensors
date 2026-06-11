@@ -18,7 +18,7 @@ import { captureTrace } from '../capture-core.mjs';
 import { SessionState } from '../session.mjs';
 import { openLive, touchLive, closeLive } from '../live/live-store.mjs';
 import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../guardrails.mjs';
-import { paths } from '../store.mjs';
+import { paths, liveDir as liveDirOf } from '../store.mjs';
 import { computeDigest } from '../digest.mjs';
 import { activeGeneration } from '../faculty/generation.mjs';
 
@@ -73,7 +73,7 @@ export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Dat
       openLive({ id, host, transcriptPath: ref, startedAt: new Date(now).toISOString(), now, generation }, cwd);
       safeCapture(adapter, ref, SessionState.ACTIVE, cwd, generation);
     } catch { /* live/capture hiccup must not block grounding below */ }
-    writeLiveDigest(cwd); // universal grounding channel — every host reads .mns/live/digest.md
+    writeLiveDigest(cwd); // universal grounding channel — every host reads agent/.live/digest.md
   } else if (TURN.has(event)) {
     touchLive({ id, host, transcriptPath: ref, now }, cwd);
     safeCapture(adapter, ref, SessionState.ACTIVE, cwd);
@@ -116,7 +116,7 @@ export function gateDecision({ host = 'claude-code', payload = {}, cwd = process
     const verdict = evaluate(loaded.rules, { tool: payload.tool_name, input: payload.tool_input });
     if (verdict) {
       try {
-        const liveDir = join(dir, 'live');
+        const liveDir = liveDirOf(dir);
         mkdirSync(liveDir, { recursive: true });
         appendFileSync(
           join(liveDir, guardrailsLogName(payload.session_id)),
@@ -143,7 +143,7 @@ export function writeLiveDigest(cwd = process.cwd()) {
     const mnsDir = paths(cwd).dir;
     const { text } = computeDigest(mnsDir);
     if (!text || !text.trim()) return;
-    const liveDir = join(mnsDir, 'live');
+    const liveDir = liveDirOf(mnsDir);
     mkdirSync(liveDir, { recursive: true });
     writeFileSync(join(liveDir, 'digest.md'), text);
   } catch {

@@ -67,7 +67,7 @@ test('fail-open: garbage stdin, and projects with no rules file, never block', (
 test('matched decisions are logged for the trace', () => {
   withProject((cwd) => {
     gate(cwd, { session_id: 'sess-log', tool_name: 'Bash', tool_input: { command: 'rm -rf / ' } });
-    const log = spawnSync('cat', [join(cwd, '.mns', 'live', 'guardrails-sess-log.jsonl')], { encoding: 'utf8' }).stdout;
+    const log = spawnSync('cat', [join(cwd, '.mns', '.live', 'guardrails-sess-log.jsonl')], { encoding: 'utf8' }).stdout;
     const entry = JSON.parse(log.trim().split('\n')[0]);
     assert.equal(entry.action, 'deny');
     assert.equal(entry.rule, 'no-root-wipe');

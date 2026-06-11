@@ -1,16 +1,16 @@
-// Liveness store for in-flight sessions: thin lifecycle records under .mns/live/.
+// Liveness store for in-flight sessions: thin lifecycle records under agent/.live/.
 // Holds NO spans (Design B — spans come from re-parsing the transcript). Just
 // enough to know a session is open and when it was last seen, so a killed
 // terminal (which sends no SessionEnd) can be reconciled later.
 //
-// .mns/live/ is git-ignored (transient machine state, like .git/ session state).
+// agent/.live/ is git-ignored (transient machine state, like .git/ session state).
 
 import { join } from 'node:path';
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { paths } from '../store.mjs';
+import { paths, liveDir as liveDirOf } from '../store.mjs';
 import { SessionState } from '../session.mjs';
 
-const liveDir = (cwd) => join(paths(cwd).dir, 'live');
+const liveDir = (cwd) => liveDirOf(paths(cwd).dir);
 // Some hosts pass a file PATH as the session id (pi → the session-file path).
 // Sanitize for the record filename (the real id is preserved inside the JSON),
 // or the write fails into a non-existent nested dir. read/write/close all route
