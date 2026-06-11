@@ -28,12 +28,14 @@ import { act } from '../mns/commands/act.mjs';
 import { migrate } from '../mns/commands/migrate.mjs';
 import { generation } from '../mns/commands/generation.mjs';
 import { evalCmd } from '../mns/commands/eval.mjs';
+import { code } from '../mns/commands/code.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const t = argv[i];
-    if (t === '--last') a.last = true;
+    if (t === '--') { a['--'] = argv.slice(i + 1); break; } // everything after `--` is passthrough
+    else if (t === '--last') a.last = true;
     else if (t.startsWith('--')) {
       const key = t.slice(2);
       const val = argv[i + 1]?.startsWith('--') || argv[i + 1] === undefined ? true : argv[++i];
@@ -54,6 +56,7 @@ function help() {
 
 usage: mns <command> [options]
 
+  code [dir]                launch OpenCode as the bundled default host (faculty home + capture + gate + digest)
   init                      scaffold the faculty home (.mns/) — git-style, idempotent
   status                    detected hosts + recorded sessions
   capture [--host NAME]     capture a session → .mns/traces + .mns/sessions.json
@@ -95,6 +98,7 @@ const [cmd, ...rest] = process.argv.slice(2);
 const args = parseArgs(rest);
 
 switch (cmd) {
+  case 'code': process.exit(code(args)); break;
   case 'init': init(args); break;
   case 'remember': remember(args); break;
   case 'recall': await recall(args); break;
