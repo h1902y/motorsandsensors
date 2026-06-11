@@ -28,6 +28,17 @@ function titleOf(faculty, p) {
   return String(body).split('\n')[0].slice(0, 60);
 }
 
+/** Pure: flat list of pending proposals across faculties (id, faculty, title) — the zuzuu-web /inbox source. */
+export function inboxData(mnsDir) {
+  const pending = [];
+  for (const faculty of FACULTIES) {
+    let proposals = [];
+    try { proposals = listProposals(mnsDir, faculty); } catch { proposals = []; }
+    for (const p of proposals) pending.push({ id: p.id, faculty, title: titleOf(faculty, p) });
+  }
+  return { pending, total: pending.length };
+}
+
 /**
  * Pure-ish: gather pending counts per faculty for a home.
  * @returns {{ rows: Array<{faculty, count, first}>, total: number }}
@@ -48,6 +59,7 @@ export function inboxRows(mnsDir) {
 /** `mns inbox` — print what is pending review. */
 export function inbox(args = {}, log = console.log) {
   const mnsDir = args.mnsDir || paths().dir;
+  if (args.json) { log(JSON.stringify(inboxData(mnsDir))); return; }
   const { rows, total } = inboxRows(mnsDir);
   if (!total) {
     log("inbox: nothing pending — you're all caught up.");
