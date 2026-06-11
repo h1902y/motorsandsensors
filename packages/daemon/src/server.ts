@@ -20,6 +20,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { SessionManager } from "./sessions.js";
 import { createFsApi } from "./fs-api.js";
+import { createZuzuuApi } from "./zuzuu-api.js";
 import { search } from "./search.js";
 import { listFiles } from "./file-list.js";
 import { listWorkflows, saveWorkflow } from "./workflows.js";
@@ -373,6 +374,7 @@ export class WebcodeServer {
     });
 
     app.route("/api/fs", createFsApi(() => this.root));
+    app.route("/api/zuzuu", createZuzuuApi(() => this.root));
 
     // Static SPA with index.html fallback
     app.get("*", async (c) => {
