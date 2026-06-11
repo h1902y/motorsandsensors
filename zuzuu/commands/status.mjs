@@ -1,13 +1,30 @@
 // `mns status` — detected hosts + recorded sessions (the git-native index).
 
+import { existsSync } from 'node:fs';
 import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 import { readIndex, paths } from '../store.mjs';
 import { FACULTIES } from '../faculty/contract.mjs';
 import { listProposals } from '../faculty/proposal.mjs';
-import { activeGeneration } from '../faculty/generation.mjs';
+import { activeGeneration as activeGenerationFn } from '../faculty/generation.mjs';
 import { detectDrift } from './doctor.mjs';
 
 const fmtDur = (ms) => (ms < 60_000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 60_000).toFixed(1)}m`);
+
+/** Pure: structured status for a faculty home (the zuzuu-web /status source). Fail-soft per field. */
+export function statusData(mnsDir) {
+  let active = null, drift = { dirty: false, items: [] };
+  const pending = {};
+  try { active = activeGenerationFn(mnsDir); } catch { active = null; }
+  for (const f of FACULTIES) {
+    try { pending[f] = listProposals(mnsDir, f).length; } catch { pending[f] = 0; }
+  }
+  try {
+    const d = detectDrift(mnsDir);
+    const items = Array.isArray(d?.drifted) ? d.drifted : [];
+    drift = { dirty: items.length > 0, items };
+  } catch { /* fail-soft */ }
+  return { home: existsSync(mnsDir), activeGeneration: active, pending, drift };
+}
 
 /**
  * Pure: the faculties graduation line for `mns status`. Fail-soft — any error in
@@ -17,7 +34,7 @@ const fmtDur = (ms) => (ms < 60_000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 60
  */
 export function facultiesLine(mnsDir) {
   let gen = null, pending = 0, drifted = false;
-  try { gen = activeGeneration(mnsDir); } catch { /* fail-soft */ }
+  try { gen = activeGenerationFn(mnsDir); } catch { /* fail-soft */ }
   try {
     for (const f of FACULTIES) {
       try { pending += listProposals(mnsDir, f).length; } catch { /* per-faculty fail-soft */ }
@@ -32,7 +49,8 @@ export function facultiesLine(mnsDir) {
   return line;
 }
 
-export function status() {
+export function status(args = {}) {
+  if (args.json) { console.log(JSON.stringify(statusData(paths().dir))); return; }
   const { sessions } = readIndex();
   console.log(`this project — recorded sessions (agent/sessions.json): ${sessions.length}`);
   if (!sessions.length) {

@@ -114,7 +114,7 @@ switch (cmd) {
   case 'inbox': inbox(args); break;
   case 'review': await review(args); break;
   case 'proposals': proposals(args); break;
-  case 'status': status(); break;
+  case 'status': status(args); break;
   case 'capture': capture(args); break;
   case 'trace': trace(args); break;
   case 'enable': enable(args); break;
