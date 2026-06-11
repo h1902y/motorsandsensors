@@ -21,6 +21,8 @@ import { DisconnectedBanner } from "./DisconnectedBanner";
 import { WelcomeOverlay } from "./onboarding/WelcomeOverlay";
 import { VaultPicker } from "./onboarding/VaultPicker";
 import { Bar, ModeTabs, Tab, TabBar, IconButton, StatusDot, DialogHost, prompt, ActionMenu, type MenuItem } from "./components/ui";
+import { useView } from "./state/view";
+import { FacultiesView } from "./faculties/FacultiesView";
 
 const parentOf = (path: string) => path.split("/").slice(0, -1).join("/");
 
@@ -70,6 +72,8 @@ export default function App() {
   const saveActive = useEditor((s) => s.saveActive);
   const sidebarMode = useExplorer((s) => s.sidebarMode);
   const setSidebarMode = useExplorer((s) => s.setSidebarMode);
+  const view = useView((s) => s.mode);
+  const setView = useView((s) => s.setMode);
   const revealPath = useExplorer((s) => s.revealPath);
   const activeTab = tabs.find((t) => t.id === activeId);
 
@@ -215,6 +219,9 @@ export default function App() {
   return (
     <div className="flex h-full flex-col">
       <DisconnectedBanner state={conn.state} />
+      {view === "faculties" ? (
+        <FacultiesView />
+      ) : (
       <Group orientation="horizontal" className="min-h-0 flex-1">
         <Panel defaultSize="22%" minSize="160px" maxSize="45%" className="bg-surface">
           <div className="flex h-full flex-col">
@@ -288,8 +295,14 @@ export default function App() {
           </>
         )}
       </Group>
+      )}
       {/* status bar */}
       <Bar border="t" surface="surface" className="relative !gap-2.5 text-meta text-ink-500">
+        <ModeTabs
+          options={["code", "faculties"] as const}
+          value={view === "faculties" ? "faculties" : "code"}
+          onChange={(v) => setView(v === "faculties" ? "faculties" : "ide")}
+        />
         {/* connection health — hover reveals the live stats (files · sessions · uptime · mem) */}
         <span
           className="flex shrink-0 items-center gap-1.5"
