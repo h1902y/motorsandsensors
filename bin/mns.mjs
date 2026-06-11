@@ -30,6 +30,7 @@ import { generation } from '../mns/commands/generation.mjs';
 import { evalCmd } from '../mns/commands/eval.mjs';
 import { code } from '../mns/commands/code.mjs';
 import { explain } from '../mns/commands/explain.mjs';
+import { inbox } from '../mns/commands/inbox.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -78,6 +79,7 @@ usage: mns <command> [options]
                             the actions gate (or use \`mns review\`)
   distill [--all|--session ID]
                             mine real sessions → knowledge proposals (default: last)
+  inbox                     what's pending your approval, per faculty
   review                    walk pending actions + knowledge proposals (y/n/e/s/q)
   proposals list|show|approve|reject <id>
                             the same gate, non-interactive
@@ -108,6 +110,7 @@ switch (cmd) {
   case 'digest': digest(args); break;
   case 'act': act(args); break;
   case 'distill': distill(args); break;
+  case 'inbox': inbox(args); break;
   case 'review': await review(args); break;
   case 'proposals': proposals(args); break;
   case 'status': status(); break;
