@@ -99,6 +99,30 @@ test('enable throwing → still launches (fail-open)', () => {
   });
 });
 
+test('prints a clean summary banner + launching line before launch', () => {
+  withDir((d) => {
+    const out = [];
+    const { deps } = fakeDeps();
+    deps.log = (...m) => out.push(m.join(' '));
+    code({ _: [d] }, deps);
+    const text = out.join('\n');
+    assert.match(text, /faculty-equipped/, 'summary banner');
+    assert.match(text, /capture \+ guardrails gate/, 'wired status');
+    assert.match(text, /launching OpenCode in/, 'launching line');
+  });
+});
+
+test('enable failure → summary shows degraded, still launches', () => {
+  withDir((d) => {
+    const out = [];
+    const { calls, deps } = fakeDeps({ enableThrows: true });
+    deps.log = (...m) => out.push(m.join(' '));
+    code({ _: [d] }, deps);
+    assert.match(out.join('\n'), /degraded/, 'degraded note shown');
+    assert.ok(calls.some((c) => c[0] === 'launch'), 'still launches');
+  });
+});
+
 test('no such directory → exit 1', () => {
   const { calls, deps } = fakeDeps();
   const ex = code({ _: ['/no/such/dir/xyz-mns-code'] }, deps);

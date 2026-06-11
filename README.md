@@ -13,12 +13,18 @@ Your host agent — Claude Code, Codex, Gemini CLI, OpenCode — supplies the *b
 ```bash
 npm install -g motorsandsensors   # zero dependencies — installs the `mns` command
 
+# no coding agent yet? one command gives you a fully faculty-equipped one:
+mns code        # scaffold the faculty home, install + wire OpenCode, launch it (capture + gate + grounding)
+
+# already run Claude Code / Gemini / Codex / OpenCode / pi? wrap the one you have:
 mns init        # scaffold your project's agent faculty home (.mns/) — git-style
 mns capture     # turn your latest agent session into an OpenTelemetry trace
 mns trace --last
 mns enable [--host gemini-cli|codex|opencode|pi]   # live capture + the guardrails gate
 mns doctor      # health + lost-session reconciliation
 ```
+
+`mns code` is the **bundled-host** path (Stage 2): it detects OpenCode (installs it on first run, with your OK — never an npm dependency, the zero-dep policy holds), wires the mns plugin, and launches the real `opencode` — we configure + launch, never fork or drive it.
 
 | | Claude Code | Gemini CLI | Codex | OpenCode | pi |
 |---|---|---|---|---|---|

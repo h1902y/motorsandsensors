@@ -47,7 +47,7 @@ export function code(args = {}, deps = {}) {
     launch: realLaunch,
     prompt: realPrompt,
     runInit: (dir) => inDir(dir, () => init({ _: [] })),
-    runEnable: (dir) => inDir(dir, () => enable({ host: 'opencode' })),
+    runEnable: (dir) => inDir(dir, () => enable({ host: 'opencode', quiet: true })),
     log: (...m) => console.log(...m),
     ...deps,
   };
@@ -70,7 +70,13 @@ export function code(args = {}, deps = {}) {
   }
 
   // 4. ensure the mns plugin (capture + gate + digest) — FAIL-OPEN: never block the launch
-  try { d.runEnable(dir); } catch (e) { d.log(`mns code: could not wire the mns plugin (${e?.message || e}) — launching unwired.`); }
+  let wired = true;
+  try { d.runEnable(dir); } catch (e) { wired = false; d.log(`mns code: could not wire the mns plugin (${e?.message || e}) — launching unwired.`); }
+
+  // a clean one-screen summary of what the newcomer just got (vs. the verbose enable output)
+  d.log('mns code → OpenCode, faculty-equipped');
+  d.log(`  ✓ faculty home (.mns/)   ${wired ? '✓ capture + guardrails gate   ✓ session grounding' : '⚠ plugin not wired (degraded)'}`);
+  d.log(`  → launching OpenCode in ${dir} …`);
 
   // 5. launch the real OpenCode (configure + launch, never drive)
   return d.launch({ cwd: dir, model: args.model || null, passthrough: args['--'] || [] });

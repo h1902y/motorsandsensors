@@ -133,16 +133,17 @@ export function enable(args = {}) {
     return;
   }
   if ((args.host || 'claude-code') === 'opencode') {
+    const say = args.quiet ? () => {} : console.log; // `mns code` wires quietly + prints its own summary
     const path = opencodePluginPath();
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, opencodePlugin());
     const legacy = opencodeLegacyPluginPath();
     if (existsSync(legacy)) rmSync(legacy, { force: true }); // migrate singular → plural
-    console.log('mns enabled for OpenCode — live capture + guardrails gate installed');
-    console.log(`  plugin : ${path}`);
-    console.log('  events : session.created/idle/deleted (capture) · tool.execute.before (gate)');
-    console.log('  note   : no clean end signal — ended/killed sessions reconcile via `mns doctor`');
-    console.log('  scope  : new OpenCode sessions in this repo; disable: mns disable --host opencode');
+    say('mns enabled for OpenCode — live capture + guardrails gate installed');
+    say(`  plugin : ${path}`);
+    say('  events : session.created/idle/deleted (capture) · tool.execute.before (gate)');
+    say('  note   : no clean end signal — ended/killed sessions reconcile via `mns doctor`');
+    say('  scope  : new OpenCode sessions in this repo; disable: mns disable --host opencode');
     return;
   }
   if (args.host === 'pi') {
