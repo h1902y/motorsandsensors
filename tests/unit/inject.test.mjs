@@ -55,16 +55,17 @@ test('a v3 block upgrades to v4 in place, user text intact', () => {
   assert.ok(v4.includes('## after'));
 });
 
-test('v5 block tells agents to propose actions via the gate', () => {
+test('v6 block points agents to the digest file + tells them to propose actions', () => {
   const out = injectBlock('# proj\n');
-  assert.ok(out.includes('mns:faculties:v5'), 'is v5');
+  assert.ok(out.includes('mns:faculties:v6'), 'is v6');
   assert.match(out, /mns act propose/);
+  assert.match(out, /\.mns\/live\/digest\.md/, 'Ground bullet points to the digest file');
 });
 
-test('a v4 block upgrades to v5 in place', () => {
-  const v4 = injectBlock('# proj\n', facultiesBlock(4)) + '\n## after\n';
-  const v5 = injectBlock(v4);
-  assert.ok(v5.includes('mns:faculties:v5'));
-  assert.ok(!v5.includes('mns:faculties:v4'));
-  assert.ok(v5.includes('## after'));
+test('a v5 block upgrades to v6 in place', () => {
+  const v5 = injectBlock('# proj\n', facultiesBlock(5)) + '\n## after\n';
+  const v6 = injectBlock(v5);
+  assert.ok(v6.includes('mns:faculties:v6'));
+  assert.ok(!v6.includes('mns:faculties:v5'));
+  assert.ok(v6.includes('## after'));
 });
