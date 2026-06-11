@@ -25,6 +25,7 @@ import { review, proposals } from '../mns/commands/review.mjs';
 import { distill } from '../mns/commands/distill.mjs';
 import { digest } from '../mns/commands/digest.mjs';
 import { act } from '../mns/commands/act.mjs';
+import { migrate } from '../mns/commands/migrate.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -76,6 +77,7 @@ usage: mns <command> [options]
                             the same gate, non-interactive
   enable                    background hooks: invisible live capture + guardrails gate
   disable                   remove the background hooks
+  migrate                   one-time migrator: rewrite legacy candidate/er proposals to new shape
   doctor                    environment + session health (reconciles lost sessions)
   version                   print version
   help                      this message
@@ -103,6 +105,7 @@ switch (cmd) {
   case 'enable': enable(args); break;
   case 'disable': disable(args); break;
   case 'hook': runHook(args._[0], { host: args.host, session: args.session }); break;
+  case 'migrate': migrate(args); break;
   case 'doctor': await doctor(); break;
   case 'version': case '--version': case '-v': version(); break;
   case undefined: case 'help': case '--help': case '-h': help(); break;
