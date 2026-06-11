@@ -6,10 +6,12 @@
 
 export const SIGNATURE = 'mns.mjs'; // appears in every mns hook command path, quote-agnostic
 // entire-style: agent can't read its own observability output (feedback loop) —
-// but ONLY that. The faculty home (.mns/knowledge etc., served by `mns init`)
-// must stay readable, so the deny is narrowed to traces/ + live/.
-const DENY_RULES = ['Read(./.mns/traces/**)', 'Read(./.mns/live/**)'];
-const LEGACY_DENY = 'Read(./.mns/**)'; // pre-init rule — migrated out on add/remove
+// but ONLY that. The faculty home (agent/knowledge etc., served by `mns init`)
+// must stay readable, so the deny is narrowed to .traces/ + .live/.
+const DENY_RULES = ['Read(./agent/.traces/**)', 'Read(./agent/.live/**)'];
+// pre-agent-home rules — scrubbed on add/remove (the old .mns/ layout, incl. the
+// blanket form that starved the agent of its own faculties).
+const LEGACY_DENY = ['Read(./.mns/**)', 'Read(./.mns/traces/**)', 'Read(./.mns/live/**)'];
 
 // Minimal hook set: lifecycle (Design B re-captures the transcript — no
 // PostToolUse needed) + the PreToolUse Guardrails GATE (the one place we *do*
@@ -55,7 +57,7 @@ export function addHooks(settings, commandFor, events = ALL_EVENTS) {
   const s = addHookEntries(settings, commandFor, events);
   s.permissions ||= {};
   s.permissions.deny ||= [];
-  s.permissions.deny = s.permissions.deny.filter((r) => r !== LEGACY_DENY); // migrate the old blanket rule
+  s.permissions.deny = s.permissions.deny.filter((r) => !LEGACY_DENY.includes(r)); // scrub the old .mns/ rules
   for (const rule of DENY_RULES) if (!s.permissions.deny.includes(rule)) s.permissions.deny.push(rule);
   return s;
 }
@@ -64,7 +66,7 @@ export function addHooks(settings, commandFor, events = ALL_EVENTS) {
 export function removeHooks(settings) {
   const s = removeHookEntries(settings);
   if (s.permissions?.deny) {
-    s.permissions.deny = s.permissions.deny.filter((r) => !DENY_RULES.includes(r) && r !== LEGACY_DENY);
+    s.permissions.deny = s.permissions.deny.filter((r) => !DENY_RULES.includes(r) && !LEGACY_DENY.includes(r));
     if (!s.permissions.deny.length) delete s.permissions.deny;
     if (s.permissions && !Object.keys(s.permissions).length) delete s.permissions;
   }

@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { writeTrace, upsertSession, readIndex, lastTrace, resolveTrace, paths } from '../../mns/store.mjs';
+import { writeTrace, upsertSession, readIndex, lastTrace, resolveTrace, paths, homeDir, liveDir } from '../../mns/store.mjs';
 import { makeSession } from '../../mns/session.mjs';
 
 // Hermetic: operate in a temp dir outside the repo (not a git repo → git info null).
@@ -18,10 +18,26 @@ function withTempRepo(fn) {
 
 const sampleRequest = { resourceSpans: [{ resource: { attributes: [] }, scopeSpans: [{ scope: { name: 's' }, spans: [] }] }] };
 
+test('homeDir prefers agent/ when present', () => {
+  withTempRepo((cwd) => { mkdirSync(join(cwd, 'agent'), { recursive: true }); assert.equal(homeDir(cwd), join(cwd, 'agent')); });
+});
+test('homeDir falls back to legacy .mns/ when only it exists', () => {
+  withTempRepo((cwd) => { mkdirSync(join(cwd, '.mns'), { recursive: true }); assert.equal(homeDir(cwd), join(cwd, '.mns')); });
+});
+test('homeDir defaults to agent/ for a fresh project', () => {
+  withTempRepo((cwd) => assert.equal(homeDir(cwd), join(cwd, 'agent')));
+});
+test('paths exposes .traces + liveDir is .live', () => {
+  withTempRepo((cwd) => {
+    assert.ok(paths(cwd).tracesDir.endsWith(join('agent', '.traces')));
+    assert.equal(liveDir(paths(cwd).dir), join(cwd, 'agent', '.live'));
+  });
+});
+
 test('writeTrace writes a gitignored-path blob and returns a repo-relative ref', () => {
   withTempRepo((cwd) => {
     const ref = writeTrace('claude-code', 'sess1', [sampleRequest], cwd);
-    assert.equal(ref, join('.mns', 'traces', 'claude-code-sess1.otlp.jsonl'));
+    assert.equal(ref, join('agent', '.traces', 'claude-code-sess1.otlp.jsonl'));
     assert.ok(existsSync(resolveTrace(ref, cwd)));
   });
 });

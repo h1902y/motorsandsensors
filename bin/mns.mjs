@@ -29,6 +29,8 @@ import { migrate } from '../mns/commands/migrate.mjs';
 import { generation } from '../mns/commands/generation.mjs';
 import { evalCmd } from '../mns/commands/eval.mjs';
 import { code } from '../mns/commands/code.mjs';
+import { explain } from '../mns/commands/explain.mjs';
+import { inbox } from '../mns/commands/inbox.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -77,16 +79,18 @@ usage: mns <command> [options]
                             the actions gate (or use \`mns review\`)
   distill [--all|--session ID]
                             mine real sessions → knowledge proposals (default: last)
+  inbox                     what's pending your approval, per faculty
   review                    walk pending actions + knowledge proposals (y/n/e/s/q)
   proposals list|show|approve|reject <id>
                             the same gate, non-interactive
-  generation [list|mint|rollback <id>]
-                            pin/list/roll back faculty generations (lockfiles)
+  generation [list|show <id>|mint|rollback <id>]
+                            pin/list/show/roll back faculty generations (lockfiles)
   enable                    background hooks: invisible live capture + guardrails gate
   disable                   remove the background hooks
   eval [--faculty f]        rank pending proposals by eval score, highest first
   migrate                   one-time migrator: rewrite legacy candidate/er proposals to new shape
   doctor                    environment + session health (reconciles lost sessions)
+  explain [topic]           the 5 faculties + how graduation works
   version                   print version
   help                      this message
 
@@ -106,6 +110,7 @@ switch (cmd) {
   case 'digest': digest(args); break;
   case 'act': act(args); break;
   case 'distill': distill(args); break;
+  case 'inbox': inbox(args); break;
   case 'review': await review(args); break;
   case 'proposals': proposals(args); break;
   case 'status': status(); break;
@@ -118,6 +123,7 @@ switch (cmd) {
   case 'migrate': migrate(args); break;
   case 'generation': generation(args); break;
   case 'doctor': await doctor(); break;
+  case 'explain': explain(args); break;
   case 'version': case '--version': case '-v': version(); break;
   case undefined: case 'help': case '--help': case '-h': help(); break;
   default:

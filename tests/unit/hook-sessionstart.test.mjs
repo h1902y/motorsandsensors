@@ -33,7 +33,7 @@ test('sessionStartContext returns the Claude additionalContext shape', () => {
 test('writeLiveDigest writes the digest to .mns/live/digest.md (universal channel)', () => {
   withHome((root) => {
     writeLiveDigest(root);
-    const p = join(root, '.mns', 'live', 'digest.md');
+    const p = join(root, '.mns', '.live', 'digest.md');
     assert.ok(existsSync(p), 'digest.md created');
     assert.match(readFileSync(p, 'utf8'), /mns faculty digest/);
     assert.match(readFileSync(p, 'utf8'), /Ship daily/);
@@ -43,7 +43,7 @@ test('writeLiveDigest writes the digest to .mns/live/digest.md (universal channe
 test('handleHook delivers the digest file on an OPEN event for a non-Claude host (pi)', () => {
   withHome((root) => {
     handleHook({ event: 'session_start', payload: { session_id: 'x' }, cwd: root, host: 'pi' });
-    assert.ok(existsSync(join(root, '.mns', 'live', 'digest.md')), 'digest delivered on pi session_start');
+    assert.ok(existsSync(join(root, '.mns', '.live', 'digest.md')), 'digest delivered on pi session_start');
   }, '# Project steering\n\nShip daily.\n');
 });
 

@@ -4,7 +4,7 @@
 // are never silently auto-registered — repeated use files a registry *proposal*
 // (human-gated, like everything in this system).
 //
-// Files (tracked, seeded by `mns init`): .mns/knowledge/registry/
+// Files (tracked, seeded by `mns init`): agent/knowledge/registry/
 //   types.json       [{name, description}]
 //   attributes.json  [{key, value, description}]   value: "string"|"number"|"date"|"url"|{"enum":[...]}
 //   relations.json   [{name, inverse, description}]
@@ -42,7 +42,7 @@ export function registryDir(mnsDir) {
   return join(mnsDir, 'knowledge', 'registry');
 }
 
-/** Load the registry from .mns/knowledge/registry/. Missing files → empty sets. */
+/** Load the registry from agent/knowledge/registry/. Missing files → empty sets. */
 export function loadRegistry(mnsDir) {
   const dir = registryDir(mnsDir);
   const read = (f) => {

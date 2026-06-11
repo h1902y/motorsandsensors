@@ -46,12 +46,12 @@ function scaffoldInto(baseDir, slug) {
   return { created };
 }
 
-/** Scaffold a live action (.mns/actions/<slug>/). Humans author here directly. */
+/** Scaffold a live action (agent/actions/<slug>/). Humans author here directly. */
 export function scaffoldAction(mnsDir, slug) {
   return scaffoldInto(actionsDir(mnsDir), slug);
 }
 
-/** Scaffold a PROPOSED action (.mns/actions/inbox/<slug>/) — agents propose here. */
+/** Scaffold a PROPOSED action (agent/actions/inbox/<slug>/) — agents propose here. */
 export function proposeAction(mnsDir, slug) {
   return scaffoldInto(inboxDir(mnsDir), slug);
 }
@@ -59,7 +59,7 @@ export function proposeAction(mnsDir, slug) {
 export function newAction(mnsDir, slug) {
   if (!slug) { console.error('usage: mns act new <slug>'); process.exit(1); }
   const { created } = scaffoldAction(mnsDir, slug);
-  if (created.length) console.log(`scaffolded action '${slug}' → ${created.join(', ')} in .mns/actions/${slug}/`);
+  if (created.length) console.log(`scaffolded action '${slug}' → ${created.join(', ')} in agent/actions/${slug}/`);
   else console.log(`action '${slug}' already complete — nothing to do`);
 }
 

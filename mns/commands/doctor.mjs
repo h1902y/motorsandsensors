@@ -2,7 +2,6 @@
 // real problems (warnings don't fail). Phase 2 will also reconcile lost sessions.
 
 import { mkdirSync, accessSync, constants } from 'node:fs';
-import { join } from 'node:path';
 import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 import { paths, gitInfo } from '../store.mjs';
 import { listLive } from '../live/live-store.mjs';
@@ -124,14 +123,14 @@ export async function doctor() {
   if (commit) ok(`git repo on ${branch} @ ${commit.slice(0, 8)}`);
   else info("not a git repo — capture works; sessions just won’t link to a commit");
 
-  // .mns writable
+  // agent/ writable
   const { dir } = paths();
   try {
     mkdirSync(dir, { recursive: true });
     accessSync(dir, constants.W_OK);
-    ok(`.mns/ writable (${dir})`);
+    ok(`agent/ writable (${dir})`);
   } catch {
-    bad(`.mns/ not writable (${dir})`);
+    bad(`agent/ not writable (${dir})`);
   }
 
   // faculty home (served by `mns init`)
@@ -147,12 +146,12 @@ export async function doctor() {
 
   // knowledge faculty
   if (homeExists(root)) {
-    const reg = loadRegistry(join(root, '.mns'));
+    const reg = loadRegistry(dir);
     if (!reg.ok) bad('knowledge registry unparseable');
     else {
-      const { items, errors } = allItems(join(root, '.mns'));
+      const { items, errors } = allItems(dir);
       if (errors.length) warn(`${errors.length} knowledge item(s) unparseable`);
-      const pending = listProposals(join(root, '.mns')).length;
+      const pending = listProposals(dir).length;
       ok(`knowledge: ${items.length} item(s), ${pending} pending proposal(s)${pending ? ' — run \`mns review\`' : ''}`);
       const e = await detectEmbedder();
       if (!e.available) warn(`semantic search off — ${e.reason}`);

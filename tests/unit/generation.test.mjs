@@ -13,6 +13,7 @@ import {
   readGeneration,
   mintGeneration,
   rollback,
+  diffGenerations,
 } from '../../mns/faculty/generation.mjs';
 
 // Build a minimal .mns home with a couple knowledge items + a rules.json.
@@ -112,6 +113,38 @@ test('snapshot hash deterministic for identical content', () => {
   const buf = 'identical content\n';
   assert.equal(sha256(buf), sha256(Buffer.from(buf)));
   assert.equal(sha256(buf).length, 64);
+});
+
+test('diffGenerations reports added + changed knowledge items vs forkedFrom', () => {
+  freshHome((mnsDir) => {
+    mintGeneration(mnsDir); // gen_001: alpha, beta
+    // change alpha, add gamma
+    writeFileSync(join(mnsDir, 'knowledge', 'items', 'alpha.md'), '---\nid: alpha\ntype: fact\n---\nAlpha CHANGED.\n');
+    writeFileSync(join(mnsDir, 'knowledge', 'items', 'gamma.md'), '---\nid: gamma\ntype: fact\n---\nGamma.\n');
+    mintGeneration(mnsDir, { forkedFrom: 'gen_001' }); // gen_002
+
+    const d = diffGenerations(mnsDir, 'gen_002');
+    assert.equal(d.forkedFrom, 'gen_001');
+    assert.deepEqual(d.faculties.knowledge.added, ['gamma']);
+    assert.deepEqual(d.faculties.knowledge.changed, ['alpha']);
+    assert.deepEqual(d.faculties.knowledge.removed, []);
+  });
+});
+
+test('diffGenerations of the first generation reports everything as added (no parent)', () => {
+  freshHome((mnsDir) => {
+    mintGeneration(mnsDir); // gen_001, forkedFrom null
+    const d = diffGenerations(mnsDir, 'gen_001');
+    assert.equal(d.forkedFrom, null);
+    assert.deepEqual(d.faculties.knowledge.added.sort(), ['alpha', 'beta']);
+    assert.deepEqual(d.faculties.knowledge.changed, []);
+  });
+});
+
+test('diffGenerations of an unknown id returns null', () => {
+  freshHome((mnsDir) => {
+    assert.equal(diffGenerations(mnsDir, 'gen_999'), null);
+  });
 });
 
 test('readGeneration round-trips the lockfile; activeGeneration null before any mint', () => {

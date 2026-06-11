@@ -5,13 +5,13 @@ import { addHooks, removeHooks, isInstalled, LIFECYCLE_EVENTS, SIGNATURE } from 
 const commandFor = (e) => `node /x/bin/mns.mjs hook ${e} || true`;
 const hasSig = (s) => JSON.stringify(s).includes(SIGNATURE);
 
-const NARROW_DENIES = ['Read(./.mns/traces/**)', 'Read(./.mns/live/**)'];
+const NARROW_DENIES = ['Read(./agent/.traces/**)', 'Read(./agent/.live/**)'];
 
 test('addHooks installs all lifecycle events + the narrowed deny rules', () => {
   const s = addHooks({}, commandFor);
   for (const ev of LIFECYCLE_EVENTS) assert.ok(s.hooks[ev].some((m) => m.hooks[0].command.includes(SIGNATURE)));
   for (const rule of NARROW_DENIES) assert.ok(s.permissions.deny.includes(rule), rule);
-  // the faculty home must stay readable — no blanket .mns deny
+  // the faculty home must stay readable — no blanket agent/ or legacy .mns deny
   assert.ok(!s.permissions.deny.includes('Read(./.mns/**)'));
   assert.ok(isInstalled(s));
 });
@@ -23,10 +23,11 @@ test('addHooks is idempotent (no duplicate entries / deny rules)', () => {
   for (const rule of NARROW_DENIES) assert.equal(twice.permissions.deny.filter((r) => r === rule).length, 1);
 });
 
-test('addHooks migrates the legacy blanket deny to the narrowed rules', () => {
-  const legacy = { permissions: { deny: ['Read(./.mns/**)', 'Read(./secrets/**)'] } };
+test('addHooks scrubs ALL legacy .mns deny forms and adds the agent/ rules', () => {
+  const legacy = { permissions: { deny: ['Read(./.mns/**)', 'Read(./.mns/traces/**)', 'Read(./.mns/live/**)', 'Read(./secrets/**)'] } };
   const s = addHooks(legacy, commandFor);
-  assert.ok(!s.permissions.deny.includes('Read(./.mns/**)'), 'blanket rule removed');
+  for (const old of ['Read(./.mns/**)', 'Read(./.mns/traces/**)', 'Read(./.mns/live/**)'])
+    assert.ok(!s.permissions.deny.includes(old), `legacy ${old} removed`);
   for (const rule of NARROW_DENIES) assert.ok(s.permissions.deny.includes(rule));
   assert.ok(s.permissions.deny.includes('Read(./secrets/**)'), 'user rules preserved');
 });

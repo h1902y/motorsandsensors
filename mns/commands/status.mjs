@@ -1,13 +1,40 @@
 // `mns status` — detected hosts + recorded sessions (the git-native index).
 
 import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
-import { readIndex } from '../store.mjs';
+import { readIndex, paths } from '../store.mjs';
+import { FACULTIES } from '../faculty/contract.mjs';
+import { listProposals } from '../faculty/proposal.mjs';
+import { activeGeneration } from '../faculty/generation.mjs';
+import { detectDrift } from './doctor.mjs';
 
 const fmtDur = (ms) => (ms < 60_000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 60_000).toFixed(1)}m`);
 
+/**
+ * Pure: the faculties graduation line for `mns status`. Fail-soft — any error in
+ * a sub-read degrades to a safe default rather than throwing.
+ * @param {string} mnsDir
+ * @returns {string}
+ */
+export function facultiesLine(mnsDir) {
+  let gen = null, pending = 0, drifted = false;
+  try { gen = activeGeneration(mnsDir); } catch { /* fail-soft */ }
+  try {
+    for (const f of FACULTIES) {
+      try { pending += listProposals(mnsDir, f).length; } catch { /* per-faculty fail-soft */ }
+    }
+  } catch { /* fail-soft */ }
+  try {
+    const d = detectDrift(mnsDir);
+    drifted = Array.isArray(d?.drifted) && d.drifted.length > 0;
+  } catch { /* fail-soft */ }
+  let line = `faculties: ${gen || 'no generation yet'} · ${pending} pending review`;
+  if (drifted) line += ' · ⚠ drift (run mns doctor)';
+  return line;
+}
+
 export function status() {
   const { sessions } = readIndex();
-  console.log(`this project — recorded sessions (.mns/sessions.json): ${sessions.length}`);
+  console.log(`this project — recorded sessions (agent/sessions.json): ${sessions.length}`);
   if (!sessions.length) {
     console.log('  none yet — run `mns capture`, or just start your agent (live capture)');
   } else {
@@ -21,6 +48,8 @@ export function status() {
     }
     if (sessions.length > 12) console.log(`  … and ${sessions.length - 12} more`);
   }
+
+  try { console.log('\n' + facultiesLine(paths().dir)); } catch { /* fail-soft */ }
 
   const hosts = detected();
   console.log('\nhosts detected on this machine:');

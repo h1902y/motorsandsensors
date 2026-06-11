@@ -28,7 +28,7 @@ function readInstructions(mnsDir) {
 const INTERVIEW = [
   'Project steering is empty. Before substantive work, interview your human',
   '(what is this project, its conventions, its priorities), draft',
-  '.mns/instructions/project.md from their answers, and get their approval.',
+  'agent/instructions/project.md from their answers, and get their approval.',
 ].join(' ');
 
 function knowledgeSection(mnsDir, limit) {
@@ -73,7 +73,7 @@ function guardrailsSection(mnsDir) {
 
 /**
  * Compute the digest for a faculty home.
- * @param {string} mnsDir  path to the .mns directory
+ * @param {string} mnsDir  path to the agent/ directory
  * @param {{ knowledgeLimit?: number, budget?: number }} options
  * @returns {{ text: string, sections: object }}
  */
@@ -135,7 +135,7 @@ export function computeDigest(mnsDir, { knowledgeLimit = 5, budget = 1500 } = {}
   sections.proposals = proposals;
   if (proposals.pending > 0) {
     lines.push('## Proposals');
-    lines.push(`${proposals.pending} pending — remind the human to run \`mns review\`.`);
+    lines.push(`${proposals.pending} proposal(s) await your approval — run \`mns review\`; approving mints a generation (your checkpoint).`);
     lines.push('');
   }
 

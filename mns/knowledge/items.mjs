@@ -1,5 +1,5 @@
 // Knowledge items — files as truth. One item per markdown file under
-// .mns/knowledge/items/<id>.md: a constrained-YAML frontmatter (we control both
+// agent/knowledge/items/<id>.md: a constrained-YAML frontmatter (we control both
 // writer and reader; grammar below) + a prose body (the fact in your voice).
 //
 //   ---

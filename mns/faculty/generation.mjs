@@ -7,7 +7,7 @@
 // for items that were never committed). Identity: Agent → Generation → Run —
 // rollback = flip the active pointer + restore content; never `git revert`.
 //
-// Layout under .mns/:
+// Layout under agent/:
 //   generations/active             {active: "gen_NNN"}  — the live pointer
 //   generations/<id>.json          the lockfile (content-addressed manifest)
 //   generations/snapshots/<id>/<faculty>/...  pinned item bytes (rollback source)
@@ -126,7 +126,7 @@ export function snapshotFaculties(mnsDir) {
 
 /** Stable agent id derived from the repo root: agt_<first12 of sha256(root)>. */
 export function agentId(mnsDir) {
-  // mnsDir is the .mns dir; the repo root is its parent.
+  // mnsDir is the agent/ dir; the repo root is its parent.
   const root = dirname(mnsDir);
   return 'agt_' + sha256(root).slice(0, 12);
 }
@@ -167,6 +167,57 @@ export function listGenerations(mnsDir) {
 export function readGeneration(mnsDir, id) {
   const p = lockfilePath(mnsDir, id);
   return existsSync(p) ? readJson(p) : null;
+}
+
+/** Item-list faculties carry {id,hash}[]; single-file faculties a *Hash scalar. */
+const HASH_KEYS = { knowledge: 'registryHash', instructions: 'projectHash', guardrails: 'rulesHash' };
+
+/** Diff two item-manifest arrays → {added, changed, removed} (id lists). */
+function diffItems(parentItems = [], childItems = []) {
+  const p = new Map(parentItems.map((i) => [i.id, i.hash]));
+  const c = new Map(childItems.map((i) => [i.id, i.hash]));
+  const added = [], changed = [], removed = [];
+  for (const [id, hash] of c) {
+    if (!p.has(id)) added.push(id);
+    else if (p.get(id) !== hash) changed.push(id);
+  }
+  for (const id of p.keys()) if (!c.has(id)) removed.push(id);
+  return { added: added.sort(), changed: changed.sort(), removed: removed.sort() };
+}
+
+/**
+ * Per-faculty diff of generation `id` against its forkedFrom parent (pure).
+ * For item-list faculties (knowledge/actions/memory) reports added/changed/removed
+ * id lists. For hash-only faculties (guardrails/instructions, and knowledge's
+ * registry) reports a `changed` boolean when the scalar hash differs. When there
+ * is no parent (forkedFrom null), everything present counts as added.
+ * Returns null for an unknown id.
+ */
+export function diffGenerations(mnsDir, id) {
+  const child = readGeneration(mnsDir, id);
+  if (!child) return null;
+  const parent = child.forkedFrom ? readGeneration(mnsDir, child.forkedFrom) : null;
+  const cf = child.faculties || {};
+  const pf = parent?.faculties || {};
+  const faculties = {};
+  for (const f of ['knowledge', 'actions', 'memory']) {
+    faculties[f] = diffItems(pf[f]?.items, cf[f]?.items);
+    // knowledge also has a registry hash
+    if (f === 'knowledge') {
+      faculties[f].registryChanged = (cf.knowledge?.registryHash ?? null) !== (pf.knowledge?.registryHash ?? null);
+    }
+  }
+  for (const f of ['guardrails', 'instructions']) {
+    const key = HASH_KEYS[f];
+    faculties[f] = { changed: (cf[f]?.[key] ?? null) !== (pf[f]?.[key] ?? null) };
+  }
+  return {
+    id,
+    forkedFrom: child.forkedFrom ?? null,
+    mintedFrom: Array.isArray(child.mintedFrom) ? child.mintedFrom : [],
+    mintedAt: child.mintedAt ?? null,
+    faculties,
+  };
 }
 
 function nextGenId(mnsDir) {

@@ -15,7 +15,7 @@ test('recordOutcome appends a JSONL line with slug + ok + error', () => {
   withHome((mns) => {
     recordOutcome(mns, { slug: 'deploy', ok: true });
     recordOutcome(mns, { slug: 'deploy', ok: false, error: 'invalid_input' });
-    const path = join(mns, 'live', 'actions.jsonl');
+    const path = join(mns, '.live', 'actions.jsonl');
     assert.ok(existsSync(path));
     const lines = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     assert.equal(lines.length, 2);

@@ -18,7 +18,7 @@ import { captureTrace } from '../capture-core.mjs';
 import { SessionState } from '../session.mjs';
 import { openLive, touchLive, closeLive } from '../live/live-store.mjs';
 import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../guardrails.mjs';
-import { paths } from '../store.mjs';
+import { paths, liveDir as liveDirOf } from '../store.mjs';
 import { computeDigest } from '../digest.mjs';
 import { activeGeneration } from '../faculty/generation.mjs';
 
@@ -73,7 +73,7 @@ export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Dat
       openLive({ id, host, transcriptPath: ref, startedAt: new Date(now).toISOString(), now, generation }, cwd);
       safeCapture(adapter, ref, SessionState.ACTIVE, cwd, generation);
     } catch { /* live/capture hiccup must not block grounding below */ }
-    writeLiveDigest(cwd); // universal grounding channel — every host reads .mns/live/digest.md
+    writeLiveDigest(cwd); // universal grounding channel — every host reads agent/.live/digest.md
   } else if (TURN.has(event)) {
     touchLive({ id, host, transcriptPath: ref, now }, cwd);
     safeCapture(adapter, ref, SessionState.ACTIVE, cwd);
@@ -88,7 +88,7 @@ export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Dat
 
 /**
  * The Guardrails gate (PreToolUse). Evaluates the tool call against
- * .mns/guardrails/rules.json and prints Claude's hookSpecificOutput decision —
+ * agent/guardrails/rules.json and prints Claude's hookSpecificOutput decision —
  * or NOTHING (exit 0, no JSON = defer to the host's normal permission flow).
  * That silence is the fail-open: engine errors and rule-file problems can slow
  * nothing down and block nothing. Matched decisions are logged for the trace.
@@ -116,7 +116,7 @@ export function gateDecision({ host = 'claude-code', payload = {}, cwd = process
     const verdict = evaluate(loaded.rules, { tool: payload.tool_name, input: payload.tool_input });
     if (verdict) {
       try {
-        const liveDir = join(dir, 'live');
+        const liveDir = liveDirOf(dir);
         mkdirSync(liveDir, { recursive: true });
         appendFileSync(
           join(liveDir, guardrailsLogName(payload.session_id)),
@@ -132,18 +132,18 @@ export function gateDecision({ host = 'claude-code', payload = {}, cwd = process
 
 /**
  * Universal digest delivery (Design B side effect, not a span builder). Computes
- * the faculty digest and writes it to `.mns/live/digest.md` — the ONE channel
+ * the faculty digest and writes it to `agent/.live/digest.md` — the ONE channel
  * every host can read at session start (the faculty block points here). Claude
  * also gets it inline via sessionStartContext; the other 4 hosts rely on this
  * file. Fail-open: any error is swallowed (never break the host).
- * @param {string} cwd  repo cwd; paths() resolves the .mns home under it
+ * @param {string} cwd  repo cwd; paths() resolves the agent/ home under it
  */
 export function writeLiveDigest(cwd = process.cwd()) {
   try {
     const mnsDir = paths(cwd).dir;
     const { text } = computeDigest(mnsDir);
     if (!text || !text.trim()) return;
-    const liveDir = join(mnsDir, 'live');
+    const liveDir = liveDirOf(mnsDir);
     mkdirSync(liveDir, { recursive: true });
     writeFileSync(join(liveDir, 'digest.md'), text);
   } catch {
@@ -155,7 +155,7 @@ export function writeLiveDigest(cwd = process.cwd()) {
  * Build Claude Code's SessionStart additionalContext payload from the faculty
  * digest. Returns null on ANY failure (fail-open: the session proceeds with no
  * injected context, never a broken hook).
- * @param {string} cwd  repo cwd; paths() resolves the .mns home under it
+ * @param {string} cwd  repo cwd; paths() resolves the agent/ home under it
  */
 export function sessionStartContext(cwd = process.cwd()) {
   try {
@@ -193,7 +193,7 @@ export function runHook(event, { host = 'claude-code', session } = {}) {
     } else {
       try { handleHook({ event, payload, host }); } catch { /* capture failure is silent — never blocks the digest or the host */ }
       // Claude consumes additionalContext inline; the other hosts read
-      // .mns/live/digest.md (written by handleHook's OPEN branch). Scoping the
+      // agent/.live/digest.md (written by handleHook's OPEN branch). Scoping the
       // stdout push to Claude avoids emitting an unread schema to Gemini/Codex.
       if (event === 'SessionStart' && host === 'claude-code') {
         try {

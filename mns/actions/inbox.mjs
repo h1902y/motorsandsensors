@@ -1,17 +1,17 @@
 // mns/actions/inbox.mjs
 // The Actions crystallization gate (the same governed pipeline as Knowledge
 // promotion, kept out of the knowledge ER/registry machinery). A proposed action
-// is a real dir under .mns/actions/inbox/<slug>/. A human activates it (move to
-// .mns/actions/<slug>/) or rejects it (remove). Never auto-activates.
+// is a real dir under agent/actions/inbox/<slug>/. A human activates it (move to
+// agent/actions/<slug>/) or rejects it (remove). Never auto-activates.
 
 import { join } from 'node:path';
 import { existsSync, readFileSync, renameSync, mkdirSync, rmSync } from 'node:fs';
 import { actionsDir, inboxDir, listActions, isSafeSlug } from './manifest.mjs';
 
-/** Archive dir for rejected action proposals: .mns/actions/proposals/archive/. */
+/** Archive dir for rejected action proposals: agent/actions/proposals/archive/. */
 const archiveBaseDir = (mnsDir) => join(actionsDir(mnsDir), 'proposals', 'archive');
 
-/** Proposed actions awaiting review (in .mns/actions/inbox/). */
+/** Proposed actions awaiting review (in agent/actions/inbox/). */
 export function listProposedActions(mnsDir) {
   return listActions(inboxDir(mnsDir));
 }

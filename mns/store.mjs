@@ -1,9 +1,9 @@
-// The git-native .mns/ store.
+// The git-native agent/ store (the visible faculty home; legacy projects use .mns/).
 //
 // Layout (entire.io-style split — linkage in git, blobs out of the diff):
-//   .mns/sessions.json          tracked   — the session index (small, diff-friendly,
+//   agent/sessions.json          tracked   — the session index (small, diff-friendly,
 //                                            each entry links to a git commit)
-//   .mns/traces/<host>-<id>.otlp.jsonl   gitignored — the bulky OTLP blobs
+//   agent/.traces/<host>-<id>.otlp.jsonl   gitignored — the bulky OTLP blobs (dot-prefixed)
 //
 // Trace blobs are git-ignored in Phase 1; Phase 2 moves them to an orphan branch.
 
@@ -24,10 +24,25 @@ export function repoRoot(cwd = process.cwd()) {
   return git(['rev-parse', '--show-toplevel'], cwd) || cwd;
 }
 
+/** Resolve the faculty home: prefer the visible `agent/`, fall back to legacy
+ *  `.mns/` (keeps old projects working), default to `agent/` for new projects.
+ *  The single chokepoint for the whole CLI; the fallback means commands work at
+ *  every intermediate migration state. */
+export function homeDir(root = repoRoot()) {
+  const agent = join(root, 'agent');
+  if (existsSync(agent)) return agent;
+  const legacy = join(root, '.mns');
+  if (existsSync(legacy)) return legacy;
+  return agent;
+}
+
+/** Internal liveness dir (git-ignored, dot-prefixed) under the home. */
+export const liveDir = (mnsDir) => join(mnsDir, '.live');
+
 export function paths(cwd = process.cwd()) {
   const root = repoRoot(cwd);
-  const dir = join(root, '.mns');
-  return { root, dir, index: join(dir, 'sessions.json'), tracesDir: join(dir, 'traces') };
+  const dir = homeDir(root);
+  return { root, dir, index: join(dir, 'sessions.json'), tracesDir: join(dir, '.traces') };
 }
 
 /** Current commit + branch, or nulls if not a git repo. */

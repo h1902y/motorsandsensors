@@ -7,11 +7,12 @@
 // missing — never an npm dependency.
 
 import { existsSync, readSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { init } from './init.mjs';
 import { enable } from './enable.mjs';
 import { repoRoot } from '../store.mjs';
+import { homeExists } from '../scaffold.mjs';
 
 // Run a command inside `dir` without permanently changing the process cwd —
 // init/enable resolve their target from process.cwd(), so we chdir around them.
@@ -57,7 +58,7 @@ export function code(args = {}, deps = {}) {
   if (!existsSync(dir)) { d.log(`mns code: no such directory: ${dir}`); return 1; }
 
   // 2. ensure the faculty home (only when absent — keeps output clean; init is idempotent)
-  if (!existsSync(join(repoRoot(dir), '.mns'))) d.runInit(dir);
+  if (!homeExists(repoRoot(dir))) d.runInit(dir);
 
   // 3. ensure OpenCode (detect + install-on-demand)
   if (!d.detect()) {
@@ -75,7 +76,7 @@ export function code(args = {}, deps = {}) {
 
   // a clean one-screen summary of what the newcomer just got (vs. the verbose enable output)
   d.log('mns code → OpenCode, faculty-equipped');
-  d.log(`  ✓ faculty home (.mns/)   ${wired ? '✓ capture + guardrails gate   ✓ session grounding' : '⚠ plugin not wired (degraded)'}`);
+  d.log(`  ✓ faculty home (agent/)   ${wired ? '✓ capture + guardrails gate   ✓ session grounding' : '⚠ plugin not wired (degraded)'}`);
   d.log(`  → launching OpenCode in ${dir} …`);
 
   // 5. launch the real OpenCode (configure + launch, never drive)

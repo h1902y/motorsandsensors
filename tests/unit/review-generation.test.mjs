@@ -62,8 +62,9 @@ test('review: approve both proposals → exactly one generation minted, mintedFr
     // activeGeneration should be this generation
     assert.equal(activeGeneration(mns), gens[0], 'active generation updated');
 
-    // stdout should mention the mint
-    assert.match(r.stdout, /minted gen_001 \(2 change\(s\)\)/);
+    // stdout should mention the mint as a graduation ceremony
+    assert.match(r.stdout, /generation gen_001 minted/);
+    assert.match(r.stdout, /mns generation show/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -109,7 +110,7 @@ test('review: approve first, quit before second → one generation with one appr
     assert.ok(gen, 'generation lockfile readable');
     assert.equal(gen.mintedFrom.length, 1, 'mintedFrom has exactly one approved id');
 
-    assert.match(r.stdout, /minted gen_001 \(1 change\(s\)\)/);
+    assert.match(r.stdout, /generation gen_001 minted from 1 approval/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

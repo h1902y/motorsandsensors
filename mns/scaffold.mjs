@@ -5,7 +5,7 @@
 // user edits to any seeded file always survive a re-init.
 //
 // Layout = the five faculties (docs/DESIGN.md §3①, the 5+3 anatomy):
-//   .mns/mns.json + knowledge/ memory/ actions/ instructions/ guardrails/
+//   agent/agent.json + knowledge/ memory/ actions/ instructions/ guardrails/
 // Guardrails became first-class (enforced via the PreToolUse gate) on 2026-06-10;
 // the old instructions/guardrails.md advisory seed left the layout (existing
 // projects keep theirs — no-clobber — but new scaffolds get the real faculty).
@@ -14,13 +14,45 @@ import { join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from './knowledge/registry.mjs';
 
-export const MANIFEST_VERSION = 2;
+export const MANIFEST_VERSION = 3;
+
+const AGENT_README = `# agent/ — your coding agent's home, in the open
+
+This directory is your agent's evolving brain. Five **faculties** grow from how you
+actually work — and **nothing changes without your approval**.
+
+## The five faculties
+- **knowledge/** — what's TRUE (facts about this project)
+- **memory/** — what HAPPENED (curated episodes from past sessions)
+- **actions/** — how to DO things (runbooks the agent can call)
+- **instructions/** — who to BE (steering / project conventions)
+- **guardrails/** — what NOT to do (enforced rules, checked on every tool call)
+
+## How things graduate (you're in the loop)
+    a session runs  →  mns mines candidates  →  inbox/  →  proposals/
+                                                              │  you decide
+                                                    mns review  (y / n / edit)
+                                                              ▼
+                                          approved → the faculty + a new *generation*
+A **generation** is a pinned checkpoint of every faculty. Approving proposals mints
+one; \`mns generation rollback <id>\` restores any earlier checkpoint.
+
+## Get in the loop
+- \`mns inbox\`            — what's waiting for your approval
+- \`mns review\`          — approve / reject, one at a time
+- \`mns generation list\` — your checkpoints (· = active)
+- \`mns explain\`         — this model, any time
+
+## What to ignore
+\`.traces/\`, \`.live/\`, and \`knowledge/.index.db\` are machine internals (git-ignored).
+Everything else here is yours to read, edit, and version in git.
+`;
 
 const KNOWLEDGE_README = `# knowledge/ — the Knowledge faculty (what's TRUE)
 
 Items in \`items/\` — one fact/entity per file: prose body + typed attributes +
 typed relations (registry-governed: \`registry/\`) + provenance. The derived
-search index (\`index.db\`, git-ignored) gives lexical/graph/semantic recall:
+search index (\`.index.db\`, git-ignored) gives lexical/graph/semantic recall:
 \`mns recall\`. Candidates arrive in \`inbox/\` (from agents or \`mns distill\`),
 become \`proposals/\`, and a human approves via \`mns review\` — never silently.
 \`mns remember\` writes directly (the human IS the gate). \`mns knowledge audit\`
@@ -29,7 +61,7 @@ checks health.
 
 const MEMORY_README = `# memory/ — episodic faculty (what HAPPENED)
 
-Curated recollections of past sessions, distilled from the observability traces (\`.mns/traces/\`).
+Curated recollections of past sessions, distilled from the observability traces (\`agent/.traces/\`).
 - **Who writes:** mns (distillation — *not built yet*), human (curation). Raw traces stay in traces/ — this is the *curated* layer.
 - **Where:** one Markdown file per entry under \`entries/\`, named \`<id>.md\`.
 
@@ -40,7 +72,7 @@ id: mem-2026-06-11-flaky-ci-retry      # mem-<YYYY-MM-DD>-<slug>, stable
 date: 2026-06-11                        # ISO date the episode occurred
 title: Flaky CI fixed by pinning node 22
 provenance:                            # links back to observability
-  sessions: [ses_abc123]               # ids that exist in .mns/sessions.json
+  sessions: [ses_abc123]               # ids that exist in agent/sessions.json
   hosts: [claude-code]
 tags: [ci, flaky-test]                 # optional
 status: curated                        # curated (human) | proposed (reserved — future distiller)
@@ -106,23 +138,24 @@ const RULES_SEED =
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/memory/entries', '.mns/memory/inbox', '.mns/memory/proposals', '.mns/actions', '.mns/actions/inbox', '.mns/instructions', '.mns/instructions/inbox', '.mns/instructions/proposals', '.mns/guardrails', '.mns/guardrails/inbox', '.mns/guardrails/proposals', '.mns/generations', '.mns/generations/snapshots'],
+  dirs: ['agent', 'agent/knowledge', 'agent/knowledge/registry', 'agent/knowledge/items', 'agent/knowledge/inbox', 'agent/knowledge/proposals', 'agent/memory', 'agent/memory/entries', 'agent/memory/inbox', 'agent/memory/proposals', 'agent/actions', 'agent/actions/inbox', 'agent/instructions', 'agent/instructions/inbox', 'agent/instructions/proposals', 'agent/guardrails', 'agent/guardrails/inbox', 'agent/guardrails/proposals', 'agent/generations', 'agent/generations/snapshots'],
   files: {
-    '.mns/knowledge/README.md': KNOWLEDGE_README,
-    '.mns/memory/README.md': MEMORY_README,
-    '.mns/actions/README.md': ACTIONS_README,
-    '.mns/instructions/README.md': INSTRUCTIONS_README,
-    '.mns/instructions/project.md': PROJECT_SEED,
-    '.mns/guardrails/README.md': GUARDRAILS_README,
-    '.mns/guardrails/rules.json': RULES_SEED,
-    '.mns/knowledge/registry/types.json': JSON.stringify(SEED_TYPES, null, 2) + '\n',
-    '.mns/knowledge/registry/attributes.json': JSON.stringify(SEED_ATTRIBUTES, null, 2) + '\n',
-    '.mns/knowledge/registry/relations.json': JSON.stringify(SEED_RELATIONS, null, 2) + '\n',
+    'agent/README.md': AGENT_README,
+    'agent/knowledge/README.md': KNOWLEDGE_README,
+    'agent/memory/README.md': MEMORY_README,
+    'agent/actions/README.md': ACTIONS_README,
+    'agent/instructions/README.md': INSTRUCTIONS_README,
+    'agent/instructions/project.md': PROJECT_SEED,
+    'agent/guardrails/README.md': GUARDRAILS_README,
+    'agent/guardrails/rules.json': RULES_SEED,
+    'agent/knowledge/registry/types.json': JSON.stringify(SEED_TYPES, null, 2) + '\n',
+    'agent/knowledge/registry/attributes.json': JSON.stringify(SEED_ATTRIBUTES, null, 2) + '\n',
+    'agent/knowledge/registry/relations.json': JSON.stringify(SEED_RELATIONS, null, 2) + '\n',
   },
 };
 
 /** Gitignore lines the project needs (trace blobs + liveness state stay local). */
-export const IGNORE_LINES = ['.mns/traces/', '.mns/live/', '.mns/knowledge/index.db', '.gemini/settings.json', '.codex/hooks.json', '.pi/extensions/mns.ts'];
+export const IGNORE_LINES = ['agent/.traces/', 'agent/.live/', 'agent/knowledge/.index.db', '.gemini/settings.json', '.codex/hooks.json', '.pi/extensions/mns.ts'];
 
 export function manifest(initializedAt) {
   return {
@@ -139,7 +172,7 @@ export function manifest(initializedAt) {
 export function planScaffold(cwd) {
   const dirs = LAYOUT.dirs.filter((d) => !existsSync(join(cwd, d)));
   const files = Object.keys(LAYOUT.files).filter((f) => !existsSync(join(cwd, f)));
-  const manifestMissing = !existsSync(join(cwd, '.mns', 'mns.json'));
+  const manifestMissing = !existsSync(join(cwd, 'agent', 'agent.json'));
   return { dirs, files, manifestMissing };
 }
 
@@ -153,8 +186,8 @@ export function applyScaffold(cwd, { now = Date.now() } = {}) {
   for (const d of plan.dirs) mkdirSync(join(cwd, d), { recursive: true });
   for (const f of plan.files) writeFileSync(join(cwd, f), LAYOUT.files[f]);
   if (plan.manifestMissing) {
-    mkdirSync(join(cwd, '.mns'), { recursive: true });
-    writeFileSync(join(cwd, '.mns', 'mns.json'), JSON.stringify(manifest(new Date(now).toISOString()), null, 2) + '\n');
+    mkdirSync(join(cwd, 'agent'), { recursive: true });
+    writeFileSync(join(cwd, 'agent', 'agent.json'), JSON.stringify(manifest(new Date(now).toISOString()), null, 2) + '\n');
   }
   return plan;
 }
@@ -176,5 +209,5 @@ export function ensureGitignore(cwd) {
 
 /** Is there an mns home here already? (the git-detect question) */
 export function homeExists(cwd) {
-  return existsSync(join(cwd, '.mns'));
+  return existsSync(join(cwd, 'agent')) || existsSync(join(cwd, '.mns'));
 }
