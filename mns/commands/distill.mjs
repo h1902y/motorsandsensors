@@ -11,6 +11,7 @@ import * as registry from '../miners/registry.mjs';
 // Import miner modules so they self-register.
 import '../miners/knowledge.mjs';
 import '../miners/actions.mjs';
+import '../miners/guardrails.mjs';
 
 export function distill(args) {
   const scope = args.all ? 'all' : args.session ? null : 'last';
