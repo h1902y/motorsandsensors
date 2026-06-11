@@ -38,6 +38,11 @@ export function approve(mnsDir, faculty, id) {
   const v = a.validate(mnsDir, p.payload);
   if (!v.ok) return { ok: false, errors: v.errors };
   const r = a.apply(mnsDir, p);
+  // Only archive as approved if apply actually succeeded — a failed apply (e.g.
+  // an action that already exists) must leave the proposal PENDING so it can be
+  // retried, never silently archived as "approved" (matches the prior
+  // approveProposal `if (!r.ok) return r` guard).
+  if (!r || !r.ok) return r || { ok: false, errors: ['apply returned nothing'] };
   archiveProposal(mnsDir, faculty, id, { status: 'approved', applied: r.action });
   trail(mnsDir, faculty, { kind: 'approve', id, applied: r.action });
   return r;

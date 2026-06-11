@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import '../../mns/knowledge/adapter.mjs'; // self-registers 'knowledge'
 import { approve, reject } from '../../mns/faculty/gate.mjs';
+import { register } from '../../mns/faculty/registry.mjs';
 import { writeProposal, makeProposal } from '../../mns/faculty/proposal.mjs';
 import { SEED_TYPES } from '../../mns/knowledge/registry.mjs';
 
@@ -37,6 +38,25 @@ test('gate.approve applies a knowledge proposal and archives it', () => {
     assert.ok(existsSync(archPath), 'archived');
     const arch = JSON.parse(readFileSync(archPath, 'utf8'));
     assert.equal(arch.status, 'approved');
+  });
+});
+
+test('gate.approve does NOT archive when apply fails — proposal stays pending for retry', () => {
+  withHome((mnsDir) => {
+    // a dummy faculty whose validate passes but apply fails (e.g. "already exists")
+    register({
+      name: 'dummy',
+      validate: () => ({ ok: true, errors: [], warnings: [] }),
+      apply: () => ({ ok: false, action: 'already exists', error: 'exists' }),
+      render: () => ({ line: 'x', card: ['x'] }),
+    });
+    const p = makeProposal({ faculty: 'dummy', kind: 'thing', source: 'test', payload: { id: 'd1' } });
+    writeProposal(mnsDir, p);
+    const r = approve(mnsDir, 'dummy', p.id);
+    assert.equal(r.ok, false, 'apply failure surfaced');
+    // the pending proposal must SURVIVE (not archived as approved)
+    assert.ok(existsSync(join(mnsDir, 'dummy', 'proposals', `${p.id}.json`)), 'still pending for retry');
+    assert.ok(!existsSync(join(mnsDir, 'dummy', 'proposals', 'archive', `${p.id}.json`)), 'not archived');
   });
 });
 
