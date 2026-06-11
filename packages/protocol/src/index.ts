@@ -285,3 +285,5 @@ export interface WorkflowListResponse {
 export function applyWorkflow(command: string, values: Record<string, string>): string {
   return command.replace(/\{\{\s*(\w+)\s*\}\}/g, (_m, name: string) => values[name] ?? "");
 }
+
+export * from "./zuzuu.js";
