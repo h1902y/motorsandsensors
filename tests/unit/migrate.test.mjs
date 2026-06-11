@@ -7,8 +7,8 @@ import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync, existsSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { migrateProposals, migrateHome } from '../../mns/commands/migrate.mjs';
-import { readProposal } from '../../mns/faculty/proposal.mjs';
+import { migrateProposals, migrateHome } from '../../zuzuu/commands/migrate.mjs';
+import { readProposal } from '../../zuzuu/faculty/proposal.mjs';
 
 function withTempRepo(fn) {
   const root = mkdtempSync(join(tmpdir(), 'mns-mig-'));

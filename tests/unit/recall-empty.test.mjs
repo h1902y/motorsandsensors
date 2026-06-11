@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { recallEmptyMessage } from '../../mns/commands/knowledge.mjs';
+import { recallEmptyMessage } from '../../zuzuu/commands/knowledge.mjs';
 
 test('no items at all → points at remember', () => {
   assert.match(recallEmptyMessage({ itemCount: 0, query: 'foo' }), /no knowledge yet/i);

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { toMcpTool, toOpenAITool, toAnthropicTool } from '../../mns/actions/convert.mjs';
+import { toMcpTool, toOpenAITool, toAnthropicTool } from '../../zuzuu/actions/convert.mjs';
 
 const MANIFEST = {
   slug: 'greet', title: 'Greet', description: 'say hi',

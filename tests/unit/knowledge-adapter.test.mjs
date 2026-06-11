@@ -7,13 +7,13 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../../mns/knowledge/registry.mjs';
-import { createProposal, getProposal } from '../../mns/knowledge/proposals.mjs';
-import { readItem } from '../../mns/knowledge/items.mjs';
-import { search } from '../../mns/knowledge/index.mjs';
-import * as registry from '../../mns/faculty/registry.mjs';
+import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../../zuzuu/knowledge/registry.mjs';
+import { createProposal, getProposal } from '../../zuzuu/knowledge/proposals.mjs';
+import { readItem } from '../../zuzuu/knowledge/items.mjs';
+import { search } from '../../zuzuu/knowledge/index.mjs';
+import * as registry from '../../zuzuu/faculty/registry.mjs';
 // importing the adapter module registers it on load
-import '../../mns/knowledge/adapter.mjs';
+import '../../zuzuu/knowledge/adapter.mjs';
 
 function withHome(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'mns-kadapter-'));

@@ -8,8 +8,8 @@ import { join } from 'node:path';
 import { mkdtempSync, existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-import { miner, aggregate, propose, escapeRegex } from '../../mns/miners/guardrails.mjs';
-import * as registry from '../../mns/miners/registry.mjs';
+import { miner, aggregate, propose, escapeRegex } from '../../zuzuu/miners/guardrails.mjs';
+import * as registry from '../../zuzuu/miners/registry.mjs';
 
 // ---------------------------------------------------------------------------
 // Helpers

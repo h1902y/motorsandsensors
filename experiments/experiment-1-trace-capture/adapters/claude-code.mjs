@@ -63,7 +63,7 @@ export const claudeCode = {
     try {
       const file = typeof ref === 'string' ? ref : ref.ref;
       // eslint-disable-next-line global-require
-      const { mineTranscript } = require('../../../mns/knowledge/distill.mjs');
+      const { mineTranscript } = require('../../../zuzuu/knowledge/distill.mjs');
       const { sessionId, ...sig } = mineTranscript(file);
       return sig;
     } catch {

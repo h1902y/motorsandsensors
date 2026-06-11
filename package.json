@@ -36,7 +36,7 @@
   },
   "files": [
     "bin/",
-    "mns/",
+    "zuzuu/",
     "experiments/experiment-1-trace-capture/core/",
     "experiments/experiment-1-trace-capture/adapters/",
     "LICENSE",

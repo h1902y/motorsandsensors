@@ -7,11 +7,11 @@ import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync, existsSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { FACULTIES, facultyDir, inboxDir, proposalsDir, archiveDir } from '../../mns/faculty/contract.mjs';
-import { proposalId, makeProposal, writeProposal, readProposal, listProposals, archiveProposal } from '../../mns/faculty/proposal.mjs';
-import { prov, mergeProvenance } from '../../mns/faculty/provenance.mjs';
-import { recordTrail } from '../../mns/faculty/trail.mjs';
-import { register, get as getAdapter, all as allAdapters } from '../../mns/faculty/registry.mjs';
+import { FACULTIES, facultyDir, inboxDir, proposalsDir, archiveDir } from '../../zuzuu/faculty/contract.mjs';
+import { proposalId, makeProposal, writeProposal, readProposal, listProposals, archiveProposal } from '../../zuzuu/faculty/proposal.mjs';
+import { prov, mergeProvenance } from '../../zuzuu/faculty/provenance.mjs';
+import { recordTrail } from '../../zuzuu/faculty/trail.mjs';
+import { register, get as getAdapter, all as allAdapters } from '../../zuzuu/faculty/registry.mjs';
 
 // ---------------------------------------------------------------------------
 // helpers

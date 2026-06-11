@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { inbox } from '../../mns/commands/inbox.mjs';
+import { inbox } from '../../zuzuu/commands/inbox.mjs';
 
 function homeWithKnowledgeProposals(n) {
   const root = mkdtempSync(join(tmpdir(), 'mns-inbox-'));

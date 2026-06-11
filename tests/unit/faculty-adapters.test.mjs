@@ -9,14 +9,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 // Self-registers each adapter on import:
-import '../../mns/guardrails/adapter.mjs';
-import '../../mns/instructions/adapter.mjs';
-import '../../mns/memory/adapter.mjs';
+import '../../zuzuu/guardrails/adapter.mjs';
+import '../../zuzuu/instructions/adapter.mjs';
+import '../../zuzuu/memory/adapter.mjs';
 
-import * as registry from '../../mns/faculty/registry.mjs';
-import * as gate from '../../mns/faculty/gate.mjs';
-import { writeProposal, makeProposal } from '../../mns/faculty/proposal.mjs';
-import { applyScaffold, LAYOUT } from '../../mns/scaffold.mjs';
+import * as registry from '../../zuzuu/faculty/registry.mjs';
+import * as gate from '../../zuzuu/faculty/gate.mjs';
+import { writeProposal, makeProposal } from '../../zuzuu/faculty/proposal.mjs';
+import { applyScaffold, LAYOUT } from '../../zuzuu/scaffold.mjs';
 
 // ---------------------------------------------------------------------------
 // helpers

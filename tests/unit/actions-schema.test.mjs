@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { validate } from '../../mns/actions/schema.mjs';
-import { validateInputs, validateOutputs } from '../../mns/actions/schema.mjs';
+import { validate } from '../../zuzuu/actions/schema.mjs';
+import { validateInputs, validateOutputs } from '../../zuzuu/actions/schema.mjs';
 
 test('object: required + property types', () => {
   const schema = { type: 'object', properties: { name: { type: 'string' }, n: { type: 'integer' } }, required: ['name'] };

@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { facultiesLine } from '../../mns/commands/status.mjs';
-import { mintGeneration } from '../../mns/faculty/generation.mjs';
+import { facultiesLine } from '../../zuzuu/commands/status.mjs';
+import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
 
 function freshHome() {
   const root = mkdtempSync(join(tmpdir(), 'mns-status-'));

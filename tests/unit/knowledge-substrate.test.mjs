@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadRegistry, validateItem, validateAttribute, SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../../mns/knowledge/registry.mjs';
-import { parseItem, serializeItem, writeItem, readItem, slugify } from '../../mns/knowledge/items.mjs';
-import { reindex, search, neighbors, upsertItem, putVector, allVectors } from '../../mns/knowledge/index.mjs';
-import { cosine } from '../../mns/knowledge/embed.mjs';
+import { loadRegistry, validateItem, validateAttribute, SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../../zuzuu/knowledge/registry.mjs';
+import { parseItem, serializeItem, writeItem, readItem, slugify } from '../../zuzuu/knowledge/items.mjs';
+import { reindex, search, neighbors, upsertItem, putVector, allVectors } from '../../zuzuu/knowledge/index.mjs';
+import { cosine } from '../../zuzuu/knowledge/embed.mjs';
 
 function withHome(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'mns-know-'));

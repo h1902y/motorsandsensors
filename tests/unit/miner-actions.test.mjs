@@ -7,8 +7,8 @@ import { join } from 'node:path';
 import { mkdtempSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-import { miner, aggregate, propose } from '../../mns/miners/actions.mjs';
-import * as registry from '../../mns/miners/registry.mjs';
+import { miner, aggregate, propose } from '../../zuzuu/miners/actions.mjs';
+import * as registry from '../../zuzuu/miners/registry.mjs';
 
 // ---------------------------------------------------------------------------
 // Helpers — build the mineTranscript output shape directly (deterministic).

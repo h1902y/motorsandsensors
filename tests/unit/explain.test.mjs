@@ -4,7 +4,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { explainText, explain } from '../../mns/commands/explain.mjs';
+import { explainText, explain } from '../../zuzuu/commands/explain.mjs';
 
 test('overview (no topic) names the faculties, review, and generation', () => {
   const t = explainText();

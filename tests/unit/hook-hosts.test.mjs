@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
-import { geminiRef } from '../../mns/commands/hook.mjs';
+import { geminiRef } from '../../zuzuu/commands/hook.mjs';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { gateDecision } from '../../mns/commands/hook.mjs';
+import { gateDecision } from '../../zuzuu/commands/hook.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fx = (h) => readFileSync(join(here, '..', 'fixtures', 'hooks', `${h}.probe.jsonl`), 'utf8')

@@ -4,11 +4,11 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { handleHook } from '../../mns/commands/hook.mjs';
-import { openLive, listLive } from '../../mns/live/live-store.mjs';
-import { reconcile } from '../../mns/live/reconcile.mjs';
-import { readIndex } from '../../mns/store.mjs';
-import { SessionState } from '../../mns/session.mjs';
+import { handleHook } from '../../zuzuu/commands/hook.mjs';
+import { openLive, listLive } from '../../zuzuu/live/live-store.mjs';
+import { reconcile } from '../../zuzuu/live/reconcile.mjs';
+import { readIndex } from '../../zuzuu/store.mjs';
+import { SessionState } from '../../zuzuu/session.mjs';
 
 const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'claude-sample.jsonl');
 // The fixture's session id (claude-code adapter derives this from the transcript).

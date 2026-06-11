@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import '../../mns/knowledge/adapter.mjs'; // self-registers 'knowledge'
-import { approve, reject } from '../../mns/faculty/gate.mjs';
-import { register } from '../../mns/faculty/registry.mjs';
-import { writeProposal, makeProposal } from '../../mns/faculty/proposal.mjs';
-import { SEED_TYPES } from '../../mns/knowledge/registry.mjs';
+import '../../zuzuu/knowledge/adapter.mjs'; // self-registers 'knowledge'
+import { approve, reject } from '../../zuzuu/faculty/gate.mjs';
+import { register } from '../../zuzuu/faculty/registry.mjs';
+import { writeProposal, makeProposal } from '../../zuzuu/faculty/proposal.mjs';
+import { SEED_TYPES } from '../../zuzuu/knowledge/registry.mjs';
 
 function withHome(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'mns-gate-'));

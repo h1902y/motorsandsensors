@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeSession, transition, canTransition, isTerminal, SessionState } from '../../mns/session.mjs';
+import { makeSession, transition, canTransition, isTerminal, SessionState } from '../../zuzuu/session.mjs';
 
 test('makeSession requires id and host, defaults to CAPTURED, computes duration', () => {
   assert.throws(() => makeSession({ host: 'h' }), /id required/);

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mineTranscript, aggregate } from '../../mns/knowledge/distill.mjs';
+import { mineTranscript, aggregate } from '../../zuzuu/knowledge/distill.mjs';
 
 const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'claude-sample.jsonl');
 

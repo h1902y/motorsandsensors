@@ -4,9 +4,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractSignals } from '../../mns/eval/signals.mjs';
-import { mechanicalScore, getScorer, SCORERS } from '../../mns/eval/score.mjs';
-import { rank } from '../../mns/eval/rank.mjs';
+import { extractSignals } from '../../zuzuu/eval/signals.mjs';
+import { mechanicalScore, getScorer, SCORERS } from '../../zuzuu/eval/score.mjs';
+import { rank } from '../../zuzuu/eval/rank.mjs';
 
 // ---------------------------------------------------------------------------
 // helpers

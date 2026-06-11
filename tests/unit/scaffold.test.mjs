@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { LAYOUT, IGNORE_LINES, planScaffold, applyScaffold, ensureGitignore, homeExists } from '../../mns/scaffold.mjs';
+import { LAYOUT, IGNORE_LINES, planScaffold, applyScaffold, ensureGitignore, homeExists } from '../../zuzuu/scaffold.mjs';
 
 function withTemp(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'mns-scaffold-'));

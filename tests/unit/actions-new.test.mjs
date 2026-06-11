@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { scaffoldAction } from '../../mns/commands/act-author.mjs';
+import { scaffoldAction } from '../../zuzuu/commands/act-author.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'mns-new-'));

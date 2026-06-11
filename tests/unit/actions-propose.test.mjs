@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { proposeAction } from '../../mns/commands/act-author.mjs';
+import { proposeAction } from '../../zuzuu/commands/act-author.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'mns-prop-'));

@@ -14,7 +14,7 @@ import {
   mintGeneration,
   rollback,
   diffGenerations,
-} from '../../mns/faculty/generation.mjs';
+} from '../../zuzuu/faculty/generation.mjs';
 
 // Build a minimal .mns home with a couple knowledge items + a rules.json.
 function freshHome(fn) {

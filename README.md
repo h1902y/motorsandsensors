@@ -75,7 +75,7 @@ All five verified against **real sessions** — never fixtures; every host's liv
 
 | Path | What |
 |---|---|
-| [`mns/`](mns/) + `bin/zuzuu.mjs` | the CLI — capture, live lifecycle, faculty home (product surface) |
+| [`zuzuu/`](zuzuu/) + `bin/zuzuu.mjs` | the CLI — capture, live lifecycle, faculty home (product surface) |
 | [`experiments/`](experiments/) | spike code + [`LOG.md`](experiments/LOG.md) — the build journal (hypothesis → real-data proof → conclusions per experiment) |
 | [`app/`](app/) | the durable application skeleton (be / run / evolve) — proven code harvests here |
 | [`tests/`](tests/) | hermetic unit + regression (`npm test`) + real-data smoke playgrounds (`npm run playground`) |

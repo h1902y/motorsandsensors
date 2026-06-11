@@ -4,9 +4,9 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { mineTranscript, aggregate } from '../../mns/knowledge/distill.mjs';
-import * as registry from '../../mns/miners/registry.mjs';
-import { propose as knowledgePropose, miner as knowledgeMiner } from '../../mns/miners/knowledge.mjs';
+import { mineTranscript, aggregate } from '../../zuzuu/knowledge/distill.mjs';
+import * as registry from '../../zuzuu/miners/registry.mjs';
+import { propose as knowledgePropose, miner as knowledgeMiner } from '../../zuzuu/miners/knowledge.mjs';
 
 const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'claude-sample.jsonl');
 

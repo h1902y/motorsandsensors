@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, readFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { recordOutcome } from '../../mns/actions/trail.mjs';
+import { recordOutcome } from '../../zuzuu/actions/trail.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'mns-trail-'));

@@ -16,7 +16,7 @@ const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zu
 // Helper: evalLine — the small extracted helper that formats one eval annotation.
 // ---------------------------------------------------------------------------
 test('evalLine formats score/confidence/rationale correctly', async () => {
-  const { evalLine } = await import('../../mns/commands/eval.mjs');
+  const { evalLine } = await import('../../zuzuu/commands/eval.mjs');
   const result = evalLine({ score: 0.775, confidence: 'high', rationale: 'recurring + cross-session' });
   assert.ok(result.startsWith('eval:'), `expected to start with 'eval:', got: ${result}`);
   assert.ok(result.includes('0.775'), 'score in output');
@@ -26,7 +26,7 @@ test('evalLine formats score/confidence/rationale correctly', async () => {
 });
 
 test('evalLine appends low-signal warning when confidence is low', async () => {
-  const { evalLine } = await import('../../mns/commands/eval.mjs');
+  const { evalLine } = await import('../../zuzuu/commands/eval.mjs');
   const result = evalLine({ score: 0.205, confidence: 'low', rationale: 'weak evidence' });
   assert.ok(result.includes('low-signal'), 'low confidence shows warning');
 });
@@ -131,7 +131,7 @@ test('distill persists score on created proposal', async () => {
   // Write a minimal type registry
   writeFileSync(join(mns, 'knowledge', 'registry', 'types.json'), JSON.stringify([{ name: 'command', description: 'a command' }]));
 
-  const { createProposal } = await import('../../mns/knowledge/proposals.mjs');
+  const { createProposal } = await import('../../zuzuu/knowledge/proposals.mjs');
   const p = createProposal(mns, {
     candidate: {
       id: 'cmd-npm-test',

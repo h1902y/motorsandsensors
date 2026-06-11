@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
-import { sessionStartContext, writeLiveDigest, handleHook } from '../../mns/commands/hook.mjs';
+import { sessionStartContext, writeLiveDigest, handleHook } from '../../zuzuu/commands/hook.mjs';
 
 function withHome(fn, project) {
   const root = mkdtempSync(join(tmpdir(), 'mns-hook-'));

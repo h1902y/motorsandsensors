@@ -5,11 +5,11 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { resolve as erResolve, merge, tokens, jaccard } from '../../mns/knowledge/er.mjs';
-import { createProposal, approveProposal, rejectProposal, listProposals, fileRegistryProposals } from '../../mns/knowledge/proposals.mjs';
-import { processInbox } from '../../mns/knowledge/inbox.mjs';
-import { writeItem, readItem } from '../../mns/knowledge/items.mjs';
-import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS, loadRegistry } from '../../mns/knowledge/registry.mjs';
+import { resolve as erResolve, merge, tokens, jaccard } from '../../zuzuu/knowledge/er.mjs';
+import { createProposal, approveProposal, rejectProposal, listProposals, fileRegistryProposals } from '../../zuzuu/knowledge/proposals.mjs';
+import { processInbox } from '../../zuzuu/knowledge/inbox.mjs';
+import { writeItem, readItem } from '../../zuzuu/knowledge/items.mjs';
+import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS, loadRegistry } from '../../zuzuu/knowledge/registry.mjs';
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
 

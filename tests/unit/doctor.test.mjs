@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { summaryLine } from '../../mns/commands/doctor.mjs';
+import { summaryLine } from '../../zuzuu/commands/doctor.mjs';
 
 test('summary: clean when no problems and no warnings', () => {
   assert.match(summaryLine(0, 0), /all good/);

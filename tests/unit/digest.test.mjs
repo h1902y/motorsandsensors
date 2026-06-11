@@ -4,9 +4,9 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { mkdirSync as _mkdirA, writeFileSync as _writeA } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { computeDigest } from '../../mns/digest.mjs';
-import { writeItem } from '../../mns/knowledge/items.mjs';
-import { createProposal } from '../../mns/knowledge/proposals.mjs';
+import { computeDigest } from '../../zuzuu/digest.mjs';
+import { writeItem } from '../../zuzuu/knowledge/items.mjs';
+import { createProposal } from '../../zuzuu/knowledge/proposals.mjs';
 
 // Build a throwaway .mns home; return its path (the mnsDir).
 function withHome(fn, seed = {}) {

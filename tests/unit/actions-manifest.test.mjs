@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadManifest, allActions, listActions, inboxDir } from '../../mns/actions/manifest.mjs';
+import { loadManifest, allActions, listActions, inboxDir } from '../../zuzuu/actions/manifest.mjs';
 
 function withActions(fn) {
   const root = mkdtempSync(join(tmpdir(), 'mns-act-'));

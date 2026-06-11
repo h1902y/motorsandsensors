@@ -8,16 +8,16 @@ import { join } from 'node:path';
 import { mkdtempSync, existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-import { miner, aggregate, propose } from '../../mns/miners/instructions.mjs';
-import * as registry from '../../mns/miners/registry.mjs';
+import { miner, aggregate, propose } from '../../zuzuu/miners/instructions.mjs';
+import * as registry from '../../zuzuu/miners/registry.mjs';
 
 // Import memory miner so it self-registers (needed for Test 4 + Test 5).
-import '../../mns/miners/memory.mjs';
+import '../../zuzuu/miners/memory.mjs';
 
 // Import all 5 miners to verify full registry (Test 5 requires them all).
-import '../../mns/miners/knowledge.mjs';
-import '../../mns/miners/actions.mjs';
-import '../../mns/miners/guardrails.mjs';
+import '../../zuzuu/miners/knowledge.mjs';
+import '../../zuzuu/miners/actions.mjs';
+import '../../zuzuu/miners/guardrails.mjs';
 
 // ---------------------------------------------------------------------------
 // Helpers

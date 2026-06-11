@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runAction } from '../../mns/actions/dispatch.mjs';
+import { runAction } from '../../zuzuu/actions/dispatch.mjs';
 
 function withAction(slug, manifest, runBody, fn) {
   const root = mkdtempSync(join(tmpdir(), 'mns-disp-'));

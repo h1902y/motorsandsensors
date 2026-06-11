@@ -11,8 +11,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { mintGeneration } from '../../mns/faculty/generation.mjs';
-import { detectDrift } from '../../mns/commands/doctor.mjs';
+import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
+import { detectDrift } from '../../zuzuu/commands/doctor.mjs';
 
 function withMns(fn) {
   const root = mkdtempSync(join(tmpdir(), 'mns-drift-'));

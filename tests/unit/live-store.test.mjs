@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { openLive, touchLive, closeLive, listLive } from '../../mns/live/live-store.mjs';
+import { openLive, touchLive, closeLive, listLive } from '../../zuzuu/live/live-store.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'mns-live-'));

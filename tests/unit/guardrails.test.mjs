@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../../mns/guardrails.mjs';
-import { LAYOUT } from '../../mns/scaffold.mjs';
+import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../../zuzuu/guardrails.mjs';
+import { LAYOUT } from '../../zuzuu/scaffold.mjs';
 
 function withRulesFile(content, fn) {
   const dir = mkdtempSync(join(tmpdir(), 'mns-guard-'));

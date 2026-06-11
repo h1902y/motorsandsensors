@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { code } from '../../mns/commands/code.mjs';
+import { code } from '../../zuzuu/commands/code.mjs';
 import { home } from '../helpers/home.mjs';
 
 // A deps recorder: every external effect is captured; nothing real runs.

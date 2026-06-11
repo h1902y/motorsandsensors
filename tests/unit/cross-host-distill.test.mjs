@@ -10,7 +10,7 @@ import { codex } from '../../experiments/experiment-1-trace-capture/adapters/cod
 import { pi } from '../../experiments/experiment-1-trace-capture/adapters/pi.mjs';
 import { opencode } from '../../experiments/experiment-1-trace-capture/adapters/opencode.mjs';
 import { geminiCli } from '../../experiments/experiment-1-trace-capture/adapters/gemini-cli.mjs';
-import { aggregate, transcriptsFor } from '../../mns/knowledge/distill.mjs';
+import { aggregate, transcriptsFor } from '../../zuzuu/knowledge/distill.mjs';
 import * as registry from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 
 const require = createRequire(import.meta.url);

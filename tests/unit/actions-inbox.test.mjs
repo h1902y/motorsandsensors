@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { listProposedActions, activateAction, rejectAction } from '../../mns/actions/inbox.mjs';
+import { listProposedActions, activateAction, rejectAction } from '../../zuzuu/actions/inbox.mjs';
 
 function withInbox(slug, fn, { manifest, run } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'mns-inbox-'));

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addHookEntries, removeHookEntries } from '../../mns/live/install.mjs';
+import { addHookEntries, removeHookEntries } from '../../zuzuu/live/install.mjs';
 
 const cmd = (ev) => `node /x/mns.mjs hook ${ev} --host gemini-cli || true`;
 

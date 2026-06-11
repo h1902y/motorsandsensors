@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, existsSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { writeTrace, upsertSession, readIndex, lastTrace, resolveTrace, paths, homeDir, liveDir } from '../../mns/store.mjs';
-import { makeSession } from '../../mns/session.mjs';
+import { writeTrace, upsertSession, readIndex, lastTrace, resolveTrace, paths, homeDir, liveDir } from '../../zuzuu/store.mjs';
+import { makeSession } from '../../zuzuu/session.mjs';
 
 // Hermetic: operate in a temp dir outside the repo (not a git repo → git info null).
 function withTempRepo(fn) {
