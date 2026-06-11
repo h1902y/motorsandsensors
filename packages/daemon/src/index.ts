@@ -49,9 +49,9 @@ function parseArgs(argv: string[]): CliArgs {
         break;
       case "--help":
       case "-h":
-        console.log(`webcode — native terminal + file explorer in your browser
+        console.log(`zuzuu-web — native terminal + file explorer in your browser
 
-Usage: webcode [dir] [options]
+Usage: zuzuu-web [dir] [options]
 
 Options:
   -p, --port <n>   port to listen on (default ${DEFAULT_PORT}, scans up if busy)
@@ -115,12 +115,12 @@ async function main(): Promise<void> {
   try {
     root = await fsp.realpath(path.resolve(args.dir));
   } catch {
-    console.error(`webcode: no such directory: ${args.dir}`);
+    console.error(`zuzuu-web: no such directory: ${args.dir}`);
     process.exit(1);
   }
   if (!hosted && args.host !== "127.0.0.1" && args.host !== "localhost" && args.host !== "::1") {
     console.error(
-      "webcode: refusing to bind a non-loopback address — the daemon exposes your filesystem and shell.\n" +
+      "zuzuu-web: refusing to bind a non-loopback address — the daemon exposes your filesystem and shell.\n" +
         "  (set WEBCODE_HOSTED=1 only inside an isolated per-user sandbox VM.)",
     );
     process.exit(1);
@@ -157,7 +157,7 @@ async function main(): Promise<void> {
     const url = hosted
       ? `(hosted) listening on :${boundPort}`
       : `http://127.0.0.1:${boundPort}/?token=${token}`;
-    console.log(`\n  webcode v${pkg.version}`);
+    console.log(`\n  zuzuu-web v${pkg.version}`);
     console.log(`  workspace  ${root}`);
     console.log(`  url        ${url}\n`);
     if (args.open) openBrowser(url);

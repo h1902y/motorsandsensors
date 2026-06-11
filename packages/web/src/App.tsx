@@ -3,7 +3,7 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "./lib/api";
 import { fsEvents } from "./lib/fs-events";
-import { applyWorkflow, type ListResponse, type Workflow } from "@webcode/protocol";
+import { applyWorkflow, type ListResponse, type Workflow } from "@zuzuu-web/protocol";
 import { useSessions } from "./state/sessions";
 import { useExplorer } from "./state/explorer";
 import { FileTree } from "./explorer/FileTree";
@@ -101,12 +101,12 @@ export default function App() {
     const onOpenPicker = () => setVaultPickerOpen(true);
     const onSaveRec = () => void saveRecording();
     window.addEventListener("keydown", onKey);
-    window.addEventListener("webcode:open-vault-picker", onOpenPicker);
-    window.addEventListener("webcode:save-recording", onSaveRec);
+    window.addEventListener("zuzuu-web:open-vault-picker", onOpenPicker);
+    window.addEventListener("zuzuu-web:save-recording", onSaveRec);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("webcode:open-vault-picker", onOpenPicker);
-      window.removeEventListener("webcode:save-recording", onSaveRec);
+      window.removeEventListener("zuzuu-web:open-vault-picker", onOpenPicker);
+      window.removeEventListener("zuzuu-web:save-recording", onSaveRec);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveActive, paletteMode]);

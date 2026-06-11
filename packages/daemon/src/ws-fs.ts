@@ -1,6 +1,6 @@
 import { watch, type FSWatcher } from "chokidar";
 import type { WebSocket } from "ws";
-import type { FsClientMessage, FsServerMessage } from "@webcode/protocol";
+import type { FsClientMessage, FsServerMessage } from "@zuzuu-web/protocol";
 import { resolveSafe } from "./safe-path.js";
 
 const DEBOUNCE_MS = 120;

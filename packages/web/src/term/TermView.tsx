@@ -7,7 +7,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { useQueryClient } from "@tanstack/react-query";
-import type { WorkspaceInfo } from "@webcode/protocol";
+import type { WorkspaceInfo } from "@zuzuu-web/protocol";
 import { TermConnection } from "./connection";
 import { termRegistry } from "./registry";
 import { registerPathLinks } from "./links";

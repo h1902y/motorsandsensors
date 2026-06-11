@@ -18,7 +18,7 @@ import {
   FLOW_LOW_WATER,
   type CwdPayload,
   type SessionInfo,
-} from "@webcode/protocol";
+} from "@zuzuu-web/protocol";
 import { encodeFrame } from "./frames.js";
 import { toRel } from "./safe-path.js";
 import { buildInjection, cleanupInjection } from "./shell-integration/inject.js";

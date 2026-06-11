@@ -1,5 +1,5 @@
 import type { Terminal } from "@xterm/xterm";
-import { ACK_INTERVAL, ClientOp, ServerOp, type CwdPayload } from "@webcode/protocol";
+import { ACK_INTERVAL, ClientOp, ServerOp, type CwdPayload } from "@zuzuu-web/protocol";
 import { wsUrl } from "../lib/api";
 
 const encoder = new TextEncoder();

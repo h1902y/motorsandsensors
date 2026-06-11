@@ -13,7 +13,7 @@ import type {
   WorkflowListResponse,
   WorkspaceConfig,
   WorkspaceInfo,
-} from "@webcode/protocol";
+} from "@zuzuu-web/protocol";
 
 class ApiError extends Error {
   constructor(
@@ -29,7 +29,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   if (!res.ok) {
     if (res.status === 401) {
       // cookie missing/expired — the daemon prints a tokened URL; tell the user
-      throw new ApiError(401, "not authorized — open the URL printed by the webcode daemon");
+      throw new ApiError(401, "not authorized — open the URL printed by the zuzuu-web daemon");
     }
     const body = (await res.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(res.status, body?.error ?? `request failed (${res.status})`);

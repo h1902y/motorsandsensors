@@ -1,6 +1,6 @@
 import os from "node:os";
 import { afterAll, describe, expect, it } from "vitest";
-import { shellQuote } from "@webcode/protocol";
+import { shellQuote } from "@zuzuu-web/protocol";
 import { SessionManager } from "../src/sessions.js";
 
 describe("shellQuote", () => {

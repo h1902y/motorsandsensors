@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { CwdPayload, SessionInfo } from "@webcode/protocol";
+import type { CwdPayload, SessionInfo } from "@zuzuu-web/protocol";
 import { api } from "../lib/api";
 
 export type SessionTab = SessionInfo & {

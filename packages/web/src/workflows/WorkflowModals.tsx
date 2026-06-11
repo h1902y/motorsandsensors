@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { applyWorkflow, type Workflow } from "@webcode/protocol";
+import { applyWorkflow, type Workflow } from "@zuzuu-web/protocol";
 import { api } from "../lib/api";
 import { useWorkflowDraft } from "./draft";
 import { termRegistry } from "../term/registry";

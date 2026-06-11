@@ -1,5 +1,5 @@
 import type { WebSocket } from "ws";
-import { ClientOp, type AckPayload, type ResizePayload } from "@webcode/protocol";
+import { ClientOp, type AckPayload, type ResizePayload } from "@zuzuu-web/protocol";
 import { decodeFrame } from "./frames.js";
 import type { Session } from "./sessions.js";
 

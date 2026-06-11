@@ -1,6 +1,6 @@
 import fsp from "node:fs/promises";
 import path from "node:path";
-import type { Workflow } from "@webcode/protocol";
+import type { Workflow } from "@zuzuu-web/protocol";
 import { resolveSafe } from "./safe-path.js";
 
 const WORKFLOW_DIR = ".webcode/workflows";

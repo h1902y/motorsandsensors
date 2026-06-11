@@ -1,10 +1,10 @@
 {
-  "name": "webcode",
+  "name": "zuzuu-web",
   "version": "0.1.0",
   "description": "Native-feeling terminal + file explorer for your local machine, in the browser",
   "type": "module",
   "bin": {
-    "webcode": "./bin/webcode.js"
+    "zuzuu-web": "./bin/zuzuu-web.js"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts --no-open --port 7770",
@@ -16,7 +16,7 @@
   "dependencies": {
     "@hono/node-server": "^2.0.4",
     "@lydell/node-pty": "^1.2.0-beta.12",
-    "@webcode/protocol": "^0.1.0",
+    "@zuzuu-web/protocol": "^0.1.0",
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/headless": "^6.0.0",
     "archiver": "^8.0.0",

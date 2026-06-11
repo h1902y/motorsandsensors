@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { GitStatusEntry } from "@webcode/protocol";
+import type { GitStatusEntry } from "@zuzuu-web/protocol";
 import { api } from "../lib/api";
 import { useEditor } from "../state/editor";
 import { Textarea, Button } from "../components/ui";

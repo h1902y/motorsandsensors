@@ -1,6 +1,6 @@
 import os from "node:os";
 import { describe, expect, it } from "vitest";
-import { applyWorkflow } from "@webcode/protocol";
+import { applyWorkflow } from "@zuzuu-web/protocol";
 import { parseOsc7 } from "../src/sessions.js";
 import { buildInjection } from "../src/shell-integration/inject.js";
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { shellQuote, type ListResponse } from "@webcode/protocol";
+import { shellQuote, type ListResponse } from "@zuzuu-web/protocol";
 import { api } from "../lib/api";
 import { useExplorer } from "../state/explorer";
 import { useSessions } from "../state/sessions";

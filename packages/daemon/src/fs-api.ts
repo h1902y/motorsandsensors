@@ -14,7 +14,7 @@ import type {
   OpenRequest,
   RenameRequest,
   WriteRequest,
-} from "@webcode/protocol";
+} from "@zuzuu-web/protocol";
 import { PathError, resolveSafe, toRel } from "./safe-path.js";
 
 const STAT_CONCURRENCY = 64;

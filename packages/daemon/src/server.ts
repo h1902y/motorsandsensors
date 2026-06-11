@@ -14,8 +14,8 @@ import type {
   CreateSessionRequest,
   SaveRecordingRequest,
   WorkspaceInfo,
-} from "@webcode/protocol";
-import type { Workflow } from "@webcode/protocol";
+} from "@zuzuu-web/protocol";
+import type { Workflow } from "@zuzuu-web/protocol";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { SessionManager } from "./sessions.js";
@@ -387,7 +387,7 @@ export class WebcodeServer {
       if (!st?.isFile()) {
         abs = path.join(cfg.webDist, "index.html");
         st = await fsp.stat(abs).catch(() => null);
-        if (!st) return c.text("web UI not built — run: npm run build -w @webcode/web", 404);
+        if (!st) return c.text("web UI not built — run: npm run build -w @zuzuu-web/web", 404);
       }
       const ext = path.extname(abs).toLowerCase();
       const immutable = rel.startsWith("/assets/");

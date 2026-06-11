@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import type { GitStatusEntry, GitStatusResponse } from "@webcode/protocol";
+import type { GitStatusEntry, GitStatusResponse } from "@zuzuu-web/protocol";
 
 const execFileAsync = promisify(execFile);
 
