@@ -734,3 +734,22 @@ Both hosts ship detailed docs on disk (OpenCode: `@opencode-ai/plugin` types; pi
 **Re-proof (real CLI, cross-host):** `mns distill --all --all-faculties` → **"43 session(s) across 5 host(s)"** → the `git status` command candidate carries `evidence:{occurrences:5, sessions:5}` (signal spanning multiple hosts) → review approved 4 → **minted gen_001 (mintedFrom:4)**. The evolve loop is now proven on real sessions **across all five hosts**.
 
 **Honest limits still standing:** guardrails + instructions miners didn't fire (benign sessions had no destructive failures / corrective turns — they're unit-proven, need those signals); Memory distiller still a stub; the LLM-judge eval rung still unimplemented; "graduation improves a run" (a generation measurably helping the next session beyond grounding) is shown as *grounding delivered*, not yet as a measured quality lift.
+
+### exp-14 addendum — deepening the proof: guardrails + instructions miners + a measured graduation lift (2026-06-11)
+
+Closed the honest gaps exp-14 left ("guardrails/instructions didn't fire; lift not measured").
+
+**Guardrails miner — fired on real sessions.** Staged real failing destructive-shaped commands across sessions. First finding (real-world): models **refuse** `git push --force` (Claude ran it in only 1 of 3 sessions — self-protection), so naturally-destructive failures are rare — reassuring, but it starves the miner. Switched to a model-runnable destructive shape that fails safely: `chmod -R 755 ./build-cache-xyz` (no such dir → fails). 3 failures across 3 real Claude sessions → the miner proposed `{id:"guard-chmod-r-755-…", action:"ask", tool:"Bash", pattern:"chmod \\-R 755 \\.\\/build\\-cache\\-xyz", reason:"…failed repeatedly across sessions — confirm before running"}`, evidence `{occurrences:3, sessions:3}` — **ask-only, literal-escaped, cross-session-gated**, exactly the designed safety behavior, on real data.
+
+**Instructions miner — fired on real sessions.** Multi-turn sessions (`claude -c -p`, `opencode -c`, `pi -c`): turn 1 acts, turn 2 corrects ("no, do not use git push --force — always check with git status first"). The same correction recurring across 3 real sessions → an instructions-amendment proposal carrying that text, evidence `{occurrences:3, sessions:3}`. (Note: cross-host `mineSignals` extracts `destructiveFailures` for all hosts but `correctionTurns` only via Claude's `mineTranscript` today — the other adapters' signal extraction doesn't yet parse user-turn corrections; a known follow-on.)
+
+**Measured graduation lift (A/B).** Graduated a *non-guessable* project fact (smoke test = `node tools/verify.mjs --smoke`; no `npm test` script) and served it via the digest. Same task ("run the project's smoke test and report"), same host/model, ungrounded vs. grounded (digest via `--append-system-prompt`), n=2 each:
+
+| Arm | tool calls |
+|---|---|
+| ungrounded | 7, 4 |
+| grounded (digest) | 1, 1 |
+
+The grounded agent ran the exact command directly (1 tool call); the ungrounded agent explored (`ls`/reads) before finding it (4–7). **≈80% fewer tool round-trips** — a measured efficiency lift from a graduated faculty, on real sessions. Caveats: n=2, single task, tool-calls (not tokens — the digest adds input tokens; the net win is fewer round-trips); model variance — but the signal was consistent (both grounded runs = 1).
+
+**Net:** all four active miners (knowledge, actions, guardrails, instructions) now proven on **real** sessions, and a graduated faculty **measurably** reduced the next run's work. Still open: Memory distiller (stub); cross-host `correctionTurns`; a multi-trial token-level benchmark (Stage-2/3 efficiency-benchmark territory).
