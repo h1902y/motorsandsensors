@@ -74,6 +74,7 @@ test('proposals + guardrails sections reflect state', () => {
     const d = computeDigest(mns);
     assert.equal(d.sections.proposals.pending, 1);
     assert.match(d.text, /mns review/);
+    assert.match(d.text, /await your approval/);
     assert.equal(d.sections.guardrails.count, 1);
     assert.match(d.text, /enforced/i);
   }, { project: FILLED, rules: RULES });

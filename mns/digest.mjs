@@ -135,7 +135,7 @@ export function computeDigest(mnsDir, { knowledgeLimit = 5, budget = 1500 } = {}
   sections.proposals = proposals;
   if (proposals.pending > 0) {
     lines.push('## Proposals');
-    lines.push(`${proposals.pending} pending — remind the human to run \`mns review\`.`);
+    lines.push(`${proposals.pending} proposal(s) await your approval — run \`mns review\`; approving mints a generation (your checkpoint).`);
     lines.push('');
   }
 
