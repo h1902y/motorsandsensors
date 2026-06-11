@@ -51,7 +51,7 @@ test('partial home: apply restores only the missing pieces', () => {
     applyScaffold(cwd, { now: 0 });
     rmSync(join(cwd, '.mns', 'memory'), { recursive: true });
     const plan = applyScaffold(cwd, { now: 1 });
-    assert.deepEqual(plan.dirs, ['.mns/memory', '.mns/memory/entries']);
+    assert.deepEqual(plan.dirs, ['.mns/memory', '.mns/memory/entries', '.mns/memory/inbox', '.mns/memory/proposals']);
     assert.deepEqual(plan.files, ['.mns/memory/README.md']);
     assert.ok(existsSync(join(cwd, '.mns', 'memory', 'README.md')));
   });

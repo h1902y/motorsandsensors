@@ -14,12 +14,15 @@ import { readItem } from '../knowledge/items.mjs';
 import * as registry from '../faculty/registry.mjs';
 import * as gate from '../faculty/gate.mjs';
 import { listProposals as spineListProposals } from '../faculty/proposal.mjs';
-import '../knowledge/adapter.mjs'; // self-registers the 'knowledge' adapter
-import '../actions/adapter.mjs';   // self-registers the 'actions' adapter
+import '../knowledge/adapter.mjs';    // self-registers the 'knowledge' adapter
+import '../actions/adapter.mjs';      // self-registers the 'actions' adapter
+import '../guardrails/adapter.mjs';   // self-registers the 'guardrails' adapter
+import '../instructions/adapter.mjs'; // self-registers the 'instructions' adapter
+import '../memory/adapter.mjs';       // self-registers the 'memory' adapter
 
 // Review walks faculties in a fixed order so piped sessions are deterministic
 // (the combo smoke test feeds one stdin across the actions pass then knowledge).
-const REVIEW_ORDER = ['actions', 'knowledge'];
+const REVIEW_ORDER = ['actions', 'knowledge', 'guardrails', 'instructions', 'memory'];
 
 /** Ordered list of adapters that have pending proposals to review. */
 function pendingByFaculty(mnsDir) {

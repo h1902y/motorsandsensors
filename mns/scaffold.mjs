@@ -106,7 +106,7 @@ const RULES_SEED =
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/memory/entries', '.mns/actions', '.mns/actions/inbox', '.mns/instructions', '.mns/guardrails'],
+  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/memory/entries', '.mns/memory/inbox', '.mns/memory/proposals', '.mns/actions', '.mns/actions/inbox', '.mns/instructions', '.mns/instructions/inbox', '.mns/instructions/proposals', '.mns/guardrails', '.mns/guardrails/inbox', '.mns/guardrails/proposals'],
   files: {
     '.mns/knowledge/README.md': KNOWLEDGE_README,
     '.mns/memory/README.md': MEMORY_README,
