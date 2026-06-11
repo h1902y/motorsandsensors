@@ -1,7 +1,7 @@
 import fsp from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { BrowseResponse } from "@webcode/protocol";
+import type { BrowseResponse } from "@zuzuu-web/protocol";
 
 const MAX_ENTRIES = 1000;
 

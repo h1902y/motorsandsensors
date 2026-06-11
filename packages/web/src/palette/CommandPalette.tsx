@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Command } from "cmdk";
 import { useQuery } from "@tanstack/react-query";
-import type { Workflow } from "@webcode/protocol";
+import type { Workflow } from "@zuzuu-web/protocol";
 import { api } from "../lib/api";
 import { useSessions } from "../state/sessions";
 import { useExplorer } from "../state/explorer";
@@ -114,7 +114,7 @@ export function CommandPalette({
                     setSidebarMode("search");
                     // SearchPanel reads its own input; nudge via clipboard-free path:
                     window.dispatchEvent(
-                      new CustomEvent("webcode:search", { detail: searchValue.trim() }),
+                      new CustomEvent("zuzuu-web:search", { detail: searchValue.trim() }),
                     );
                   })
                 }
@@ -177,13 +177,13 @@ export function CommandPalette({
             <Command.Group heading="Workspace">
               <Item
                 value="switch vault workspace open folder"
-                onSelect={() => run(() => window.dispatchEvent(new Event("webcode:open-vault-picker")))}
+                onSelect={() => run(() => window.dispatchEvent(new Event("zuzuu-web:open-vault-picker")))}
               >
                 <Kind>vault</Kind> Switch vault… <span className="ml-2 text-ink-500">⌘⇧O</span>
               </Item>
               <Item
                 value="save session recording cast asciicast"
-                onSelect={() => run(() => window.dispatchEvent(new Event("webcode:save-recording")))}
+                onSelect={() => run(() => window.dispatchEvent(new Event("zuzuu-web:save-recording")))}
               >
                 <Kind>rec</Kind> Save session recording (.cast)
               </Item>

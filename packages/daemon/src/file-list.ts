@@ -2,7 +2,7 @@ import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import fsp from "node:fs/promises";
 import path from "node:path";
-import type { FileListResponse } from "@webcode/protocol";
+import type { FileListResponse } from "@zuzuu-web/protocol";
 import { toRel } from "./safe-path.js";
 
 const execFileAsync = promisify(execFile);

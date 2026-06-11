@@ -1,4 +1,4 @@
-import type { FsServerMessage } from "@webcode/protocol";
+import type { FsServerMessage } from "@zuzuu-web/protocol";
 import { wsUrl } from "./api";
 
 type ChangeListener = (path: string) => void;

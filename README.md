@@ -1,10 +1,27 @@
-# webcode
+# zuzuu-web
 
-A 100%-native-feeling terminal + file explorer for your local machine, in the browser.
+A 100%-native-feeling terminal + file explorer for your local machine, in the browser — plus a
+**zuzuu faculties dashboard** that observes a project's `agent/` home.
 
 A small daemon runs on your machine; the browser connects to `localhost` and gets a real shell
 (real PTY, 24-bit color, mouse, full keyboard) plus a file explorer panel over the workspace —
 sessions survive page reloads, output never freezes the tab, and nothing leaves your machine.
+
+## The zuzuu Faculties dashboard
+
+Run zuzuu-web rooted at a project that has a [zuzuu](https://github.com/h1902y/motorsandsensors)
+`agent/` home, then switch to the **Faculties** view (the `Code | Faculties` toggle in the status
+bar) for a **read-only** look at where the agent is in its graduation loop:
+
+- status — the active generation · pending proposals · drift
+- the 5 faculties (knowledge · memory · actions · instructions · guardrails) — counts + drill-in to items and pending proposals
+- the generations timeline + the per-generation diff
+- captured sessions + the session-start digest
+
+The dashboard reads `agent/` files directly and shells out to the `zuzuu` CLI for computed views
+(status, inbox, generation diff). The CLI is **optional** — without it on `PATH`, those views fall
+back to file-reads (a banner notes the degraded mode). Approving proposals stays in the CLI
+(`zuzuu review`); the dashboard is observe-only.
 
 ```
 ┌────────────┬──────────────────────────────┐

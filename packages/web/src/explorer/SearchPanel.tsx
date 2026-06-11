@@ -38,8 +38,8 @@ export function SearchPanel() {
   // the ⌘K palette can hand off a query to this panel
   useEffect(() => {
     const onSearch = (e: Event) => setInput((e as CustomEvent<string>).detail);
-    window.addEventListener("webcode:search", onSearch);
-    return () => window.removeEventListener("webcode:search", onSearch);
+    window.addEventListener("zuzuu-web:search", onSearch);
+    return () => window.removeEventListener("zuzuu-web:search", onSearch);
   }, []);
   const query = useDebounced(input.trim(), 300);
   const openPreviewPath = useExplorer((s) => s.openPreviewPath);

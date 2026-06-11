@@ -1,7 +1,7 @@
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
-import type { SearchFileResult, SearchMatch, SearchResponse } from "@webcode/protocol";
+import type { SearchFileResult, SearchMatch, SearchResponse } from "@zuzuu-web/protocol";
 import { toRel } from "./safe-path.js";
 
 const execFileAsync = promisify(execFile);
