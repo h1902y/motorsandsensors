@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { event, trace, EventKind, Status } from '../core/event.mjs';
+import { assembleSignals, emptySignals } from './signals.mjs';
 
 const require = createRequire(import.meta.url);
 const DB_PATH = join(homedir(), '.local', 'share', 'opencode', 'opencode.db');
@@ -120,11 +121,49 @@ export function buildTrace({ session, messages, parts }) {
   return trace({ host: 'opencode', sessionId: sid, title: session.title || '', events });
 }
 
+// opencode shell tool (real-wire): tool part name "bash", state.input.command
+// (a string), state.status enum ("completed" | "error"). Pure → testable.
+const OC_SHELL = new Set(['bash', 'shell']);
+export function signalsFromParts(parts) {
+  const shellCalls = [];
+  for (const p of parts.filter((p) => p.type === 'tool').sort((a, b) => (a.state?.time?.start || a.time_created || 0) - (b.state?.time?.start || b.time_created || 0))) {
+    if (!OC_SHELL.has(p.tool)) continue;
+    const cmd = p.state?.input?.command;
+    if (typeof cmd !== 'string' || !cmd) continue;
+    shellCalls.push({ cmd, failed: p.state?.status === 'error', tool: p.tool });
+  }
+  return assembleSignals(shellCalls);
+}
+
 export const opencode = {
   name: 'opencode',
 
   detect() {
     return existsSync(DB_PATH);
+  },
+
+  // Cross-host distill: shell command TEXT + status enum from SQLite parts.
+  mineSignals(ref) {
+    try {
+      const dbPath = ref?.db || DB_PATH;
+      const sid = ref?.sessionId || ref;
+      if (!existsSync(dbPath)) return emptySignals();
+      const db = openDb(dbPath);
+      try {
+        const parts = db
+          .prepare('SELECT time_created, data FROM part WHERE session_id = ? ORDER BY time_created')
+          .all(sid)
+          .map((p) => {
+            const d = JSON.parse(p.data);
+            return { time_created: p.time_created, type: d.type, tool: d.tool, state: d.state };
+          });
+        return signalsFromParts(parts);
+      } finally {
+        db.close();
+      }
+    } catch {
+      return emptySignals();
+    }
   },
 
   listSessions() {

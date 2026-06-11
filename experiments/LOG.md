@@ -714,3 +714,23 @@ Both hosts ship detailed docs on disk (OpenCode: `@opencode-ai/plugin` types; pi
 - The five faculties now share **one spine** (proposal/provenance/trail/gate) and one human gate; the approach is coherent, not a staircase. Every faculty can be observed, proposed-into, evaluated, reviewed, and pinned.
 - **observe → serve → evolve** is now end-to-end *in code* (was: evolve design-only). The differentiator — versioned, rollback-able generations grown from real traces, human-gated — exists and is tested; proving it on a real graduation corpus is the next milestone.
 - The audit method earned its keep: it caught the Claude-only digest, the destructive Actions-reject, and the missing gate guard — none visible without reading the whole system.
+
+---
+
+## Experiment 14 — proving the evolve loop on real sessions across all 5 hosts (2026-06-11)
+
+**Hypothesis:** exp-13 wired the evolve loop but left it "unproven on a real graduation corpus." Prove it: drive real sessions on **all 5 hosts**, capture into one home, distill → eval → review → mint → confirm grounding.
+
+**Method:** a proof arena (git repo + `mns init`); each host ran the SAME recurring work (`git status --short` then `ls -la`) so the miners would fire. All five run headless here: `claude -p`, `gemini -p`, `codex exec --skip-git-repo-check`, `opencode run -m openrouter/…`, `pi --approve --provider openrouter -p`. (No interactive/credential blocker this round — even Codex `exec` writes a rollout that post-hoc `mns capture` parses.)
+
+**What it proved:**
+- **Capture across all 5 hosts** — 5 real sessions in one `.mns/sessions.json` (codex/pi/opencode/claude each ran the 2 tools; gemini drifted to planning → 0 tools but still captured).
+- **The loop end-to-end on real data** — 3 real Claude sessions → distill produced **2 knowledge + 1 actions** proposals → `mns eval` ranked them → `mns review` (human gate) approved → **minted gen_001** → the **digest now serves the graduated knowledge** (next session grounded by what was learned). Full observe→mine→eval→human-gate→generation→ground, on real sessions.
+
+**What it FOUND (the gap real-data proof exists to surface):** `mns distill` mined **Claude transcripts only** — `transcriptsFor` called just `claudeCode.listSessions`, so the other 4 hosts never reached the miners. The host-agnostic OTLP traces couldn't substitute: capture is **privacy-stripped at the adapter** (`tool.input.bytes` — a count, never the command text), so the miners *must* read raw host transcripts. The hermetic tests used Claude-shaped fixtures, masking this.
+
+**The fix (cross-host distill, merged):** a per-adapter `mineSignals(ref)` extracts shell-command TEXT + failure + sequences from each host's raw transcript (real-wire shapes: codex `function_call name:exec_command args.cmd`; opencode SQLite `part tool:bash state.input.command`; pi `toolCall name:bash arguments.command`; claude `Bash input.command`; gemini = prompt-only → empty). `transcriptsFor` now enumerates **all detected hosts**; the driver mines each via its adapter. Shared `adapters/signals.mjs` helper. 316 tests.
+
+**Re-proof (real CLI, cross-host):** `mns distill --all --all-faculties` → **"43 session(s) across 5 host(s)"** → the `git status` command candidate carries `evidence:{occurrences:5, sessions:5}` (signal spanning multiple hosts) → review approved 4 → **minted gen_001 (mintedFrom:4)**. The evolve loop is now proven on real sessions **across all five hosts**.
+
+**Honest limits still standing:** guardrails + instructions miners didn't fire (benign sessions had no destructive failures / corrective turns — they're unit-proven, need those signals); Memory distiller still a stub; the LLM-judge eval rung still unimplemented; "graduation improves a run" (a generation measurably helping the next session beyond grounding) is shown as *grounding delivered*, not yet as a measured quality lift.

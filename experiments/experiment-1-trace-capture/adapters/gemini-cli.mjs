@@ -13,6 +13,7 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { event, trace, EventKind } from '../core/event.mjs';
+import { emptySignals } from './signals.mjs';
 
 const TMP_DIR = join(homedir(), '.gemini', 'tmp');
 
@@ -34,6 +35,12 @@ export const geminiCli = {
 
   detect() {
     return existsSync(TMP_DIR);
+  },
+
+  // Cross-host distill: logs.json is PROMPT-ONLY (no tool calls) → empty superset.
+  // Honest: gemini's on-disk capture is thin (tool calls live in checkpoints).
+  mineSignals() {
+    return emptySignals();
   },
 
   listSessions() {

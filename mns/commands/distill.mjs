@@ -6,7 +6,7 @@
 // memory land in later WS5 tasks) over the shared sessions array.
 
 import { paths } from '../store.mjs';
-import { distillSessions, transcriptsFor, mineTranscript } from '../knowledge/distill.mjs';
+import { distillSessions, transcriptsFor, mineHostSession } from '../knowledge/distill.mjs';
 import * as registry from '../miners/registry.mjs';
 // Import miner modules so they self-register.
 import '../miners/knowledge.mjs';
@@ -17,24 +17,17 @@ import '../miners/memory.mjs';
 
 export function distill(args) {
   const scope = args.all ? 'all' : args.session ? null : 'last';
-  const files = transcriptsFor({ scope: scope ?? 'all', session: args.session || null, cwd: process.cwd() });
-  if (!files.length) {
-    console.error('no sessions found to distill (claude-code transcripts for this project)');
+  const pairs = transcriptsFor({ scope: scope ?? 'all', session: args.session || null, cwd: process.cwd() });
+  if (!pairs.length) {
+    console.error('no sessions found to distill (no detected-host transcripts for this project)');
     process.exit(2);
   }
   const mnsDir = paths().dir;
 
   if (args['all-faculties'] || args.allFaculties) {
-    const sessions = files
-      .map((f) => {
-        try {
-          return mineTranscript(f);
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
-    console.log(`distilled ${sessions.length} session(s) across ${registry.all().length} faculty miner(s):`);
+    const sessions = pairs.map(mineHostSession).filter(Boolean);
+    const hosts = new Set(sessions.map((s) => s.host));
+    console.log(`distilled ${sessions.length} session(s) across ${hosts.size} host(s) and ${registry.all().length} faculty miner(s):`);
     let total = 0;
     for (const miner of registry.all()) {
       const cand = miner.aggregate(sessions, {});
@@ -46,7 +39,7 @@ export function distill(args) {
     return;
   }
 
-  const r = distillSessions(mnsDir, files);
+  const r = distillSessions(mnsDir, pairs);
   console.log(`distilled ${r.sessionsMined} session(s) → ${r.proposals.length} proposal(s)${r.registryProposals.length ? ` (+${r.registryProposals.length} registry)` : ''}`);
   for (const p of r.proposals) console.log(`  ${p.er.verdict.padEnd(9)} ${p.id}`);
   if (r.proposals.length) console.log('next: mns review');

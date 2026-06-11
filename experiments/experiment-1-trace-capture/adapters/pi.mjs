@@ -19,8 +19,20 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync, readdirSync, statSync, readFileSync } from 'node:fs';
 import { event, trace, EventKind, Status } from '../core/event.mjs';
+import { assembleSignals, emptySignals } from './signals.mjs';
 
 const SESSIONS_DIR = join(homedir(), '.pi', 'agent', 'sessions');
+
+// pi shell tool (real-wire): assistant content[].toolCall name "bash",
+// arguments.command (an object, not a JSON string); paired toolResult.isError.
+const PI_SHELL = new Set(['bash', 'shell']);
+function piCmdText(args) {
+  const a = typeof args === 'string' ? (() => { try { return JSON.parse(args); } catch { return {}; } })() : args ?? {};
+  if (typeof a.command === 'string') return a.command;
+  if (Array.isArray(a.command)) return a.command.join(' ');
+  if (typeof a.cmd === 'string') return a.cmd;
+  return '';
+}
 const ms = (iso) => (iso ? Date.parse(iso) : NaN);
 const clean = (s) => String(s).replace(/\s+/g, ' ').trim();
 const truncate = (s, n) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
@@ -66,6 +78,34 @@ export const pi = {
         return { sessionId: m ? m[1] : f, ref: path, label: 'pi', mtime: statSync(path).mtimeMs };
       })
       .sort((a, b) => b.mtime - a.mtime);
+  },
+
+  // Cross-host distill: shell command TEXT + isError flag from the raw jsonl.
+  mineSignals(ref) {
+    try {
+      const file = typeof ref === 'string' ? ref : ref.ref;
+      const rows = readJsonl(file);
+      const errors = new Map(); // toolCallId -> isError
+      for (const r of rows) {
+        if (r.type !== 'message') continue;
+        const m = r.message || {};
+        if (m.role === 'toolResult' && m.toolCallId) errors.set(m.toolCallId, !!m.isError);
+      }
+      const shellCalls = [];
+      for (const r of rows) {
+        if (r.type !== 'message') continue;
+        const m = r.message || {};
+        if (m.role !== 'assistant' || !Array.isArray(m.content)) continue;
+        for (const c of m.content) {
+          if (!c || c.type !== 'toolCall' || !PI_SHELL.has(c.name)) continue;
+          const cmd = piCmdText(c.arguments);
+          if (cmd) shellCalls.push({ cmd, failed: errors.get(c.id) === true, tool: c.name });
+        }
+      }
+      return assembleSignals(shellCalls);
+    } catch {
+      return emptySignals();
+    }
   },
 
   parse(ref) {

@@ -1,0 +1,7 @@
+{"timestamp":"2026-06-11T16:15:56.000Z","type":"session_meta","payload":{"id":"codex-sig","cwd":"/tmp/proj"}}
+{"timestamp":"2026-06-11T16:15:56.500Z","type":"turn_context","payload":{"model":"gpt-5.5","cwd":"/tmp/proj"}}
+{"timestamp":"2026-06-11T16:15:57.000Z","type":"event_msg","payload":{"type":"user_message","message":"check status","images":[]}}
+{"timestamp":"2026-06-11T16:15:58.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"call_a","arguments":"{\"cmd\":\"git status --short\",\"workdir\":\"/tmp/proj\",\"yield_time_ms\":10000}"}}
+{"timestamp":"2026-06-11T16:16:00.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call_a","output":"Chunk ID: e7582d\nWall time: 2.2 seconds\nProcess exited with code 0\nOutput:\n M file.txt"}}
+{"timestamp":"2026-06-11T16:16:01.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"call_b","arguments":"{\"cmd\":\"npm test\"}"}}
+{"timestamp":"2026-06-11T16:16:03.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call_b","output":"Process exited with code 1\nOutput:\n1 failing"}}
