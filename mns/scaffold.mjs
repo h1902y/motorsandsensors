@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from './knowledge/registry.mjs';
 
-export const MANIFEST_VERSION = 1;
+export const MANIFEST_VERSION = 2;
 
 const KNOWLEDGE_README = `# knowledge/ — the Knowledge faculty (what's TRUE)
 
@@ -106,7 +106,7 @@ const RULES_SEED =
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/memory/entries', '.mns/memory/inbox', '.mns/memory/proposals', '.mns/actions', '.mns/actions/inbox', '.mns/instructions', '.mns/instructions/inbox', '.mns/instructions/proposals', '.mns/guardrails', '.mns/guardrails/inbox', '.mns/guardrails/proposals'],
+  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/memory/entries', '.mns/memory/inbox', '.mns/memory/proposals', '.mns/actions', '.mns/actions/inbox', '.mns/instructions', '.mns/instructions/inbox', '.mns/instructions/proposals', '.mns/guardrails', '.mns/guardrails/inbox', '.mns/guardrails/proposals', '.mns/generations', '.mns/generations/snapshots'],
   files: {
     '.mns/knowledge/README.md': KNOWLEDGE_README,
     '.mns/memory/README.md': MEMORY_README,

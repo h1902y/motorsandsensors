@@ -26,6 +26,7 @@ import { distill } from '../mns/commands/distill.mjs';
 import { digest } from '../mns/commands/digest.mjs';
 import { act } from '../mns/commands/act.mjs';
 import { migrate } from '../mns/commands/migrate.mjs';
+import { generation } from '../mns/commands/generation.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -75,6 +76,8 @@ usage: mns <command> [options]
   review                    walk pending actions + knowledge proposals (y/n/e/s/q)
   proposals list|show|approve|reject <id>
                             the same gate, non-interactive
+  generation [list|mint|rollback <id>]
+                            pin/list/roll back faculty generations (lockfiles)
   enable                    background hooks: invisible live capture + guardrails gate
   disable                   remove the background hooks
   migrate                   one-time migrator: rewrite legacy candidate/er proposals to new shape
@@ -106,6 +109,7 @@ switch (cmd) {
   case 'disable': disable(args); break;
   case 'hook': runHook(args._[0], { host: args.host, session: args.session }); break;
   case 'migrate': migrate(args); break;
+  case 'generation': generation(args); break;
   case 'doctor': await doctor(); break;
   case 'version': case '--version': case '-v': version(); break;
   case undefined: case 'help': case '--help': case '-h': help(); break;

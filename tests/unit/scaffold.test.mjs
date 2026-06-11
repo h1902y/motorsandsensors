@@ -22,7 +22,7 @@ test('applyScaffold creates the full layout + manifest in a fresh dir', () => {
     for (const d of LAYOUT.dirs) assert.ok(existsSync(join(cwd, d)), d);
     for (const f of Object.keys(LAYOUT.files)) assert.ok(existsSync(join(cwd, f)), f);
     const m = JSON.parse(readFileSync(join(cwd, '.mns', 'mns.json'), 'utf8'));
-    assert.equal(m.version, 1);
+    assert.equal(m.version, 2);
     assert.deepEqual(m.layout, ['knowledge', 'memory', 'actions', 'instructions', 'guardrails']);
     assert.equal(homeExists(cwd), true);
   });

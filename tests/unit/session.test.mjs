@@ -14,6 +14,19 @@ test('makeSession requires id and host, defaults to CAPTURED, computes duration'
   assert.equal(s.id, '1');
   assert.equal(s.status, SessionState.CAPTURED);
   assert.equal(s.durationMs, 10_000);
+  // WS3-T3: generation defaults to null
+  assert.equal(s.generation, null);
+});
+
+test('makeSession: generation param threads through', () => {
+  const s = makeSession({
+    id: 'sess-1',
+    host: 'claude-code',
+    generation: 'gen_003',
+    startedAt: '2026-06-09T10:00:00.000Z',
+    endedAt: '2026-06-09T10:00:01.000Z',
+  });
+  assert.equal(s.generation, 'gen_003');
 });
 
 test('makeSession rejects an unknown status', () => {

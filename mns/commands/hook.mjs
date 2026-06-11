@@ -20,6 +20,7 @@ import { openLive, touchLive, closeLive } from '../live/live-store.mjs';
 import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../guardrails.mjs';
 import { paths } from '../store.mjs';
 import { computeDigest } from '../digest.mjs';
+import { activeGeneration } from '../faculty/generation.mjs';
 
 // Lifecycle events, normalized across hosts (verified by observing each host):
 //   open  — session starts
@@ -39,10 +40,10 @@ export function geminiRef(payload = {}) {
   return { file: join(projDir, 'logs.json'), sessionId: payload.session_id };
 }
 
-function safeCapture(adapter, ref, status, cwd) {
+function safeCapture(adapter, ref, status, cwd, generation = null) {
   if (!adapter || !ref) return;
   try {
-    captureTrace({ adapter, ref, status, cwd });
+    captureTrace({ adapter, ref, status, cwd, generation });
   } catch {
     /* source not yet readable, etc. — never break the hook */
   }
@@ -64,9 +65,13 @@ export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Dat
   const adapter = byName(host);
 
   if (OPEN.has(event)) {
+    // Pin the active generation at session open (WS3-T3). Fail-open: a missing
+    // generation is null — never throws, never blocks the host.
+    let generation = null;
+    try { generation = activeGeneration(paths(cwd).dir); } catch { /* fail-open */ }
     try {
-      openLive({ id, host, transcriptPath: ref, startedAt: new Date(now).toISOString(), now }, cwd);
-      safeCapture(adapter, ref, SessionState.ACTIVE, cwd);
+      openLive({ id, host, transcriptPath: ref, startedAt: new Date(now).toISOString(), now, generation }, cwd);
+      safeCapture(adapter, ref, SessionState.ACTIVE, cwd, generation);
     } catch { /* live/capture hiccup must not block grounding below */ }
     writeLiveDigest(cwd); // universal grounding channel — every host reads .mns/live/digest.md
   } else if (TURN.has(event)) {

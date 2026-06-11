@@ -20,9 +20,11 @@ export function countsOf(trace) {
 /**
  * Parse a transcript via `adapter`, write the OTLP blob, upsert the index record.
  * Idempotent (deterministic ids) — safe to re-run on every lifecycle signal.
+ * @param {string|null} [generation]  active generation id — threads from the OPEN
+ *   hook so every session carries its Run linkage (WS3-T3). Null-safe.
  * @returns {{trace, traceId, spans, traceRef, record, counts}}
  */
-export function captureTrace({ adapter, ref, status = SessionState.CAPTURED, cwd = process.cwd() }) {
+export function captureTrace({ adapter, ref, status = SessionState.CAPTURED, cwd = process.cwd(), generation = null }) {
   const trace = adapter.parse(ref);
   const { traceId, spans } = eventsToSpans(trace);
   const request = toExportRequest({ traceId, spans }, { host: trace.host, sessionId: trace.sessionId });
@@ -40,6 +42,7 @@ export function captureTrace({ adapter, ref, status = SessionState.CAPTURED, cwd
     traceRef,
     git: gitInfo(cwd),
     counts,
+    generation,
   });
   upsertSession(record, cwd);
   return { trace, traceId, spans, traceRef, record, counts };

@@ -12,6 +12,83 @@ import { loadRegistry } from '../knowledge/registry.mjs';
 import { allItems } from '../knowledge/items.mjs';
 import { listProposals } from '../knowledge/proposals.mjs';
 import { detectEmbedder } from '../knowledge/embed.mjs';
+import { activeGeneration, readGeneration, snapshotFaculties } from '../faculty/generation.mjs';
+
+/**
+ * Pure drift checker (WS3-T3). Compares the current faculty hashes against the
+ * active generation's pinned `faculties` manifest. Fail-open: any error returns
+ * { error } rather than throwing.
+ *
+ * Returns:
+ *   { noneActive: true }            — no generation pinned yet
+ *   { generationId, drifted: [] }   — active gen, drifted items (may be empty)
+ *   { error }                       — unexpected failure (fail-open)
+ *
+ * Each drifted entry: { id, faculty, reason: 'hash_changed'|'added'|'removed',
+ *                        pinned?: string, current?: string }
+ */
+export function detectDrift(mnsDir) {
+  try {
+    const genId = activeGeneration(mnsDir);
+    if (!genId) return { noneActive: true };
+
+    const lockfile = readGeneration(mnsDir, genId);
+    if (!lockfile) return { noneActive: true };
+
+    const current = snapshotFaculties(mnsDir);
+    const pinned = lockfile.faculties || {};
+    const drifted = [];
+
+    // Compare per-faculty item arrays (knowledge, actions, memory).
+    for (const faculty of ['knowledge', 'actions', 'memory']) {
+      const pinnedItems = (pinned[faculty]?.items ?? []);
+      const currentItems = (current[faculty]?.items ?? []);
+
+      const pinnedMap = new Map(pinnedItems.map((i) => [i.id, i.hash]));
+      const currentMap = new Map(currentItems.map((i) => [i.id, i.hash]));
+
+      // Check for changed or removed items
+      for (const [id, hash] of pinnedMap) {
+        if (!currentMap.has(id)) {
+          drifted.push({ id, faculty, reason: 'removed', pinned: hash });
+        } else if (currentMap.get(id) !== hash) {
+          drifted.push({ id, faculty, reason: 'hash_changed', pinned: hash, current: currentMap.get(id) });
+        }
+      }
+
+      // Check for added items
+      for (const [id, hash] of currentMap) {
+        if (!pinnedMap.has(id)) {
+          drifted.push({ id, faculty, reason: 'added', current: hash });
+        }
+      }
+    }
+
+    // Compare single-file faculties (guardrails.rulesHash, instructions.projectHash)
+    const singleFile = [
+      { faculty: 'guardrails', field: 'rulesHash' },
+      { faculty: 'instructions', field: 'projectHash' },
+    ];
+    for (const { faculty, field } of singleFile) {
+      const pinnedHash = pinned[faculty]?.[field] ?? null;
+      const currentHash = current[faculty]?.[field] ?? null;
+      if (pinnedHash !== currentHash) {
+        drifted.push({ id: field, faculty, reason: 'hash_changed', pinned: pinnedHash, current: currentHash });
+      }
+    }
+
+    // Compare knowledge.registryHash
+    const pinnedReg = pinned.knowledge?.registryHash ?? null;
+    const currentReg = current.knowledge?.registryHash ?? null;
+    if (pinnedReg !== currentReg) {
+      drifted.push({ id: 'registryHash', faculty: 'knowledge', reason: 'hash_changed', pinned: pinnedReg, current: currentReg });
+    }
+
+    return { generationId: genId, drifted };
+  } catch (err) {
+    return { error: String(err) };
+  }
+}
 
 /** The closing line: honest about warnings, never "all good" under them. */
 export function summaryLine(problems, warnings) {
@@ -87,6 +164,26 @@ export async function doctor() {
   const hosts = detected();
   if (hosts.length) ok(`hosts detected: ${hosts.map((h) => h.name).join(', ')}`);
   else warn('no supported agent data found — use Claude Code or Gemini CLI, then `mns capture`');
+
+  // generation drift check (WS3-T3)
+  try {
+    const { dir: mnsDir } = paths();
+    const drift = detectDrift(mnsDir);
+    if (drift.noneActive) {
+      info('generation: no generation pinned yet — run `mns generation mint`');
+    } else if (drift.error) {
+      warn(`generation drift check failed: ${drift.error}`);
+    } else if (drift.drifted.length === 0) {
+      ok(`generation ${drift.generationId} — no faculty drift`);
+    } else {
+      warn(`generation ${drift.generationId} — ${drift.drifted.length} drifted item(s):`);
+      for (const d of drift.drifted) {
+        info(`  drift: ${d.faculty}/${d.id} (${d.reason})`);
+      }
+    }
+  } catch {
+    /* drift check must never break doctor — fail-open */
+  }
 
   // live-session reconciliation: close out lost/killed sessions (no SessionEnd).
   const before = listLive().length;

@@ -14,6 +14,7 @@ import { readItem } from '../knowledge/items.mjs';
 import * as registry from '../faculty/registry.mjs';
 import * as gate from '../faculty/gate.mjs';
 import { listProposals as spineListProposals } from '../faculty/proposal.mjs';
+import { mintGeneration, activeGeneration } from '../faculty/generation.mjs';
 import '../knowledge/adapter.mjs';    // self-registers the 'knowledge' adapter
 import '../actions/adapter.mjs';      // self-registers the 'actions' adapter
 import '../guardrails/adapter.mjs';   // self-registers the 'guardrails' adapter
@@ -112,6 +113,7 @@ export async function review() {
     });
   };
 
+  const approvedIds = [];
   let approved = 0, rejected = 0, skipped = 0;
   let totalLeft = groups.reduce((n, g) => n + g.proposals.length, 0);
   // One loop over faculties with pending proposals (adapter-driven, WS2-T3).
@@ -138,6 +140,7 @@ export async function review() {
           const r = gate.approve(mnsDir, adapter.name, p.id);
           if (isActions) console.log(r.ok ? '  ✓ activated' : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`);
           else { console.log(r.ok ? `  ✓ ${r.action}` : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`); for (const w of r.warnings ?? []) console.log(`  ⚠ ${w}`); }
+          if (r.ok) approvedIds.push(p.id);
           approved++; totalLeft--; acted = true;
         } else if (a === 'n') {
           const reason = isActions ? '' : (await ask('  reason (optional) > ')).trim();
@@ -157,6 +160,10 @@ export async function review() {
         } else if (a === 'q' || a === '') {
           rl.close();
           console.log(`\nreview: ${approved} approved · ${rejected} rejected · ${skipped} skipped · ${totalLeft} left`);
+          if (approvedIds.length > 0) {
+            const gen = mintGeneration(mnsDir, { forkedFrom: activeGeneration(mnsDir), mintedFrom: approvedIds });
+            console.log(`minted ${gen.id} (${approvedIds.length} change(s))`);
+          }
           return;
         }
       }
@@ -164,6 +171,10 @@ export async function review() {
   }
   rl.close();
   console.log(`\nreview complete: ${approved} approved · ${rejected} rejected · ${skipped} skipped`);
+  if (approvedIds.length > 0) {
+    const gen = mintGeneration(mnsDir, { forkedFrom: activeGeneration(mnsDir), mintedFrom: approvedIds });
+    console.log(`minted ${gen.id} (${approvedIds.length} change(s))`);
+  }
 }
 
 /**

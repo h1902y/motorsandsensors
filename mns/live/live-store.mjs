@@ -32,13 +32,13 @@ function write(rec, cwd) {
   return rec;
 }
 
-/** Open (or refresh) a live session record. */
-export function openLive({ id, host, transcriptPath, startedAt, now }, cwd = process.cwd()) {
+/** Open (or refresh) a live session record. `generation` is the active gen id (WS3-T3). */
+export function openLive({ id, host, transcriptPath, startedAt, now, generation = null }, cwd = process.cwd()) {
   const existing = read(id, cwd);
   return write(
     existing
-      ? { ...existing, lastSeen: now, transcriptPath: transcriptPath ?? existing.transcriptPath }
-      : { id, host, status: SessionState.ACTIVE, startedAt, lastSeen: now, transcriptPath },
+      ? { ...existing, lastSeen: now, transcriptPath: transcriptPath ?? existing.transcriptPath, generation: existing.generation ?? generation }
+      : { id, host, status: SessionState.ACTIVE, startedAt, lastSeen: now, transcriptPath, generation },
     cwd,
   );
 }

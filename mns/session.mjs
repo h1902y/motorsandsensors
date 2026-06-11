@@ -61,11 +61,12 @@ export function transition(session, to, at = session.endedAt) {
  * @param {string} s.traceRef      path to the OTLP blob (gitignored)
  * @param {{commit:string|null,branch:string|null}} [s.git]
  * @param {{turns:number,tools:number,errors:number}} [s.counts]
+ * @param {string|null} [s.generation]  active generation id at session open (WS3-T3)
  */
-export function makeSession({ id, host, status = SessionState.CAPTURED, startedAt, endedAt, traceId, traceRef, git = { commit: null, branch: null }, counts = { turns: 0, tools: 0, errors: 0 } }) {
+export function makeSession({ id, host, status = SessionState.CAPTURED, startedAt, endedAt, traceId, traceRef, git = { commit: null, branch: null }, counts = { turns: 0, tools: 0, errors: 0 }, generation = null }) {
   if (!id) throw new Error('makeSession: id required');
   if (!host) throw new Error('makeSession: host required');
   if (!Object.values(SessionState).includes(status)) throw new Error(`makeSession: unknown status ${status}`);
   const durationMs = startedAt && endedAt ? Date.parse(endedAt) - Date.parse(startedAt) : 0;
-  return { id: String(id), host, status, startedAt, endedAt, durationMs, traceId, traceRef, git, counts };
+  return { id: String(id), host, status, startedAt, endedAt, durationMs, traceId, traceRef, git, counts, generation };
 }

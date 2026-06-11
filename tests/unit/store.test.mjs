@@ -55,3 +55,19 @@ test('lastTrace finds the most recent blob; paths() roots at the given cwd', () 
     assert.ok(paths(cwd).dir.startsWith(cwd));
   });
 });
+
+test('upsertSession round-trips generation field in the index (WS3-T3)', () => {
+  withTempRepo((cwd) => {
+    const rec = makeSession({
+      id: 'sess-gen',
+      host: 'claude-code',
+      generation: 'gen_007',
+      startedAt: '2026-06-09T10:00:00.000Z',
+      endedAt: '2026-06-09T10:01:00.000Z',
+    });
+    upsertSession(rec, cwd);
+    const stored = readIndex(cwd).sessions.find((s) => s.id === 'sess-gen');
+    assert.ok(stored, 'session should be in index');
+    assert.equal(stored.generation, 'gen_007', 'generation should round-trip through the index');
+  });
+});
