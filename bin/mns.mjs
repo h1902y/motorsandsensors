@@ -29,6 +29,7 @@ import { migrate } from '../mns/commands/migrate.mjs';
 import { generation } from '../mns/commands/generation.mjs';
 import { evalCmd } from '../mns/commands/eval.mjs';
 import { code } from '../mns/commands/code.mjs';
+import { explain } from '../mns/commands/explain.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -87,6 +88,7 @@ usage: mns <command> [options]
   eval [--faculty f]        rank pending proposals by eval score, highest first
   migrate                   one-time migrator: rewrite legacy candidate/er proposals to new shape
   doctor                    environment + session health (reconciles lost sessions)
+  explain [topic]           the 5 faculties + how graduation works
   version                   print version
   help                      this message
 
@@ -118,6 +120,7 @@ switch (cmd) {
   case 'migrate': migrate(args); break;
   case 'generation': generation(args); break;
   case 'doctor': await doctor(); break;
+  case 'explain': explain(args); break;
   case 'version': case '--version': case '-v': version(); break;
   case undefined: case 'help': case '--help': case '-h': help(); break;
   default:
