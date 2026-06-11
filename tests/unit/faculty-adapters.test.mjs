@@ -326,9 +326,9 @@ test('memory adapter.render: returns line and card with title and date', () => {
 
 test('scaffold LAYOUT.dirs includes inbox and proposals for guardrails/instructions/memory', () => {
   const expected = [
-    '.mns/guardrails/inbox', '.mns/guardrails/proposals',
-    '.mns/instructions/inbox', '.mns/instructions/proposals',
-    '.mns/memory/inbox', '.mns/memory/proposals',
+    'agent/guardrails/inbox', 'agent/guardrails/proposals',
+    'agent/instructions/inbox', 'agent/instructions/proposals',
+    'agent/memory/inbox', 'agent/memory/proposals',
   ];
   for (const d of expected) {
     assert.ok(LAYOUT.dirs.includes(d), `LAYOUT.dirs includes ${d}`);
@@ -339,9 +339,9 @@ test('applyScaffold creates new inbox/proposals dirs for all three new faculties
   withHome((_mnsDir, cwd) => {
     applyScaffold(cwd);
     for (const d of [
-      '.mns/guardrails/inbox', '.mns/guardrails/proposals',
-      '.mns/instructions/inbox', '.mns/instructions/proposals',
-      '.mns/memory/inbox', '.mns/memory/proposals',
+      'agent/guardrails/inbox', 'agent/guardrails/proposals',
+      'agent/instructions/inbox', 'agent/instructions/proposals',
+      'agent/memory/inbox', 'agent/memory/proposals',
     ]) {
       assert.ok(existsSync(join(cwd, d)), `${d} created by applyScaffold`);
     }

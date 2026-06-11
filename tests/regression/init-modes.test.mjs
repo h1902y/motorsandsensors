@@ -38,14 +38,14 @@ test('mode 1 — empty dir: greenfield scaffold + AGENTS.md/CLAUDE.md created', 
   withTemp((cwd) => {
     const out = run(cwd);
     assert.match(out, /Initialized empty mns home/);
-    assert.ok(existsSync(join(cwd, '.mns', 'knowledge', 'README.md')));
-    assert.ok(existsSync(join(cwd, '.mns', 'memory', 'entries')), 'memory/entries scaffolded');
-    assert.match(readFileSync(join(cwd, '.mns', 'memory', 'README.md'), 'utf8'), /Remember next time/, 'memory README documents the record schema');
-    assert.ok(existsSync(join(cwd, '.mns', 'mns.json')));
+    assert.ok(existsSync(join(cwd, 'agent', 'knowledge', 'README.md')));
+    assert.ok(existsSync(join(cwd, 'agent', 'memory', 'entries')), 'memory/entries scaffolded');
+    assert.match(readFileSync(join(cwd, 'agent', 'memory', 'README.md'), 'utf8'), /Remember next time/, 'memory README documents the record schema');
+    assert.ok(existsSync(join(cwd, 'agent', 'agent.json')));
     assert.ok(existsSync(join(cwd, 'AGENTS.md')), 'greenfield creates AGENTS.md');
     assert.ok(existsSync(join(cwd, 'CLAUDE.md')), 'greenfield creates CLAUDE.md');
     assert.match(readFileSync(join(cwd, 'AGENTS.md'), 'utf8'), /mns:faculties:v\d+/);
-    assert.match(readFileSync(join(cwd, '.gitignore'), 'utf8'), /\.mns\/traces\//);
+    assert.match(readFileSync(join(cwd, '.gitignore'), 'utf8'), /agent\/\.traces\//);
   });
 });
 
@@ -64,7 +64,7 @@ test('mode 2 — existing project: inject into existing CLAUDE.md + guarantee AG
     assert.match(readFileSync(join(cwd, 'AGENTS.md'), 'utf8'), /mns:faculties:v\d+/);
     const gi = readFileSync(join(cwd, '.gitignore'), 'utf8');
     assert.ok(gi.startsWith('node_modules/'), 'gitignore preserved');
-    assert.match(gi, /\.mns\/live\//);
+    assert.match(gi, /agent\/\.live\//);
   });
 });
 
@@ -85,7 +85,7 @@ test('mode 3 — reinit: byte-identical no-op on a complete home; user edits sur
     writeFileSync(join(cwd, 'CLAUDE.md'), '# Mine\n');
     run(cwd);
     // user customizes a seeded file
-    writeFileSync(join(cwd, '.mns', 'instructions', 'project.md'), 'CUSTOM\n');
+    writeFileSync(join(cwd, 'agent', 'instructions', 'project.md'), 'CUSTOM\n');
     const before = snapshot(cwd);
     const out = run(cwd);
     assert.match(out, /Reinitialized existing mns home/);
@@ -96,10 +96,10 @@ test('mode 3 — reinit: byte-identical no-op on a complete home; user edits sur
 test('mode 3 — reinit restores missing pieces only', () => {
   withTemp((cwd) => {
     run(cwd);
-    rmSync(join(cwd, '.mns', 'actions'), { recursive: true });
+    rmSync(join(cwd, 'agent', 'actions'), { recursive: true });
     const out = run(cwd);
     assert.match(out, /restored : 3 missing piece/);
-    assert.ok(existsSync(join(cwd, '.mns', 'actions', 'README.md')));
+    assert.ok(existsSync(join(cwd, 'agent', 'actions', 'README.md')));
   });
 });
 
