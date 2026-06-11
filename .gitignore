@@ -9,9 +9,7 @@ experiments/**/out/
 
 # Git-native session store: the index is tracked (small, links to commits);
 # the bulky OTLP trace blobs stay local until Phase 2's orphan branch.
-.mns/traces/
 # Transient liveness state for in-flight sessions (like .git/ session state).
-.mns/live/
 
 # Local host-enablement config written by `mns enable` (regenerable; not ours to track)
 .opencode/
@@ -24,8 +22,13 @@ experiments/**/out/
 *.tgz
 
 # mns: local-only observability data
-.mns/knowledge/index.db
 
 # mns: local-only observability data
 .gemini/settings.json
 .codex/hooks.json
+
+# mns: local-only observability data
+agent/.traces/
+agent/.live/
+agent/knowledge/.index.db
+.pi/extensions/mns.ts
