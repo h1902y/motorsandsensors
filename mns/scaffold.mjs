@@ -30,8 +30,29 @@ checks health.
 const MEMORY_README = `# memory/ — episodic faculty (what HAPPENED)
 
 Curated recollections of past sessions, distilled from the observability traces (\`.mns/traces/\`).
-- **Who writes:** mns (distillation), human (curation). Raw traces stay in traces/ — this is the *curated* layer.
-- **Contract:** dated entries; what was attempted, what resulted, what to remember next time.
+- **Who writes:** mns (distillation — *not built yet*), human (curation). Raw traces stay in traces/ — this is the *curated* layer.
+- **Where:** one Markdown file per entry under \`entries/\`, named \`<id>.md\`.
+
+## Record schema (Markdown + YAML frontmatter)
+\`\`\`markdown
+---
+id: mem-2026-06-11-flaky-ci-retry      # mem-<YYYY-MM-DD>-<slug>, stable
+date: 2026-06-11                        # ISO date the episode occurred
+title: Flaky CI fixed by pinning node 22
+provenance:                            # links back to observability
+  sessions: [ses_abc123]               # ids that exist in .mns/sessions.json
+  hosts: [claude-code]
+tags: [ci, flaky-test]                 # optional
+status: curated                        # curated (human) | proposed (reserved — future distiller)
+---
+## Attempted
+What was tried.
+## Resulted
+What happened (outcome / error / fix).
+## Remember next time
+The durable lesson.
+\`\`\`
+\`status: proposed\` and the distiller→review pipeline are **reserved** (not built this pass).
 `;
 
 const ACTIONS_README = `# actions/ — procedural faculty (how to DO things)
@@ -85,7 +106,7 @@ const RULES_SEED =
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/actions', '.mns/actions/inbox', '.mns/instructions', '.mns/guardrails'],
+  dirs: ['.mns', '.mns/knowledge', '.mns/knowledge/registry', '.mns/knowledge/items', '.mns/knowledge/inbox', '.mns/knowledge/proposals', '.mns/memory', '.mns/memory/entries', '.mns/actions', '.mns/actions/inbox', '.mns/instructions', '.mns/guardrails'],
   files: {
     '.mns/knowledge/README.md': KNOWLEDGE_README,
     '.mns/memory/README.md': MEMORY_README,

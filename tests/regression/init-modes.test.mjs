@@ -39,6 +39,8 @@ test('mode 1 — empty dir: greenfield scaffold + AGENTS.md/CLAUDE.md created', 
     const out = run(cwd);
     assert.match(out, /Initialized empty mns home/);
     assert.ok(existsSync(join(cwd, '.mns', 'knowledge', 'README.md')));
+    assert.ok(existsSync(join(cwd, '.mns', 'memory', 'entries')), 'memory/entries scaffolded');
+    assert.match(readFileSync(join(cwd, '.mns', 'memory', 'README.md'), 'utf8'), /Remember next time/, 'memory README documents the record schema');
     assert.ok(existsSync(join(cwd, '.mns', 'mns.json')));
     assert.ok(existsSync(join(cwd, 'AGENTS.md')), 'greenfield creates AGENTS.md');
     assert.ok(existsSync(join(cwd, 'CLAUDE.md')), 'greenfield creates CLAUDE.md');
