@@ -7,7 +7,7 @@ const fmtDur = (ms) => (ms < 60_000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 60
 
 export function status() {
   const { sessions } = readIndex();
-  console.log(`this project — recorded sessions (.mns/sessions.json): ${sessions.length}`);
+  console.log(`this project — recorded sessions (agent/sessions.json): ${sessions.length}`);
   if (!sessions.length) {
     console.log('  none yet — run `mns capture`, or just start your agent (live capture)');
   } else {

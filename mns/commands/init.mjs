@@ -1,9 +1,9 @@
 // `mns init` — git-style, context-aware, idempotent scaffold of the faculty home.
 //
 //   empty dir            → greenfield: full scaffold + create AGENTS.md/CLAUDE.md
-//   non-empty, no .mns/  → brownfield: scaffold + inject block into existing
+//   non-empty, no agent/ → brownfield: scaffold + inject block into existing
 //                          instruction files (user content untouched)
-//   .mns/ exists         → "Reinitialized": create missing pieces only (no-op
+//   agent/ exists        → "Reinitialized": create missing pieces only (no-op
 //                          on a complete home; never overwrites anything)
 
 import { join, basename } from 'node:path';
@@ -53,7 +53,7 @@ function serveInstructions(cwd, { greenfield }) {
 
 export function init(args = {}) {
   // Root at the git toplevel when inside a repo (same base the store uses for
-  // .mns), falling back to cwd — one project, one home, like .git/.
+  // agent/), falling back to cwd — one project, one home, like .git/.
   const cwd = repoRoot(process.cwd());
   if (cwd !== process.cwd()) console.log(`(project root: ${cwd})`);
   const reinit = homeExists(cwd);
@@ -66,18 +66,18 @@ export function init(args = {}) {
   const createdCount = plan.dirs.length + plan.files.length + (plan.manifestMissing ? 1 : 0);
 
   if (reinit) {
-    console.log(`Reinitialized existing mns home in ${join(cwd, '.mns')}/`);
+    console.log(`Reinitialized existing mns home in ${join(cwd, 'agent')}/`);
     if (createdCount) console.log(`  restored : ${createdCount} missing piece(s)`);
     if (injected.length) console.log(`  injected : faculty block → ${injected.join(', ')}`);
     if (!createdCount && !injected.length && !ignoreAdded.length) console.log('  (complete — nothing to do)');
   } else if (greenfield) {
-    console.log(`Initialized empty mns home in ${join(cwd, '.mns')}/`);
-    console.log(`  faculties : knowledge/ memory/ actions/ instructions/ guardrails/  (+ mns.json manifest)`);
+    console.log(`Initialized empty mns home in ${join(cwd, 'agent')}/`);
+    console.log(`  faculties : knowledge/ memory/ actions/ instructions/ guardrails/  (+ agent.json manifest)`);
     console.log(`  steering  : created ${created.join(' + ')} pointing your agent at its faculties`);
     console.log(`  next      : \`mns enable\` for live capture · \`mns digest\` to preview the grounding your agent opens with · start your agent in ${basename(cwd)}/`);
   } else {
-    console.log(`Initialized mns home in existing project ${join(cwd, '.mns')}/`);
-    console.log(`  faculties : knowledge/ memory/ actions/ instructions/ guardrails/  (+ mns.json manifest)`);
+    console.log(`Initialized mns home in existing project ${join(cwd, 'agent')}/`);
+    console.log(`  faculties : knowledge/ memory/ actions/ instructions/ guardrails/  (+ agent.json manifest)`);
     const steer = [];
     if (injected.length) steer.push(`injected → ${injected.join(', ')}`);
     if (created.length) steer.push(`created ${created.join(' + ')} (read by Codex/OpenCode/pi)`);

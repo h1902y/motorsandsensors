@@ -1,5 +1,5 @@
 // The inbox — where candidates arrive. Agents (per the faculty block) drop one
-// fact per file into .mns/knowledge/inbox/; `mns distill` drops mined candidates
+// fact per file into agent/knowledge/inbox/; `mns distill` drops mined candidates
 // the same way. Processing wraps each into an ER'd proposal (the file's full
 // content is preserved inside the proposal JSON) and removes the inbox file.
 //

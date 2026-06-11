@@ -28,7 +28,7 @@ function readInstructions(mnsDir) {
 const INTERVIEW = [
   'Project steering is empty. Before substantive work, interview your human',
   '(what is this project, its conventions, its priorities), draft',
-  '.mns/instructions/project.md from their answers, and get their approval.',
+  'agent/instructions/project.md from their answers, and get their approval.',
 ].join(' ');
 
 function knowledgeSection(mnsDir, limit) {
@@ -73,7 +73,7 @@ function guardrailsSection(mnsDir) {
 
 /**
  * Compute the digest for a faculty home.
- * @param {string} mnsDir  path to the .mns directory
+ * @param {string} mnsDir  path to the agent/ directory
  * @param {{ knowledgeLimit?: number, budget?: number }} options
  * @returns {{ text: string, sections: object }}
  */

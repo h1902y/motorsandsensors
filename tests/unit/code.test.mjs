@@ -4,6 +4,7 @@ import { mkdtempSync, rmSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { code } from '../../mns/commands/code.mjs';
+import { home } from '../helpers/home.mjs';
 
 // A deps recorder: every external effect is captured; nothing real runs.
 function fakeDeps(over = {}) {
@@ -19,18 +20,18 @@ function fakeDeps(over = {}) {
   };
   return { calls, deps };
 }
-function withDir(fn, withMns = false) {
+function withDir(fn, withHome = false) {
   const d = mkdtempSync(join(tmpdir(), 'mns-code-'));
-  if (withMns) mkdirSync(join(d, '.mns'), { recursive: true });
+  if (withHome) mkdirSync(home(d), { recursive: true });
   try { return fn(d); } finally { rmSync(d, { recursive: true, force: true }); }
 }
 
-test('launches opencode pre-wired: init (no .mns) + enable + launch with cwd', () => {
+test('launches opencode pre-wired: init (no agent/) + enable + launch with cwd', () => {
   withDir((d) => {
     const { calls, deps } = fakeDeps();
     const ex = code({ _: [d] }, deps);
     const kinds = calls.map((c) => c[0]);
-    assert.ok(kinds.includes('init'), 'init called when .mns absent');
+    assert.ok(kinds.includes('init'), 'init called when agent/ absent');
     assert.ok(kinds.includes('enable'), 'enable called');
     const launch = calls.find((c) => c[0] === 'launch');
     assert.equal(launch[1], d, 'launch cwd = resolved dir');
@@ -38,11 +39,11 @@ test('launches opencode pre-wired: init (no .mns) + enable + launch with cwd', (
   });
 });
 
-test('existing .mns → init NOT called', () => {
+test('existing agent/ → init NOT called', () => {
   withDir((d) => {
     const { calls, deps } = fakeDeps();
     code({ _: [d] }, deps);
-    assert.ok(!calls.some((c) => c[0] === 'init'), 'init skipped when .mns present');
+    assert.ok(!calls.some((c) => c[0] === 'init'), 'init skipped when agent/ present');
   }, true);
 });
 

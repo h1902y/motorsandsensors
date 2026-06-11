@@ -3,11 +3,11 @@
 //
 // WHAT IT WOULD MINE (when implemented):
 //   Completed-session episodes — a Run that reached `completed` status in
-//   .mns/sessions.json — would be distilled into curated episode entries at
-//   .mns/memory/entries/<id>.md. Each entry captures: what was attempted,
+//   agent/sessions.json — would be distilled into curated episode entries at
+//   agent/memory/entries/<id>.md. Each entry captures: what was attempted,
 //   key decisions made, outcome, and a set of durable learnings. The miner
 //   would emit `memory` proposals of kind 'episode' into
-//   .mns/memory/proposals/ for human review via `mns review`. Deferred until
+//   agent/memory/proposals/ for human review via `mns review`. Deferred until
 //   the Memory substrate (off-edge Postgres/Neon or local Markdown) is
 //   established and the session lifecycle state machine is stable enough to
 //   reliably produce `completed` runs with rich enough trace data to distill.

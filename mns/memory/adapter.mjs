@@ -7,7 +7,7 @@
 //   { id, date, title, provenance, body }
 //   id format: mem-<YYYY-MM-DD>-<slug>
 //
-// apply: writes .mns/memory/entries/<id>.md with YAML frontmatter (status: curated)
+// apply: writes agent/memory/entries/<id>.md with YAML frontmatter (status: curated)
 //        and the body sections (Attempted / Resulted / Remember next time).
 //
 // Registers itself on import.
