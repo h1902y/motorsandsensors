@@ -54,11 +54,13 @@ test('activateAction refuses a malformed manifest', () => {
   }, { manifest: '{ not json' });
 });
 
-test('rejectAction removes the inbox entry', () => {
+test('rejectAction archives the inbox entry instead of deleting it', () => {
   withInbox('nope', (mns) => {
     const r = rejectAction(mns, 'nope');
     assert.equal(r.ok, true);
-    assert.ok(!existsSync(join(mns, 'actions', 'inbox', 'nope')));
+    assert.ok(!existsSync(join(mns, 'actions', 'inbox', 'nope')), 'inbox entry gone');
+    // intended behaviour change (WS2-T3): reject archives the dir, never destroys it
+    assert.ok(existsSync(join(mns, 'actions', 'proposals', 'archive', 'nope', 'run.mjs')), 'dir archived, not deleted');
   });
 });
 

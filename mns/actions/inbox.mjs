@@ -5,8 +5,11 @@
 // .mns/actions/<slug>/) or rejects it (remove). Never auto-activates.
 
 import { join } from 'node:path';
-import { existsSync, readFileSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, readFileSync, renameSync, mkdirSync, rmSync } from 'node:fs';
 import { actionsDir, inboxDir, listActions, isSafeSlug } from './manifest.mjs';
+
+/** Archive dir for rejected action proposals: .mns/actions/proposals/archive/. */
+const archiveBaseDir = (mnsDir) => join(actionsDir(mnsDir), 'proposals', 'archive');
 
 /** Proposed actions awaiting review (in .mns/actions/inbox/). */
 export function listProposedActions(mnsDir) {
@@ -34,11 +37,20 @@ export function activateAction(mnsDir, slug) {
   return { ok: true };
 }
 
-/** Reject a proposed action: remove its inbox entry. */
+/**
+ * Reject a proposed action: ARCHIVE its dir (move inbox/<slug> →
+ * actions/proposals/archive/<slug>), never destroy it (WS2-T3). An auditable
+ * history mirrors the Knowledge gate's archive-on-reject.
+ */
 export function rejectAction(mnsDir, slug) {
   if (!isSafeSlug(slug)) return { ok: false, error: `invalid slug '${slug}'` };
   const from = join(inboxDir(mnsDir), slug);
   if (!existsSync(from)) return { ok: false, error: `no proposed action '${slug}'` };
-  rmSync(from, { recursive: true, force: true });
+  const archBase = archiveBaseDir(mnsDir);
+  mkdirSync(archBase, { recursive: true });
+  const to = join(archBase, slug);
+  // if a prior rejection of the same slug exists, clear it so the move succeeds
+  if (existsSync(to)) rmSync(to, { recursive: true, force: true });
+  renameSync(from, to);
   return { ok: true };
 }

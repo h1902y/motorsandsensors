@@ -51,7 +51,14 @@ function validate(mnsDir, payload) {
  * @returns {{ok:boolean, action:string, itemIds:string[], warnings:string[]}}
  */
 function apply(mnsDir, proposal) {
-  const r = applyKnowledgeProposal(mnsDir, proposal);
+  // Bridge spine-shaped records (payload/analysis.er) onto applyKnowledgeProposal's
+  // legacy shape (candidate/er). Records that still carry candidate/er pass through.
+  const legacy = {
+    ...proposal,
+    candidate: proposal.candidate ?? proposal.payload,
+    er: proposal.er ?? proposal.analysis?.er,
+  };
+  const r = applyKnowledgeProposal(mnsDir, legacy);
   return {
     ok: r.ok,
     action: r.action,
