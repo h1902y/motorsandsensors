@@ -101,6 +101,25 @@ function card(mnsDir, p, i, total, scoreResult) {
   return lines.join('\n');
 }
 
+/**
+ * Pure: the graduation ceremony block shown when a generation is minted.
+ * @param {string} genId
+ * @param {string[]} approvedIds
+ * @param {Object<string,number>} byFaculty  faculty → approval count
+ * @returns {string}
+ */
+export function ceremonyBlock(genId, approvedIds, byFaculty) {
+  const n = approvedIds.length;
+  const breakdown = Object.entries(byFaculty)
+    .filter(([, c]) => c > 0)
+    .map(([f, c]) => `${f} +${c}`)
+    .join(' · ');
+  return [
+    `\n✓ generation ${genId} minted from ${n} approval(s)${breakdown ? ` — ${breakdown}` : ''}.`,
+    `  inspect: mns generation show ${genId}   ·   roll back: mns generation rollback ${genId}`,
+  ].join('\n');
+}
+
 export async function review() {
   const mnsDir = paths().dir;
   const inbox = processInbox(mnsDir);
@@ -142,6 +161,7 @@ export async function review() {
   };
 
   const approvedIds = [];
+  const approvedByFaculty = {}; // faculty → count, for the graduation ceremony
   let approved = 0, rejected = 0, skipped = 0;
   let totalLeft = groups.reduce((n, g) => n + g.proposals.length, 0);
   const sessionMtimes = buildSessionMtimes();
@@ -175,7 +195,7 @@ export async function review() {
           const r = gate.approve(mnsDir, adapter.name, p.id);
           if (isActions) console.log(r.ok ? '  ✓ activated' : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`);
           else { console.log(r.ok ? `  ✓ ${r.action}` : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`); for (const w of r.warnings ?? []) console.log(`  ⚠ ${w}`); }
-          if (r.ok) approvedIds.push(p.id);
+          if (r.ok) { approvedIds.push(p.id); approvedByFaculty[adapter.name] = (approvedByFaculty[adapter.name] ?? 0) + 1; }
           approved++; totalLeft--; acted = true;
         } else if (a === 'n') {
           const reason = isActions ? '' : (await ask('  reason (optional) > ')).trim();
@@ -199,7 +219,7 @@ export async function review() {
           console.log(`\nreview: ${approved} approved · ${rejected} rejected · ${skipped} skipped · ${totalLeft} left`);
           if (approvedIds.length > 0) {
             const gen = mintGeneration(mnsDir, { forkedFrom: activeGeneration(mnsDir), mintedFrom: approvedIds });
-            console.log(`minted ${gen.id} (${approvedIds.length} change(s))`);
+            console.log(ceremonyBlock(gen.id, approvedIds, approvedByFaculty));
           }
           return;
         }
@@ -210,7 +230,7 @@ export async function review() {
   console.log(`\nreview complete: ${approved} approved · ${rejected} rejected · ${skipped} skipped`);
   if (approvedIds.length > 0) {
     const gen = mintGeneration(mnsDir, { forkedFrom: activeGeneration(mnsDir), mintedFrom: approvedIds });
-    console.log(`minted ${gen.id} (${approvedIds.length} change(s))`);
+    console.log(ceremonyBlock(gen.id, approvedIds, approvedByFaculty));
   }
 }
 
