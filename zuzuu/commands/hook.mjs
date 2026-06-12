@@ -91,6 +91,10 @@ export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Dat
       if (sessionGitEnabled(cwd)) checkpoint(cwd); // commits only ON the session branch, never on main
     } catch { /* fail-open */ }
   } else if (END.has(event)) {
+    // ORDER MATTERS: capture FIRST — it writes the tracked sessions.json index,
+    // so the record rides the squash via closeSession's final checkpoint. When
+    // the user is off the session branch, close refuses (dirty-worktree) and
+    // the record lands in the NEXT session's checkpoint instead — accepted v1.
     safeCapture(adapter, ref, SessionState.COMPLETED, cwd);
     try {
       // Squash the session branch to ONE `session: <title>` commit on main

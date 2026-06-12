@@ -20,6 +20,11 @@ export function sessionStatusData(cwd = process.cwd()) {
  *  running doctor mid-session must not be nudged into "fixing" its own branch). */
 export function leftoverLine(ss) {
   if (!ss?.active || ss.onSessionBranch) return null;
+  if (ss.active.noNetChanges) {
+    // the empty-squash-with-checkpoints case: close KEPT the branch (history is
+    // never destroyed silently) — explicit discard is the drop path
+    return `session had no net changes — ${ss.active.checkpoints} exploration checkpoint(s) retained; \`zuzuu session discard --yes\` to drop`;
+  }
   return `leftover session branch ${ss.active.branch} (${ss.active.checkpoints} checkpoint(s)) — zuzuu session continue | merge | discard`;
 }
 
@@ -67,7 +72,9 @@ export function session(args = {}) {
     }
     console.error(d.conflict
       ? `✗ conflict squashing ${d.branch} — aborted, branch left intact (merge it manually, or \`zuzuu session continue\`)`
-      : `✗ cannot merge: ${d.reason}`);
+      : d.reason === 'empty-squash-with-checkpoints'
+        ? `✗ session had no net changes — ${d.commits} exploration checkpoint(s) retained; \`zuzuu session discard --yes\` to drop`
+        : `✗ cannot merge: ${d.reason}`);
     process.exit(1);
   }
 

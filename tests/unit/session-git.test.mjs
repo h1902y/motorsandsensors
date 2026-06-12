@@ -69,6 +69,8 @@ test('full round-trip: open → 2 checkpoints → close = ONE new commit on main
     assert.equal(done.ok, true);
     assert.equal(done.commits, 2);
     assert.equal(done.mergedAs, head(cwd));
+    assert.equal(done.mergedTo, 'main', 'always says where it merged');
+    assert.equal(done.warning, undefined, 'no warning on the happy path');
     assert.equal(curBranch(cwd), 'main');
     assert.equal(logCount(cwd), before + 1, 'exactly ONE new commit on main');
     assert.equal(lastMsg(cwd), 'session: built the thing');
@@ -95,6 +97,7 @@ test('closeSession with zero changes (empty squash) still cleans up the branch',
     const done = closeSession(cwd, {});
     assert.equal(done.ok, true);
     assert.equal(done.mergedAs, null, 'no merge commit for an empty session');
+    assert.equal(done.mergedTo, 'main');
     assert.equal(done.commits, 0);
     assert.equal(curBranch(cwd), 'main');
     assert.equal(logCount(cwd, 'main'), before, 'main unchanged');
@@ -224,6 +227,7 @@ test('conflict on close: abort cleanly — branch intact, main untouched, no mer
     assert.equal(done.ok, false);
     assert.equal(done.conflict, true);
     assert.equal(done.branch, 'zz/session-conflict');
+    assert.equal(done.restoredTo, 'zz/session-conflict', 'honest report: back where we were');
     assert.equal(curBranch(cwd), 'zz/session-conflict', 'checked back out where we were');
     assert.equal(head(cwd), branchTip, 'branch tip untouched');
     assert.equal(git(['rev-parse', 'main'], cwd), ext, 'main tip untouched');
@@ -231,6 +235,138 @@ test('conflict on close: abort cleanly — branch intact, main untouched, no mer
     assert.ok(!existsSync(join(cwd, '.git', 'MERGE_HEAD')), 'no MERGE state');
     assert.ok(!existsSync(join(cwd, '.git', 'SQUASH_MSG')), 'no SQUASH_MSG left');
     assert.ok(!existsSync(join(cwd, '.git', 'MERGE_MSG')), 'no MERGE_MSG left');
+  });
+});
+
+test('restore stranding: checkout back fails (untracked collision) → restoredTo:null', () => {
+  tmpRepo((cwd) => {
+    openSession(cwd, 'strand001');
+    writeFileSync(join(cwd, 'c.txt'), 'session data\n');
+    checkpoint(cwd);
+    // A hostile post-checkout hook recreates c.txt UNTRACKED the moment we land
+    // on main (the untracked-collision case): the squash-merge refuses, and the
+    // restore checkout back to the session branch refuses too → stranded on main.
+    mkdirSync(join(cwd, '.git', 'hooks'), { recursive: true });
+    writeFileSync(join(cwd, '.git', 'hooks', 'post-checkout'),
+      '#!/bin/sh\n[ -f c.txt ] || echo junk > c.txt\nexit 0\n', { mode: 0o755 });
+    const done = closeSession(cwd, {});
+    assert.equal(done.ok, false);
+    assert.equal(done.conflict, true);
+    assert.equal(done.branch, 'zz/session-strand00');
+    assert.equal(done.restoredTo, null, 'honest: stranded on main, not back on the branch');
+    assert.equal(curBranch(cwd), 'main', 'really is on main');
+    assert.deepEqual(listSessionBranches(cwd), ['zz/session-strand00'], 'branch intact');
+  });
+});
+
+// -------------------------------------------- empty squash WITH checkpoints
+
+test('empty squash WITH checkpoints keeps the branch — history is never destroyed', () => {
+  tmpRepo((cwd) => {
+    openSession(cwd, 'explore01');
+    writeFileSync(join(cwd, 'a.txt'), 'edited\n');
+    assert.equal(checkpoint(cwd).committed, true);
+    writeFileSync(join(cwd, 'a.txt'), 'one\n'); // revert → net diff vs main = zero
+    assert.equal(checkpoint(cwd).committed, true);
+
+    const mainBefore = git(['rev-parse', 'main'], cwd);
+    const done = closeSession(cwd, {});
+    assert.equal(done.ok, false);
+    assert.equal(done.reason, 'empty-squash-with-checkpoints');
+    assert.equal(done.commits, 2);
+    assert.equal(done.branch, 'zz/session-explore0');
+    assert.equal(curBranch(cwd), 'zz/session-explore0', 'put back where the user was');
+    assert.deepEqual(listSessionBranches(cwd), ['zz/session-explore0'], 'branch KEPT');
+    assert.equal(Number(git(['rev-list', '--count', 'main..zz/session-explore0'], cwd)), 2,
+      'both exploration checkpoints still reachable');
+    assert.equal(git(['rev-parse', 'main'], cwd), mainBefore, 'main untouched');
+    assert.ok(!existsSync(join(cwd, '.git', 'SQUASH_MSG')), 'no stale SQUASH_MSG');
+
+    // doctor/status render the retained-exploration case, not the generic leftover
+    git(['checkout', '-q', 'main'], cwd);
+    const s = sessionStatus(cwd);
+    assert.equal(s.active.noNetChanges, true);
+    assert.equal(
+      leftoverLine(s),
+      'session had no net changes — 2 exploration checkpoint(s) retained; `zuzuu session discard --yes` to drop',
+    );
+
+    // explicit discard is the cleanup path
+    assert.equal(discardSession(cwd).ok, true);
+    assert.deepEqual(listSessionBranches(cwd), []);
+  });
+});
+
+// ----------------------------------------------------- secrets exclusion
+
+test('secrets never enter checkpoints: .env stays untracked, excludedSecrets counted', () => {
+  tmpRepo((cwd) => {
+    openSession(cwd, 'secret001');
+    writeFileSync(join(cwd, '.env'), 'TOKEN=hush\n'); // NOT gitignored — worst case
+    writeFileSync(join(cwd, 'notes.txt'), 'normal work\n');
+    const c = checkpoint(cwd);
+    assert.equal(c.ok, true);
+    assert.equal(c.committed, true);
+    assert.equal(c.excludedSecrets, 1);
+    const tracked = git(['ls-files'], cwd).split('\n');
+    assert.ok(tracked.includes('notes.txt'), 'normal file committed');
+    assert.ok(!tracked.includes('.env'), '.env never committed');
+    assert.match(porcelain(cwd), /\?\? \.env/, '.env left untracked in the worktree');
+
+    const done = closeSession(cwd, { title: 'secret-safe' });
+    assert.equal(done.ok, true);
+    assert.equal(done.excludedSecrets, 1, 'final checkpoint propagates the count');
+    const mainTree = git(['ls-tree', '-r', '--name-only', 'main'], cwd).split('\n');
+    assert.ok(mainTree.includes('notes.txt'));
+    assert.ok(!mainTree.includes('.env'), 'squashed main tree contains no .env');
+    assert.match(porcelain(cwd), /\?\? \.env/, '.env survives close, still untracked');
+  });
+});
+
+test('checkpoint with ONLY secret changes commits nothing (no empty commit, no failure)', () => {
+  tmpRepo((cwd) => {
+    openSession(cwd, 'onlysec01');
+    writeFileSync(join(cwd, '.env.local'), 'X=1\n');
+    const before = logCount(cwd);
+    const c = checkpoint(cwd);
+    assert.equal(c.ok, true);
+    assert.equal(c.committed, false);
+    assert.equal(c.excludedSecrets, 1);
+    assert.equal(logCount(cwd), before, 'no commit created');
+  });
+});
+
+test('the whole secret family is excluded: .env.*, nested .env, *.pem, *.key, id_rsa*', () => {
+  tmpRepo((cwd) => {
+    openSession(cwd, 'family001');
+    mkdirSync(join(cwd, 'sub'), { recursive: true });
+    writeFileSync(join(cwd, '.env.production'), 'a\n');
+    writeFileSync(join(cwd, 'sub', '.env'), 'b\n');
+    writeFileSync(join(cwd, 'sub', 'cert.pem'), 'c\n');
+    writeFileSync(join(cwd, 'server.key'), 'd\n');
+    writeFileSync(join(cwd, 'id_rsa'), 'e\n');
+    writeFileSync(join(cwd, 'ok.txt'), 'fine\n');
+    const c = checkpoint(cwd);
+    assert.equal(c.committed, true);
+    assert.equal(c.excludedSecrets, 5);
+    assert.deepEqual(git(['ls-files'], cwd).split('\n').sort(), ['a.txt', 'ok.txt']);
+  });
+});
+
+// ------------------------------------------------------ zz-base fallback
+
+test('close after the opening branch vanished: merges to fallback, honest warning + mergedTo', () => {
+  tmpRepo((cwd) => {
+    git(['checkout', '-q', '-b', 'feature/gone'], cwd);
+    openSession(cwd, 'fallback1');
+    writeFileSync(join(cwd, 'b.txt'), 'work\n');
+    checkpoint(cwd);
+    git(['branch', '-D', 'feature/gone'], cwd); // the recorded zz-base no longer exists
+    const done = closeSession(cwd, { title: 't' });
+    assert.equal(done.ok, true);
+    assert.equal(done.mergedTo, 'main', 'fell back to main');
+    assert.equal(done.warning, 'base-branch-missing');
+    assert.equal(curBranch(cwd), 'main');
   });
 });
 
@@ -359,14 +495,14 @@ test('sessionStatus reflects a leftover branch whether or not checked out', () =
     writeFileSync(join(cwd, 'c.txt'), 'y\n');
     let s = sessionStatus(cwd);
     assert.equal(s.onSessionBranch, true);
-    assert.deepEqual(s.active, { branch: 'zz/session-status00', checkpoints: 1, dirty: true });
+    assert.deepEqual(s.active, { branch: 'zz/session-status00', checkpoints: 1, dirty: true, noNetChanges: false });
 
     git(['add', '-A'], cwd);
     git(['commit', '-q', '-m', 'tidy'], cwd);
     git(['checkout', '-q', 'main'], cwd);
     s = sessionStatus(cwd); // the leftover detector
     assert.equal(s.onSessionBranch, false);
-    assert.deepEqual(s.active, { branch: 'zz/session-status00', checkpoints: 2, dirty: false });
+    assert.deepEqual(s.active, { branch: 'zz/session-status00', checkpoints: 2, dirty: false, noNetChanges: false });
     assert.equal(s.mainBranch, 'main');
   });
 });

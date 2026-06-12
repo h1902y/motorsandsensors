@@ -14,6 +14,13 @@
 //   - single-working-branch invariant: at most ONE `zz/session-*` branch; a
 //     leftover (crashed session) BLOCKS new session branches until continued,
 //     merged, or discarded — the next-session prompt is the recovery path.
+//   - secrets policy: checkpoints NEVER stage secret material (the same family
+//     the seeded no-secret-reads guardrail denies: .env/.env.* at any depth,
+//     *.pem, *.key, id_rsa*) — excluded files stay untracked in the worktree
+//     and are reported as `excludedSecrets`.
+//   - checkpoint history is never destroyed silently: an empty squash that
+//     still has checkpoints KEEPS the branch (explicit discard is the only
+//     way exploration history is dropped).
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, rmSync } from 'node:fs';
@@ -168,19 +175,45 @@ export function openSession(cwd, sessionId) {
   }
 }
 
-/** TURN: checkpoint commit — only ON a session branch, only when dirty. NEVER commits on main. */
+// The secret family checkpoints must never commit — mirrors the seeded
+// no-secret-reads guardrail (scaffold.mjs RULES_SEED: .env / id_rsa / .pem).
+const SECRET_GLOBS = ['.env', '.env.*', '**/.env', '**/.env.*', '**/*.pem', '**/*.key', '**/id_rsa*'];
+const SECRET_RE = /(^|\/)\.env(\.|$)|(^|\/)id_rsa[^/]*$|\.pem$|\.key$/;
+
+/** How many dirty/untracked paths are secret-family (and so were excluded). */
+function countExcludedSecrets(cwd) {
+  const out = git(['status', '--porcelain', '-uall'], cwd).out; // -uall: expand untracked dirs
+  if (!out) return 0;
+  let n = 0;
+  for (const line of out.split('\n')) {
+    const p = line.slice(3);
+    const path = (p.includes(' -> ') ? p.split(' -> ').pop() : p).replace(/^"|"$/g, '');
+    if (SECRET_RE.test(path)) n += 1;
+  }
+  return n;
+}
+
+/** TURN: checkpoint commit — only ON a session branch, only when dirty. NEVER commits on main.
+ *  Secret-family files are excluded from staging (left untracked/unstaged);
+ *  the count of excluded paths is returned as `excludedSecrets` when > 0. */
 export function checkpoint(cwd) {
   try {
     const blocked = unsafeReason(cwd);
     if (blocked) return { ok: false, reason: blocked };
     const cur = currentBranch(cwd);
     if (!cur || !cur.startsWith(PREFIX)) return { ok: false, reason: 'not-on-session-branch' };
-    if (!isDirty(cwd)) return { ok: true, committed: false, n: countCheckpoints(cwd, cur) };
-    const n = countCheckpoints(cwd, cur) + 1;
-    if (!git(['add', '-A'], cwd).ok) return { ok: false, reason: 'add-failed' };
-    const c = git(['commit', '-q', '-m', `zz: checkpoint ${n}`], cwd);
+    const base = countCheckpoints(cwd, cur);
+    if (!isDirty(cwd)) return { ok: true, committed: false, n: base };
+    const excludedSecrets = countExcludedSecrets(cwd);
+    const add = git(['add', '-A', '--', '.', ...SECRET_GLOBS.map((g) => `:(exclude,glob)${g}`)], cwd);
+    if (!add.ok) return { ok: false, reason: 'add-failed' };
+    if (git(['diff', '--cached', '--quiet'], cwd).ok) {
+      // everything dirty was secret material — never an empty commit
+      return { ok: true, committed: false, n: base, ...(excludedSecrets ? { excludedSecrets } : {}) };
+    }
+    const c = git(['commit', '-q', '-m', `zz: checkpoint ${base + 1}`], cwd);
     if (!c.ok) return { ok: false, reason: c.err || 'commit-failed' };
-    return { ok: true, committed: true, n };
+    return { ok: true, committed: true, n: base + 1, ...(excludedSecrets ? { excludedSecrets } : {}) };
   } catch (e) {
     return { ok: false, reason: String(e) };
   }
@@ -197,10 +230,14 @@ export function sessionStatus(cwd) {
     let active = null;
     if (branches.length) {
       const branch = branches[0];
+      const checkpoints = countCheckpoints(cwd, branch);
       active = {
         branch,
-        checkpoints: countCheckpoints(cwd, branch),
+        checkpoints,
         dirty: cur === branch && isDirty(cwd),
+        // exploration-only session: checkpoints exist but the tree equals main
+        // (the empty-squash-with-checkpoints case doctor/status render specially)
+        noNetChanges: checkpoints > 0 && !!main && main !== branch && git(['diff', '--quiet', main, branch], cwd).ok,
       };
     }
     return { enabled, mainBranch: main, active, onSessionBranch };
@@ -226,10 +263,16 @@ function cleanupSquashState(cwd) {
 
 /**
  * END: squash-merge the session branch into main as ONE commit
- * `session: <title>`, then delete the branch.
- *   conflict     → abort (reset --merge), restore the prior checkout,
- *                  { ok:false, conflict:true, branch } — repo exactly as before
- *   empty squash → no commit, still cleans up the branch ({ mergedAs:null })
+ * `session: <title>`, then delete the branch. Every ok:true return carries
+ * `mergedTo` (the branch actually merged into); when the recorded zz-base
+ * branch no longer exists, `warning:'base-branch-missing'` flags the fallback.
+ *   conflict        → abort (reset --merge), restore the prior checkout,
+ *                     { ok:false, conflict:true, branch, restoredTo } —
+ *                     restoredTo:null means the checkout back failed (stranded on main)
+ *   empty squash    → 0 checkpoints: no commit, still cleans up ({ mergedAs:null });
+ *                     WITH checkpoints: the branch is KEPT (history is never
+ *                     destroyed silently) → { ok:false,
+ *                     reason:'empty-squash-with-checkpoints', commits, branch }
  */
 export function closeSession(cwd, { title } = {}) {
   try {
@@ -239,49 +282,72 @@ export function closeSession(cwd, { title } = {}) {
     if (!branches.length) return { ok: false, reason: 'no-session-branch' };
     const branch = branches[0];
     const cur = currentBranch(cwd);
+    const baseCfg = git(['config', `branch.${branch}.zz-base`], cwd).out;
     const main = mainBranch(cwd);
     if (!main || main === branch) return { ok: false, reason: 'no-main-branch' };
+    // honesty: the branch we recorded at open is gone → we merge to a fallback
+    const baseMissing = !!baseCfg && !branchExists(cwd, baseCfg);
 
+    let excludedSecrets = 0;
     if (cur === branch) {
       const cp = checkpoint(cwd); // fold any uncommitted work into the squash
       if (!cp.ok) return { ok: false, reason: cp.reason };
+      excludedSecrets = cp.excludedSecrets ?? 0;
     } else if (isDirty(cwd)) {
       // Loose changes on another branch are the USER's — never mix them into the squash.
       return { ok: false, reason: 'dirty-worktree' };
     }
 
     const commits = countCheckpoints(cwd, branch);
+    /** Undo a failed merge and put the user back where they were. Returns the
+     *  branch we actually landed on — null = the checkout back failed and the
+     *  user is STRANDED ON MAIN (report it, never pretend otherwise). */
     const restore = () => {
       git(['reset', '--merge'], cwd);
       cleanupSquashState(cwd);
-      if (cur && cur !== main) git(['checkout', '-q', cur], cwd);
+      if (!cur || cur === main) return cur ?? null;
+      return git(['checkout', '-q', cur], cwd).ok ? cur : null;
     };
 
     const co = git(['checkout', '-q', main], cwd);
     if (!co.ok) return { ok: false, reason: co.err || 'checkout-main-failed' };
     const merge = git(['merge', '--squash', branch], cwd);
     if (!merge.ok) {
-      restore(); // conflict (or any squash failure): leave the repo exactly as before
-      return { ok: false, conflict: true, branch };
+      // conflict (or any squash failure): leave the repo exactly as before
+      return { ok: false, conflict: true, branch, restoredTo: restore() };
     }
+
+    const extras = {
+      ...(excludedSecrets ? { excludedSecrets } : {}),
+      ...(baseMissing ? { warning: 'base-branch-missing' } : {}),
+    };
 
     let mergedAs = null;
     const nothingStaged = git(['diff', '--cached', '--quiet'], cwd).ok; // exit 1 = staged changes
     if (nothingStaged) {
       cleanupSquashState(cwd); // a stale SQUASH_MSG would hijack the user's next commit
+      if (commits > 0) {
+        // Exploration-only session: the squash is empty but real checkpoints
+        // exist. NEVER delete that history silently — keep the branch, put the
+        // user back, and report; `zuzuu session discard --yes` is the drop path.
+        if (cur && cur !== main) git(['checkout', '-q', cur], cwd);
+        return { ok: false, reason: 'empty-squash-with-checkpoints', commits, branch, ...extras };
+      }
     } else {
       const c = git(['commit', '-q', '-m', `session: ${title || defaultTitle(branch)}`], cwd);
       if (!c.ok) {
-        restore();
-        return { ok: false, reason: c.err || 'commit-failed' };
+        return { ok: false, reason: c.err || 'commit-failed', restoredTo: restore() };
       }
       mergedAs = git(['rev-parse', 'HEAD'], cwd).out || null;
     }
 
     git(['config', '--unset', `branch.${branch}.zz-base`], cwd); // best-effort
     const del = git(['branch', '-D', branch], cwd);
-    if (!del.ok) return { ok: true, mergedAs, commits, warning: 'branch-delete-failed' };
-    return { ok: true, mergedAs, commits };
+    if (!del.ok) {
+      const warning = extras.warning ? `${extras.warning},branch-delete-failed` : 'branch-delete-failed';
+      return { ok: true, mergedAs, mergedTo: main, commits, ...extras, warning };
+    }
+    return { ok: true, mergedAs, mergedTo: main, commits, ...extras };
   } catch (e) {
     return { ok: false, reason: String(e) };
   }
