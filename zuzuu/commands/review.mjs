@@ -247,6 +247,32 @@ function facultyOf(agentDir, id, only) {
 }
 
 /**
+ * Pure: the structured object for `proposals approve --json`.
+ * Calls gate.approve and returns the result object the branch prints.
+ * @param {string} agentDir
+ * @param {string} id
+ * @param {string} faculty
+ * @returns {object}  the gate result (contains ok, action, etc.)
+ */
+export function approveResultData(agentDir, id, faculty) {
+  return gate.approve(agentDir, faculty, id);
+}
+
+/**
+ * Pure: the structured object for `proposals reject --json`.
+ * Calls gate.reject and returns the result object the branch prints.
+ * @param {string} agentDir
+ * @param {string} id
+ * @param {string} faculty
+ * @param {string} [reason]
+ * @returns {object}  { ok, id, ... }
+ */
+export function rejectResultData(agentDir, id, faculty, reason = '') {
+  const r = gate.reject(agentDir, faculty, id, reason);
+  return { ...r, id };
+}
+
+/**
  * Pure: list pending proposals as structured data — the zuzuu-web /proposals source.
  * @param {string} agentDir
  * @param {string} [only]  optional faculty filter
@@ -279,6 +305,7 @@ export function proposals(args) {
   const only = args.faculty; // optional filter; default = all
   if (sub === 'list') {
     if (args.json) {
+      processInbox(agentDir);  // promote plain-text inbox candidates, same as text path
       const d = proposalsListData(agentDir, only);
       console.log(JSON.stringify(d));
       return;
@@ -315,7 +342,7 @@ export function proposals(args) {
   }
   if (sub === 'approve') {
     const faculty = facultyOf(agentDir, id, only);
-    const r = gate.approve(agentDir, faculty, id);
+    const r = approveResultData(agentDir, id, faculty);
     if (args.json) {
       console.log(JSON.stringify(r));
     } else {
@@ -326,9 +353,9 @@ export function proposals(args) {
   }
   if (sub === 'reject') {
     const faculty = facultyOf(agentDir, id, only);
-    const r = gate.reject(agentDir, faculty, id, args.reason || '');
+    const r = rejectResultData(agentDir, id, faculty, args.reason || '');
     if (args.json) {
-      console.log(JSON.stringify({ ...r, id }));
+      console.log(JSON.stringify(r));
     } else {
       console.log(r.ok ? '✓ rejected' : '✗ not found');
     }
