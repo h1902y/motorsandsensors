@@ -9,14 +9,34 @@ import { web } from '../../zuzuu/commands/web.mjs';
 function fakeDeps(over = {}) {
   const calls = [];
   const deps = {
+    resolveBundled: () => over.bundled ?? null,
     detect: () => over.detect ?? true,
     install: () => { calls.push(['install']); return over.install ?? true; },
     prompt: () => over.prompt ?? 'y',
-    launch: ({ cwd }) => { calls.push(['launch', cwd]); },
+    launch: ({ cwd, binScript }) => { calls.push(['launch', cwd, binScript ?? null]); },
     log: () => {},
   };
   return { calls, deps };
 }
+
+test('bundled optional dep wins: launches its bin script, never detects/prompts/installs', () => {
+  const { calls, deps } = fakeDeps({ bundled: '/g/node_modules/@zuzuucodes/web/bin/zuzuu-web.js' });
+  let probed = false;
+  deps.detect = () => { probed = true; return false; };
+  web({}, deps);
+  const launch = calls.find((c) => c[0] === 'launch');
+  assert.ok(launch, 'launch called');
+  assert.equal(launch[2], '/g/node_modules/@zuzuucodes/web/bin/zuzuu-web.js', 'bundled bin script passed to launch');
+  assert.equal(probed, false, 'PATH detect skipped when bundled copy exists');
+  assert.ok(!calls.some((c) => c[0] === 'install'), 'no install');
+});
+
+test('no bundled copy + PATH binary → launches without a bin script (PATH mode)', () => {
+  const { calls, deps } = fakeDeps({ bundled: null, detect: true });
+  web({}, deps);
+  const launch = calls.find((c) => c[0] === 'launch');
+  assert.equal(launch[2], null, 'no bin script → realLaunch falls back to the PATH binary');
+});
 
 test('detected → launches with resolved cwd, no install or prompt', () => {
   const { calls, deps } = fakeDeps({ detect: true });
