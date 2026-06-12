@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { useExplorer } from "../state/explorer";
-import { Field } from "../components/ui";
+import { Field, IconButton } from "../components/ui";
+import { canSearch, MIN_QUERY_LEN, shiftRanges } from "./search-logic";
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value);
@@ -30,23 +31,29 @@ function Highlighted({ text, ranges }: { text: string; ranges: [number, number][
   return <>{parts}</>;
 }
 
+/**
+ * The transient search state of the Files panel: an input row at the top,
+ * results replacing the tree below. Esc or ✕ collapses back to the tree
+ * (the component unmounts, so the typed query clears with it).
+ */
 export function SearchPanel() {
-  const [input, setInput] = useState("");
+  // the ⌘K palette can hand off a seed query via the explorer store
+  const seed = useExplorer((s) => s.searchSeed);
+  const closeSearch = useExplorer((s) => s.closeSearch);
+  const [input, setInput] = useState(seed ?? "");
   const [regex, setRegex] = useState(false);
   const [caseSensitive, setCaseSensitive] = useState(false);
 
-  // the ⌘K palette can hand off a query to this panel
   useEffect(() => {
-    const onSearch = (e: Event) => setInput((e as CustomEvent<string>).detail);
-    window.addEventListener("zuzuu-web:search", onSearch);
-    return () => window.removeEventListener("zuzuu-web:search", onSearch);
-  }, []);
+    if (seed !== null) setInput(seed);
+  }, [seed]);
+
   const query = useDebounced(input.trim(), 300);
   const openPreviewPath = useExplorer((s) => s.openPreviewPath);
 
   const { data, isFetching, error } = useQuery({
     queryKey: ["search", query, regex, caseSensitive],
-    enabled: query.length >= 2,
+    enabled: canSearch(query),
     staleTime: 10_000,
     queryFn: () => api.search(query, { regex, caseSensitive }),
   });
@@ -54,12 +61,21 @@ export function SearchPanel() {
   return (
     <div className="flex h-full flex-col">
       <div className="border-b border-border p-2">
-        <Field
-          autoFocus
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="search workspace…"
-        />
+        <div className="flex items-center gap-1">
+          <Field
+            autoFocus
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                closeSearch();
+              }
+            }}
+            placeholder="search workspace…"
+          />
+          <IconButton title="Close search (Esc)" iconPath="M4 4l8 8M12 4l-8 8" onClick={closeSearch} />
+        </div>
         <div className="mt-1.5 flex items-center gap-2 text-meta text-ink-500">
           <OptionToggle label=".*" title="Regular expression" active={regex} onClick={() => setRegex((v) => !v)} />
           <OptionToggle label="Aa" title="Case sensitive" active={caseSensitive} onClick={() => setCaseSensitive((v) => !v)} />
@@ -96,7 +112,7 @@ export function SearchPanel() {
         {data && data.results.length === 0 && (
           <div className="px-3 py-2 text-ui text-ink-500">no matches</div>
         )}
-        {query.length > 0 && query.length < 2 && (
+        {query.length > 0 && query.length < MIN_QUERY_LEN && (
           <div className="px-3 py-2 text-ui text-ink-500">type at least 2 characters</div>
         )}
       </div>
@@ -107,15 +123,6 @@ export function SearchPanel() {
       )}
     </div>
   );
-}
-
-/** trimStart shifts highlight offsets left by the removed whitespace. */
-function shiftRanges(m: { text: string; ranges: [number, number][] }): [number, number][] {
-  const cut = m.text.length - m.text.trimStart().length;
-  if (cut === 0) return m.ranges;
-  return m.ranges
-    .map(([s, e]) => [Math.max(0, s - cut), Math.max(0, e - cut)] as [number, number])
-    .filter(([s, e]) => e > s);
 }
 
 function OptionToggle({

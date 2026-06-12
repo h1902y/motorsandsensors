@@ -8,9 +8,7 @@ import { useSessions } from "./state/sessions";
 import { useExplorer } from "./state/explorer";
 import { FileTree } from "./explorer/FileTree";
 import { SearchPanel } from "./explorer/SearchPanel";
-import { GitPanel } from "./explorer/GitPanel";
-import { AgentPanel } from "./explorer/AgentPanel";
-import { agentChipLabel } from "./explorer/agent-panel-logic";
+import { agentChipLabel } from "./faculties/agent-chip";
 import { TermView } from "./term/TermView";
 import { EditorPane } from "./editor/EditorPane";
 import { useEditor } from "./state/editor";
@@ -110,8 +108,9 @@ export default function App() {
 
   const hasEditor = useEditor((s) => s.openFiles.length > 0);
   const saveActive = useEditor((s) => s.saveActive);
-  const sidebarMode = useExplorer((s) => s.sidebarMode);
-  const setSidebarMode = useExplorer((s) => s.setSidebarMode);
+  const searchOpen = useExplorer((s) => s.searchOpen);
+  const openSearch = useExplorer((s) => s.openSearch);
+  const closeSearch = useExplorer((s) => s.closeSearch);
   const view = useView((s) => s.mode);
   const setView = useView((s) => s.setMode);
   const revealPath = useExplorer((s) => s.revealPath);
@@ -121,13 +120,19 @@ export default function App() {
   const [paletteMode, setPaletteMode] = useState<"all" | "history">("all");
   const [runWorkflow, setRunWorkflow] = useState<Workflow | null>(null);
 
-  // global shortcuts: ⌘K palette, ⌘R run-recent, ⌘S save active editor file
+  // global shortcuts: ⌘K palette, ⌘R run-recent, ⌘F workspace search, ⌘S save
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setPaletteMode("all");
         setPaletteOpen((v) => !(v && paletteMode === "all"));
+      } else if ((e.metaKey || e.ctrlKey) && e.key === "f" && !e.shiftKey && !e.altKey) {
+        // Monaco owns find while an editor has focus — don't steal it
+        if ((e.target as HTMLElement | null)?.closest?.(".monaco-editor")) return;
+        e.preventDefault();
+        useView.getState().setMode("ide"); // search lives in the Files panel
+        useExplorer.getState().openSearch();
       } else if ((e.metaKey || e.ctrlKey) && e.key === "r") {
         e.preventDefault();
         setPaletteMode("history");
@@ -266,28 +271,19 @@ export default function App() {
         <Panel defaultSize="22%" minSize="160px" maxSize="45%" className="bg-surface">
           <div className="flex h-full flex-col">
             <Bar border="b" className="!gap-0">
-              <ModeTabs options={["files", "search", "git", "agent"] as const} value={sidebarMode} onChange={setSidebarMode} />
+              <span className="px-1 text-meta uppercase tracking-wider text-ink-500">Files</span>
               <span className="ml-auto flex items-center gap-0.5">
-                {sidebarMode === "files" && (
-                  <ActionMenu items={newMenu} title="New file or folder" iconPath="M8 3v10M3 8h10" />
-                )}
+                <ActionMenu items={newMenu} title="New file or folder" iconPath="M8 3v10M3 8h10" />
                 <IconButton
-                  title="Refresh"
-                  iconPath="M13 8a5 5 0 11-1.5-3.5M13 3v2.5h-2.5"
-                  onClick={() => queryClient.invalidateQueries({ queryKey: sidebarMode === "git" ? ["git"] : sidebarMode === "agent" ? ["zuzuu"] : ["dir"] })}
+                  title="Search workspace (⌘F)"
+                  iconPath="M10.5 10.5L14 14M7 12A5 5 0 117 2a5 5 0 010 10z"
+                  active={searchOpen}
+                  onClick={() => (searchOpen ? closeSearch() : openSearch())}
                 />
               </span>
             </Bar>
             <div className="min-h-0 flex-1">
-              {sidebarMode === "files" ? (
-                <FileTree />
-              ) : sidebarMode === "search" ? (
-                <SearchPanel />
-              ) : sidebarMode === "git" ? (
-                <GitPanel />
-              ) : (
-                <AgentPanel />
-              )}
+              {searchOpen ? <SearchPanel /> : <FileTree />}
             </div>
           </div>
         </Panel>
@@ -450,7 +446,7 @@ export default function App() {
             title="Reveal in file tree"
             onClick={() => {
               if (!activeTab.cwdLive!.outside && activeTab.cwdLive!.cwd) {
-                setSidebarMode("files");
+                closeSearch(); // make sure the tree is showing
                 revealPath(activeTab.cwdLive!.cwd);
               }
             }}
@@ -464,14 +460,10 @@ export default function App() {
 
         {/* git branch + dirty count */}
         {gitStatus.data?.repo && (
-          <button
-            onClick={() => setSidebarMode("git")}
-            className="shrink-0 hover:text-accent"
-            title="Source Control"
-          >
+          <span className="shrink-0" title="Git branch">
             ⎇ {gitStatus.data.branch}
             {dirtyCount > 0 && <span className="ml-1 text-warn">±{dirtyCount}</span>}
-          </button>
+          </span>
         )}
 
         <button

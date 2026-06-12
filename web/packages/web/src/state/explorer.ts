@@ -9,8 +9,6 @@ export interface PreviewTarget {
   size?: number;
 }
 
-export type SidebarMode = "files" | "search" | "git" | "agent";
-
 interface ExplorerState {
   /** workspace-relative paths of expanded dirs ("" = root, always expanded) */
   expanded: Set<string>;
@@ -18,8 +16,13 @@ interface ExplorerState {
   /** path of the tree row currently being inline-renamed */
   renaming: string | null;
   setRenaming: (path: string | null) => void;
-  sidebarMode: SidebarMode;
-  setSidebarMode: (mode: SidebarMode) => void;
+  /** search is a transient state of the Files panel: while open, the search
+   *  input + results replace the tree (Esc/✕ collapses back) */
+  searchOpen: boolean;
+  /** seed query handed off by the ⌘K palette (null = keep what's typed) */
+  searchSeed: string | null;
+  openSearch: (seed?: string) => void;
+  closeSearch: () => void;
   toggle: (path: string) => void;
   collapseAll: () => void;
   select: (path: string | null) => void;
@@ -38,8 +41,10 @@ export const useExplorer = create<ExplorerState>((set) => ({
   selected: null,
   renaming: null,
   setRenaming: (renaming) => set({ renaming }),
-  sidebarMode: "files",
-  setSidebarMode: (mode) => set({ sidebarMode: mode }),
+  searchOpen: false,
+  searchSeed: null,
+  openSearch: (seed) => set({ searchOpen: true, searchSeed: seed ?? null }),
+  closeSearch: () => set({ searchOpen: false, searchSeed: null }),
 
   toggle: (path) =>
     set((s) => {
@@ -82,5 +87,5 @@ export const useExplorer = create<ExplorerState>((set) => ({
       return { expanded, selected: path };
     }),
 
-  resetAll: () => set({ expanded: new Set<string>(), selected: null }),
+  resetAll: () => set({ expanded: new Set<string>(), selected: null, searchOpen: false, searchSeed: null }),
 }));

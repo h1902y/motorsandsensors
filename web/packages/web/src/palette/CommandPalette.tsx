@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Command } from "cmdk";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Workflow } from "@zuzuu-web/protocol";
 import { api } from "../lib/api";
 import { useSessions } from "../state/sessions";
@@ -26,8 +26,9 @@ export function CommandPalette({
   onRunWorkflow: (wf: Workflow) => void;
 }) {
   const [searchValue, setSearchValue] = useState("");
+  const queryClient = useQueryClient();
   const openPreviewPath = useExplorer((s) => s.openPreviewPath);
-  const setSidebarMode = useExplorer((s) => s.setSidebarMode);
+  const openSearch = useExplorer((s) => s.openSearch);
   const blockHistory = useBlocks((s) => s.history);
   const { tabs, activeId, setActive, create } = useSessions();
 
@@ -108,17 +109,7 @@ export function CommandPalette({
 
           {!historyOnly && searchValue.trim().length >= 2 && (
             <Command.Group heading="Search">
-              <Item
-                onSelect={() =>
-                  run(() => {
-                    setSidebarMode("search");
-                    // SearchPanel reads its own input; nudge via clipboard-free path:
-                    window.dispatchEvent(
-                      new CustomEvent("zuzuu-web:search", { detail: searchValue.trim() }),
-                    );
-                  })
-                }
-              >
+              <Item onSelect={() => run(() => openSearch(searchValue.trim()))}>
                 <Kind>search</Kind> "{searchValue.trim()}" in workspace
               </Item>
             </Command.Group>
@@ -186,6 +177,17 @@ export function CommandPalette({
                 onSelect={() => run(() => window.dispatchEvent(new Event("zuzuu-web:save-recording")))}
               >
                 <Kind>rec</Kind> Save session recording (.cast)
+              </Item>
+              <Item
+                value="refresh files reload tree"
+                onSelect={() =>
+                  run(() => {
+                    void queryClient.invalidateQueries({ queryKey: ["dir"] });
+                    void queryClient.invalidateQueries({ queryKey: ["files"] });
+                  })
+                }
+              >
+                <Kind>fs</Kind> Refresh files
               </Item>
             </Command.Group>
           )}
