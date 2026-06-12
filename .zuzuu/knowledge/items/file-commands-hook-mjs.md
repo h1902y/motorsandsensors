@@ -1,10 +1,10 @@
 ---
 id: file-commands-hook-mjs
-type: entity
-created_at: "2026-06-12T10:47:29Z"
+faculty: knowledge
+kind: entity
+title: "Hot file in this project: `zuzuu/commands/hook.mjs` (touched 11× across 6 sessio"
 status: active
-attributes:
-  path: zuzuu/commands/hook.mjs
+created_at: "2026-06-12T10:47:29Z"
 provenance:
   - session: 20410eef-3e0b-43c3-878f-5a15c016d2a5
     ref: "distill:hot-files"
@@ -16,5 +16,9 @@ provenance:
     ref: "distill:hot-files"
   - session: ae32be2f-7de0-4f9c-9775-8b4561a5112c
     ref: "distill:hot-files"
+payload:
+  type: entity
+  attributes:
+    path: zuzuu/commands/hook.mjs
 ---
 Hot file in this project: `zuzuu/commands/hook.mjs` (touched 11× across 6 sessions).
