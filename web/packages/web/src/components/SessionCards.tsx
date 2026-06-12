@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zuzuuApi, describeZuzuuError } from "../lib/zuzuu-api";
 import { mergeSessionWithFallback, refreshSessionGit } from "../lib/session-git-actions";
+import { startUtilityRun } from "../lib/agent-launch";
 import { buildHostRows } from "../faculties/host-launch";
 import type { EndCard } from "../lib/session-cards";
 import { Button, Spinner, confirm } from "./ui";
@@ -66,6 +67,43 @@ export function StartSessionCard({
           </button>
         ))}
       </div>
+    </Card>
+  );
+}
+
+/** No zuzuu home yet — onboarding takes the start card's slot in the center
+ *  pane. Both CTAs run the zuzuu CLI as a utility session (init / enable);
+ *  without the CLI on PATH the install banner replaces dead buttons. */
+export function SetupZuzuuCard({ zuzuuBin, onDismiss }: { zuzuuBin: boolean; onDismiss?: () => void }) {
+  return (
+    <Card {...(onDismiss ? { onDismiss } : {})}>
+      <div className="text-base font-medium text-ink-100">Set up zuzuu</div>
+      <p className="mt-1 text-ui leading-relaxed text-ink-400">
+        zuzuu sets up a hidden <code className="text-accent-dim">.zuzuu/</code> home in this project
+        (like <code className="text-accent-dim">.git</code>) where your agent&apos;s faculties —
+        knowledge, memory, actions, instructions, guardrails — live and grow from real sessions.
+      </p>
+      {zuzuuBin ? (
+        <div className="mt-4 flex flex-col items-start gap-3">
+          <Button variant="primary" onClick={() => void startUtilityRun(["init"])}>
+            Set up zuzuu
+          </Button>
+          <div className="text-meta text-ink-500">
+            then{" "}
+            <button
+              className="text-accent-dim underline decoration-dotted underline-offset-2 hover:text-accent"
+              onClick={() => void startUtilityRun(["enable"])}
+            >
+              Enable live capture
+            </button>{" "}
+            to observe sessions as they happen
+          </div>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-[var(--radius-sm)] border border-warn/40 bg-[color-mix(in_oklab,var(--color-warn)_10%,transparent)] px-3 py-2 text-ui text-warn">
+          zuzuu CLI required — <code>npm i -g @zuzuucodes/cli</code>
+        </div>
+      )}
     </Card>
   );
 }

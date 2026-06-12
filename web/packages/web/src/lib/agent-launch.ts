@@ -6,24 +6,21 @@
 // plain-terminal path: the workbench surfaces host sessions and zuzuu utility
 // runs only.
 import { useSessions } from "../state/sessions";
-import { useView } from "../state/view";
 import type { AgentSpawnSpec } from "../faculties/host-launch";
 
 /**
- * Start an agent session: direct-spawn the host, tab it, select it, switch to
- * the IDE view. Single-active-agent v1 rule: if an agent session is already
- * alive, focus it instead of spawning a second one.
+ * Start an agent session: direct-spawn the host, tab it, select it. Single-
+ * active-agent v1 rule: if an agent session is already alive, focus it
+ * instead of spawning a second one.
  */
 export async function startAgentSession(spec: AgentSpawnSpec): Promise<void> {
   const s = useSessions.getState();
   const alive = s.tabs.find((t) => t.type === "agent" && t.alive);
   if (alive) {
     s.setActive(alive.id);
-    useView.getState().setMode("ide");
     return;
   }
   await s.create({ type: "agent", command: spec.command, args: spec.args, host: spec.host });
-  useView.getState().setMode("ide");
 }
 
 /**
@@ -35,5 +32,4 @@ export async function startAgentSession(spec: AgentSpawnSpec): Promise<void> {
  */
 export async function startUtilityRun(args: string[]): Promise<void> {
   await useSessions.getState().create({ type: "agent", command: "zuzuu", args, host: "zuzuu" });
-  useView.getState().setMode("ide");
 }

@@ -10,7 +10,6 @@ import { FileTree } from "./explorer/FileTree";
 import { SearchPanel } from "./explorer/SearchPanel";
 import { agentChipLabel } from "./faculties/agent-chip";
 import { TermView } from "./term/TermView";
-import { EditorPane } from "./editor/EditorPane";
 import { useEditor } from "./state/editor";
 import { useBlocks } from "./state/blocks";
 import { CommandPalette } from "./palette/CommandPalette";
@@ -20,14 +19,13 @@ import { useConnection } from "./state/connection";
 import { DisconnectedBanner } from "./DisconnectedBanner";
 import { WelcomeOverlay } from "./onboarding/WelcomeOverlay";
 import { VaultPicker } from "./onboarding/VaultPicker";
-import { Bar, ModeTabs, Tab, TabBar, IconButton, StatusDot, DialogHost, prompt, ActionMenu, type MenuItem } from "./components/ui";
+import { Bar, Tab, TabBar, IconButton, StatusDot, DialogHost, prompt, ActionMenu, type MenuItem } from "./components/ui";
 import { SessionIndicator } from "./components/SessionIndicator";
-import { StartSessionCard, RecoveryCard } from "./components/SessionCards";
+import { StartSessionCard, RecoveryCard, SetupZuzuuCard } from "./components/SessionCards";
 import { centerCard } from "./lib/session-cards";
 import { agentTabTitle, hostSpawnSpec } from "./faculties/host-launch";
 import { startAgentSession } from "./lib/agent-launch";
-import { useView } from "./state/view";
-import { FacultiesView } from "./faculties/FacultiesView";
+import { RightPanel } from "./panel/RightPanel";
 import { ReviewFlow } from "./faculties/ReviewFlow";
 import { useReviewOpen } from "./state/review";
 import { pendingReviewCount } from "./faculties/review-queue";
@@ -112,15 +110,14 @@ export default function App() {
     fsEvents.watch(".zuzuu/.live");
   }, [workspace.data, queryClient]);
 
-  const hasEditor = useEditor((s) => s.openFiles.length > 0);
   const saveActive = useEditor((s) => s.saveActive);
   const searchOpen = useExplorer((s) => s.searchOpen);
   const openSearch = useExplorer((s) => s.openSearch);
   const closeSearch = useExplorer((s) => s.closeSearch);
-  const view = useView((s) => s.mode);
-  const setView = useView((s) => s.setMode);
   const revealPath = useExplorer((s) => s.revealPath);
   const activeTab = tabs.find((t) => t.id === activeId);
+  // the right panel collapses to a thin rail (the chevron lives in the panel header)
+  const [rightCollapsed, setRightCollapsed] = useState(false);
 
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteMode, setPaletteMode] = useState<"all" | "history">("all");
@@ -157,8 +154,7 @@ export default function App() {
         // Monaco owns find while an editor has focus — don't steal it
         if ((e.target as HTMLElement | null)?.closest?.(".monaco-editor")) return;
         e.preventDefault();
-        useView.getState().setMode("ide"); // search lives in the Files panel
-        useExplorer.getState().openSearch();
+        useExplorer.getState().openSearch(); // search lives in the Files panel
       } else if ((e.metaKey || e.ctrlKey) && e.key === "r") {
         e.preventDefault();
         setPaletteMode("history");
@@ -293,9 +289,7 @@ export default function App() {
   return (
     <div className="flex h-full flex-col">
       <DisconnectedBanner state={conn.state} />
-      {view === "faculties" ? (
-        <FacultiesView />
-      ) : (
+      <div className="flex min-h-0 flex-1">
       <Group orientation="horizontal" className="min-h-0 flex-1">
         <Panel defaultSize="22%" minSize="160px" maxSize="45%" className="bg-surface">
           <div className="flex h-full flex-col">
@@ -368,6 +362,12 @@ export default function App() {
               <div className="absolute inset-0 z-30 flex items-center justify-center bg-app/90 p-6">
                 {card.kind === "recovery" ? (
                   <RecoveryCard branch={card.branch} checkpoints={card.checkpoints} />
+                ) : zuzuuHealth.data?.home === false ? (
+                  // onboarding takes the start card's slot until a home exists
+                  <SetupZuzuuCard
+                    zuzuuBin={zuzuuHealth.data.zuzuuBin}
+                    {...(tabs.length > 0 ? { onDismiss: () => setStartOverlay(false) } : {})}
+                  />
                 ) : (
                   <StartSessionCard
                     onHost={startHost}
@@ -378,23 +378,32 @@ export default function App() {
             )}
           </div>
         </Panel>
-        {hasEditor && (
+        {/* the right panel: editor (files mode) or the faculties surface */}
+        {!rightCollapsed && (
           <>
             <Separator className="w-px bg-border transition-colors hover:bg-accent-dim" />
-            <Panel id="editor" defaultSize="42%" minSize="280px" className="min-w-0">
-              <EditorPane />
+            <Panel id="right" defaultSize="30%" minSize="280px" className="min-w-0">
+              <RightPanel
+                zuzuuHome={zuzuuHome}
+                zuzuuBin={zuzuuHealth.data?.zuzuuBin ?? true}
+                onCollapse={() => setRightCollapsed(true)}
+              />
             </Panel>
           </>
         )}
       </Group>
+      {rightCollapsed && (
+        <button
+          onClick={() => setRightCollapsed(false)}
+          title="Show panel"
+          className="flex w-6 shrink-0 items-center justify-center border-l border-border bg-surface text-ink-500 transition-colors hover:text-accent"
+        >
+          ‹
+        </button>
       )}
+      </div>
       {/* status bar */}
       <Bar border="t" surface="surface" className="relative !gap-2.5 text-meta text-ink-500">
-        <ModeTabs
-          options={["code", "faculties"] as const}
-          value={view === "faculties" ? "faculties" : "code"}
-          onChange={(v) => setView(v === "faculties" ? "faculties" : "ide")}
-        />
         {/* zuzuu agent chip — active generation · pending review; opens the ceremony */}
         {zuzuuHome && (
           <button

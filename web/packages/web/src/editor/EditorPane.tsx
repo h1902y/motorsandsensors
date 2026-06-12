@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { categorize } from "../preview/filetypes";
 import { useEditor, editorTabId, type OpenFile } from "../state/editor";
 import { MediaViewer, MarkdownPreview } from "./MediaViewer";
@@ -16,7 +16,7 @@ function EditorFallback() {
 
 const EDITABLE = new Set(["code", "markdown"]);
 
-export function EditorPane() {
+export function EditorPane({ leading }: { leading?: ReactNode }) {
   const openFiles = useEditor((s) => s.openFiles);
   const activePath = useEditor((s) => s.activePath);
   const buffers = useEditor((s) => s.buffers);
@@ -29,6 +29,7 @@ export function EditorPane() {
   return (
     <div className="flex h-full min-w-0 flex-col bg-surface">
       <Bar border="b" surface="surface" className="!gap-0 overflow-x-auto !px-0">
+        {leading}
         <TabBar>
           {openFiles.map((f) => {
             const id = editorTabId(f);
