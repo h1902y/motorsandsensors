@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, chmodSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { runZuzuu, createZuzuuApi } from "../src/zuzuu-api.js";
+import { runZuzuu, runZuzuuMut, createZuzuuApi } from "../src/zuzuu-api.js";
 
 let root: string;
 // realpath the temp root: resolveSafe requires an already-realpath'd root (the
@@ -32,6 +32,14 @@ function jsonStub(r: string, payload: string) {
   return stub;
 }
 
+/** A stub that exits non-zero after writing to stderr. */
+function failStub(r: string, msg = "boom: faculty not found") {
+  const stub = path.join(r, "zuzuu-fail.sh");
+  writeFileSync(stub, `#!/bin/sh\necho '${msg}' >&2\nexit 1\n`);
+  chmodSync(stub, 0o755);
+  return stub;
+}
+
 describe("runZuzuu", () => {
   it("returns null when the binary is absent", async () => {
     const out = await runZuzuu(root, ["status"], { binary: "definitely-not-a-real-binary-zzz" });
@@ -41,6 +49,32 @@ describe("runZuzuu", () => {
     const stub = jsonStub(root, '{"ok":true}');
     const out = await runZuzuu(root, ["status"], { binary: stub });
     expect(out).toEqual({ ok: true });
+  });
+});
+
+describe("runZuzuuMut", () => {
+  it("absent binary → {ok:false, code:'absent'}", async () => {
+    const r = await runZuzuuMut(root, ["proposals", "approve", "p1"], { binary: "definitely-not-a-real-binary-zzz" });
+    expect(r).toEqual({ ok: false, code: "absent" });
+  });
+  it("stub success → {ok:true, data} with parsed stdout JSON", async () => {
+    const stub = jsonStub(root, '{"ok":true,"action":"approve","itemIds":["k2"],"warnings":[]}');
+    const r = await runZuzuuMut(root, ["proposals", "approve", "p1"], { binary: stub });
+    expect(r).toEqual({ ok: true, data: { ok: true, action: "approve", itemIds: ["k2"], warnings: [] } });
+  });
+  it("non-zero exit → {ok:false, code:'failed'} with stderr tail", async () => {
+    const stub = failStub(root, "no such proposal: p9");
+    const r = await runZuzuuMut(root, ["proposals", "approve", "p9"], { binary: stub });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("failed");
+      expect(r.stderr).toMatch(/no such proposal: p9/);
+    }
+  });
+  it("unparseable stdout on exit 0 → 'failed'", async () => {
+    const stub = jsonStub(root, "not json at all");
+    const r = await runZuzuuMut(root, ["generation", "mint"], { binary: stub });
+    expect(r).toMatchObject({ ok: false, code: "failed" });
   });
 });
 

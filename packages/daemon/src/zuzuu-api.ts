@@ -39,6 +39,46 @@ export function runZuzuu(root: string, args: string[], opts: RunOpts = {}): Prom
   });
 }
 
+export type ZuzuuMutResult =
+  | { ok: true; data: unknown }
+  | { ok: false; code: "absent" | "failed"; stderr?: string };
+
+const STDERR_TAIL = 2048;
+
+/** Spawn `zuzuu <args> --json` for a MUTATION. Unlike runZuzuu, failures are
+ *  distinguished: binary absent vs command failed (with a stderr tail), so
+ *  routes can answer 503 vs 502. Stdout must parse as JSON on success. */
+export function runZuzuuMut(root: string, args: string[], opts: RunOpts = {}): Promise<ZuzuuMutResult> {
+  const binary = opts.binary ?? "zuzuu";
+  const timeoutMs = opts.timeoutMs ?? 10_000;
+  return new Promise((resolve) => {
+    let out = "";
+    let err = "";
+    let done = false;
+    const finish = (v: ZuzuuMutResult) => { if (!done) { done = true; resolve(v); } };
+    let child;
+    try {
+      child = spawn(binary, [...args, "--json"], { cwd: root, stdio: ["ignore", "pipe", "pipe"] });
+    } catch { finish({ ok: false, code: "absent" }); return; }
+    const timer = setTimeout(() => {
+      try { child!.kill(); } catch { /* noop */ }
+      finish({ ok: false, code: "failed", stderr: "zuzuu timed out" });
+    }, timeoutMs);
+    child.stdout?.on("data", (b) => { out += b.toString(); });
+    child.stderr?.on("data", (b) => {
+      err += b.toString();
+      if (err.length > STDERR_TAIL) err = err.slice(-STDERR_TAIL);
+    });
+    child.on("error", () => { clearTimeout(timer); finish({ ok: false, code: "absent" }); });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) return finish({ ok: false, code: "failed", stderr: err.slice(-STDERR_TAIL) });
+      try { finish({ ok: true, data: JSON.parse(out) }); }
+      catch { finish({ ok: false, code: "failed", stderr: "unparseable JSON from zuzuu" }); }
+    });
+  });
+}
+
 /** Best-effort: is the zuzuu binary runnable? */
 function binAvailable(binary: string): boolean {
   try {
