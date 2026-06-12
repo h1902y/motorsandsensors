@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export interface MenuItem {
   label: string;
@@ -17,7 +18,9 @@ export interface MenuItem {
 /**
  * A single ⋯ overflow button that opens a popover of actions. The same item
  * set can also be opened by right-clicking the host element (see useContextMenu).
- * Closes on outside-click and Escape.
+ * Opens on click; closes on item click, outside-click, Escape, or scroll —
+ * never on mouseleave. While open the button carries `data-menu-open` so
+ * hover-revealed hosts (file-tree rows) can keep it visible.
  */
 export function ActionMenu({
   items,
@@ -34,10 +37,13 @@ export function ActionMenu({
   iconPath?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const btnRef = useRef<HTMLButtonElement>(null);
   return (
     <div className="relative">
       <button
+        ref={btnRef}
         title={title}
+        data-menu-open={open || undefined}
         onClick={(e) => {
           e.stopPropagation();
           setOpen((v) => !v);
@@ -56,54 +62,113 @@ export function ActionMenu({
           </svg>
         )}
       </button>
-      {open && <MenuPopover items={items} onClose={() => setOpen(false)} anchor="button" align={align} />}
+      {open && (
+        <MenuPopover items={items} onClose={() => setOpen(false)} anchorEl={btnRef.current} ignore={btnRef} align={align} />
+      )}
     </div>
   );
 }
 
-/** The floating menu list. `anchor="button"` positions under a ⋯; coords position at a point. */
+const VIEWPORT_PAD = 8;
+const ANCHOR_GAP = 4;
+
+/**
+ * The floating menu list. Renders into a portal on <body> with fixed
+ * positioning so it can never be clipped or painted over by transformed /
+ * scrolling ancestors (the virtualized file-tree rows each create a stacking
+ * context via translateY — an inline absolute menu loses to later siblings).
+ *
+ * Anchor either to an element (`anchorEl` — a ⋯ button / dropdown trigger;
+ * the menu opens under it, flipping above when out of room) or to a point
+ * (`x`/`y` — context menus). Closes on outside-click, Escape, scroll, resize.
+ */
 export function MenuPopover({
   items,
   onClose,
-  anchor = "button",
   align = "right",
   x,
   y,
+  anchorEl,
+  ignore,
 }: {
   items: MenuItem[];
   onClose: () => void;
-  anchor?: "button" | "point";
   align?: "left" | "right";
+  /** point anchor (context menus) — viewport coordinates */
   x?: number;
   y?: number;
+  /** element anchor — the menu opens under this element */
+  anchorEl?: HTMLElement | null;
+  /** mousedowns inside this element don't count as outside-clicks (lets the trigger's own click toggle the menu closed) */
+  ignore?: React.RefObject<HTMLElement | null>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+
+  // measure after first paint, then place clamped inside the viewport
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const mw = el.offsetWidth;
+    const mh = el.offsetHeight;
+    let left: number;
+    let top: number;
+    if (anchorEl) {
+      const r = anchorEl.getBoundingClientRect();
+      left = align === "left" ? r.left : r.right - mw;
+      top = r.bottom + ANCHOR_GAP;
+      // not enough room below → flip above the anchor
+      if (top + mh > window.innerHeight - VIEWPORT_PAD) top = r.top - ANCHOR_GAP - mh;
+    } else {
+      left = x ?? 0;
+      top = y ?? 0;
+    }
+    left = Math.max(VIEWPORT_PAD, Math.min(left, window.innerWidth - VIEWPORT_PAD - mw));
+    top = Math.max(VIEWPORT_PAD, Math.min(top, window.innerHeight - VIEWPORT_PAD - mh));
+    setPos({ left, top });
+  }, [anchorEl, align, x, y]);
+
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      const t = e.target as Node;
+      if (ref.current?.contains(t)) return;
+      if (ignore?.current?.contains(t)) return; // let the trigger's click toggle
+      onClose();
     };
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
+    // the menu is fixed-positioned: any scroll underneath would leave it
+    // floating at a stale spot — close instead (native-menu behavior)
+    const onScroll = (e: Event) => {
+      if (e.target instanceof Node && ref.current?.contains(e.target)) return;
+      onClose();
+    };
     window.addEventListener("mousedown", onDown, true);
     window.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onClose);
     return () => {
       window.removeEventListener("mousedown", onDown, true);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onClose);
     };
-  }, [onClose]);
+  }, [onClose, ignore]);
 
-  const positioned =
-    anchor === "point"
-      ? ({ position: "fixed", left: x, top: y, boxShadow: "var(--shadow-menu)" } as const)
-      : ({ position: "absolute", [align]: 0, top: "100%", boxShadow: "var(--shadow-menu)" } as const);
-
-  return (
+  return createPortal(
     <div
       ref={ref}
-      style={positioned}
+      role="menu"
+      style={{
+        position: "fixed",
+        left: pos?.left ?? 0,
+        top: pos?.top ?? 0,
+        visibility: pos ? undefined : "hidden",
+        boxShadow: "var(--shadow-menu)",
+      }}
       onClick={(e) => e.stopPropagation()}
-      className="z-[80] mt-1 min-w-44 overflow-hidden rounded-[var(--radius-ui)] border border-border bg-elevated py-1"
+      className="z-[80] min-w-44 overflow-hidden rounded-[var(--radius-ui)] border border-border bg-elevated py-1"
     >
       {items.map((item, i) => (
         <div key={item.label}>
@@ -134,7 +199,8 @@ export function MenuPopover({
           </button>
         </div>
       ))}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -149,8 +215,6 @@ export function useContextMenu(items: MenuItem[]) {
     e.stopPropagation();
     setPt({ x: e.clientX, y: e.clientY });
   };
-  const menu = pt ? (
-    <MenuPopover items={items} anchor="point" x={pt.x} y={pt.y} onClose={() => setPt(null)} />
-  ) : null;
+  const menu = pt ? <MenuPopover items={items} x={pt.x} y={pt.y} onClose={() => setPt(null)} /> : null;
   return { onContextMenu, menu };
 }

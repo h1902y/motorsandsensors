@@ -278,7 +278,10 @@ export function FileTree() {
                     className="ml-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent"
                   />
                 )}
-                <span className="ml-auto hidden shrink-0 group-hover:block">
+                {/* hover-revealed, but kept visible while its menu is open
+                    (the menu itself portals to <body>, so it survives the
+                    pointer leaving this row) */}
+                <span className="ml-auto hidden shrink-0 group-hover:block has-[[data-menu-open]]:block">
                   <ActionMenu items={rowActions(row)} />
                 </span>
               </div>
@@ -290,7 +293,7 @@ export function FileTree() {
         )}
       </div>
       {ctxMenu && (
-        <MenuPopover items={ctxMenu.items} anchor="point" x={ctxMenu.x} y={ctxMenu.y} onClose={() => setCtxMenu(null)} />
+        <MenuPopover items={ctxMenu.items} x={ctxMenu.x} y={ctxMenu.y} onClose={() => setCtxMenu(null)} />
       )}
     </div>
   );

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { Block, BlockTracker } from "./blocks";
 import { MenuPopover, type MenuItem } from "../components/ActionMenu";
@@ -34,6 +34,9 @@ interface Props {
 
 export function BlockGutter({ term, tracker, host, tick, onReRun, onSaveWorkflow, send }: Props) {
   const [hovered, setHovered] = useState<number | null>(null);
+  // the block whose ⋯ menu is open — keeps its BlockActions mounted even
+  // after the pointer leaves the strip (the menu itself portals to <body>)
+  const [menuFor, setMenuFor] = useState<number | null>(null);
   void tick; // re-render dependency
   const metrics = readMetrics(term, host);
   if (!metrics) return null;
@@ -65,16 +68,18 @@ export function BlockGutter({ term, tracker, host, tick, onReRun, onSaveWorkflow
             onMouseLeave={() => setHovered((h) => (h === block.id ? null : h))}
           >
             <div className={`h-full w-full rounded-r ${color}`} />
-            {hovered === block.id && block.command && (
+            {(hovered === block.id || menuFor === block.id) && block.command && (
               <BlockActions
                 block={block}
+                menuOpen={menuFor === block.id}
+                onMenuOpenChange={(open) => setMenuFor(open ? block.id : null)}
                 onCopy={() => void navigator.clipboard.writeText(tracker.outputText(block))}
                 onReRun={() => onReRun(block.command)}
                 onSaveWorkflow={() => onSaveWorkflow(block.command)}
                 onFix={() => block.fix?.run(send)}
               />
             )}
-            {block.fix && hovered !== block.id && (
+            {block.fix && hovered !== block.id && menuFor !== block.id && (
               <button
                 onClick={() => block.fix!.run(send)}
                 onMouseDown={(e) => e.preventDefault()}
@@ -93,18 +98,22 @@ export function BlockGutter({ term, tracker, host, tick, onReRun, onSaveWorkflow
 
 function BlockActions({
   block,
+  menuOpen,
+  onMenuOpenChange,
   onCopy,
   onReRun,
   onSaveWorkflow,
   onFix,
 }: {
   block: Block;
+  menuOpen: boolean;
+  onMenuOpenChange: (open: boolean) => void;
   onCopy: () => void;
   onReRun: () => void;
   onSaveWorkflow: () => void;
   onFix: () => void;
 }) {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
   const items: MenuItem[] = [
     { label: "Copy output", iconPath: "M6 6h7v7H6zM3 10V3h7", onClick: onCopy },
     { label: "Re-run", iconPath: "M13 8a5 5 0 11-1.5-3.5M13 3v2.5h-2.5", onClick: onReRun },
@@ -132,7 +141,8 @@ function BlockActions({
       )}
       <div className="relative">
         <button
-          onClick={() => setMenuOpen((v) => !v)}
+          ref={menuBtnRef}
+          onClick={() => onMenuOpenChange(!menuOpen)}
           title="Block actions"
           className="rounded px-0.5 text-ink-400 hover:bg-hover hover:text-ink-100"
         >
@@ -142,7 +152,9 @@ function BlockActions({
             <circle cx="13" cy="8" r="1.3" />
           </svg>
         </button>
-        {menuOpen && <MenuPopover items={items} onClose={() => setMenuOpen(false)} anchor="button" />}
+        {menuOpen && (
+          <MenuPopover items={items} onClose={() => onMenuOpenChange(false)} anchorEl={menuBtnRef.current} ignore={menuBtnRef} />
+        )}
       </div>
     </div>
   );

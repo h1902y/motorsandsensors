@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { zuzuuApi } from "../lib/zuzuu-api";
 import { launchInTerminal } from "../lib/agent-launch";
@@ -10,6 +10,7 @@ import { buildHostRows } from "./host-launch";
 export function StartAgentButton({ size = "md" }: { size?: "sm" | "md" }) {
   const hostsQ = useQuery({ queryKey: ["zuzuu", "hosts"], queryFn: zuzuuApi.hosts, refetchInterval: 8000 });
   const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
 
   const items: MenuItem[] = buildHostRows(hostsQ.data?.hosts ?? []).map((row) => ({
     label: row.label,
@@ -19,11 +20,11 @@ export function StartAgentButton({ size = "md" }: { size?: "sm" | "md" }) {
   }));
 
   return (
-    <div className="relative">
+    <div className="relative" ref={wrapRef}>
       <Button variant="primary" size={size} onClick={() => setOpen((v) => !v)}>
         Start agent session <span className="opacity-70">▾</span>
       </Button>
-      {open && <MenuPopover items={items} align="left" onClose={() => setOpen(false)} />}
+      {open && <MenuPopover items={items} align="left" anchorEl={wrapRef.current} ignore={wrapRef} onClose={() => setOpen(false)} />}
     </div>
   );
 }
