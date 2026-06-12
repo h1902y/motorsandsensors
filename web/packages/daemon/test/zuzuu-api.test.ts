@@ -197,6 +197,9 @@ const MUTATIONS: [string, unknown, Record<string, unknown>][] = [
   ["/actions/my-slug/reject", {}, { ok: true, action: "reject", slug: "my-slug" }],
   ["/generation/mint", { from: ["p1", "p2"] }, { id: "gen_002", mintedFrom: ["p1", "p2"], forkedFrom: "gen_001" }],
   ["/generation/gen_001/rollback", {}, { ok: true, restored: 3, active: "gen_001" }],
+  ["/session/merge", {}, { ok: true, mergedAs: "abc12345", mergedTo: "main", commits: 2, branch: "zz/session-ab" }],
+  ["/session/continue", {}, { ok: true, branch: "zz/session-ab" }],
+  ["/session/discard", {}, { ok: true, branch: "zz/session-ab" }],
 ];
 
 describe("createZuzuuApi mutation routes", () => {
@@ -303,6 +306,38 @@ describe("createZuzuuApi mutation routes", () => {
     expect(existsSync(marker)).toBe(false);
     const ok = createZuzuuApi(() => root, { binary: jsonStub(root, '{"id":"gen_002","mintedFrom":[],"forkedFrom":null}') });
     expect((await post(ok, "/generation/mint")).status).toBe(200);
+  });
+});
+
+describe("createZuzuuApi session-git routes", () => {
+  it("GET /session proxies zuzuu session status --json", async () => {
+    fixtureHome(root);
+    const payload = {
+      enabled: true,
+      mainBranch: "main",
+      active: { branch: "zz/session-ab", checkpoints: 2, dirty: false, noNetChanges: false },
+      onSessionBranch: true,
+    };
+    const app = createZuzuuApi(() => root, { binary: jsonStub(root, JSON.stringify(payload)) });
+    const res = await app.request("/session");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(payload);
+  });
+  it("GET /session → {enabled:false, cliAbsent:true} when zuzuu is absent", async () => {
+    fixtureHome(root);
+    const app = createZuzuuApi(() => root, { binary: "definitely-not-a-real-binary-zzz" });
+    expect(await (await app.request("/session")).json()).toEqual({ enabled: false, cliAbsent: true });
+  });
+  it("POST /session/discard always rides --yes (the SPA confirm is the gate)", async () => {
+    fixtureHome(root);
+    // argv-echo stub: shows exactly what reached the CLI
+    const stub = path.join(root, "zuzuu-argv2.sh");
+    writeFileSync(stub, `#!/bin/sh\nprintf '{"argv":"'\nprintf '%s|' "$@"\nprintf '"}'\n`);
+    chmodSync(stub, 0o755);
+    const app = createZuzuuApi(() => root, { binary: stub });
+    const res = await post(app, "/session/discard");
+    expect(res.status).toBe(200);
+    expect((await res.json()).argv).toBe("session|discard|--yes|--json|");
   });
 });
 

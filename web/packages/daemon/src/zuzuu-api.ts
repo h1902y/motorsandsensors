@@ -283,6 +283,20 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
     return mutate(c, ["generation", "rollback", id]);
   });
 
+  // ── Session-git (the invisible zz/session-* branch) — CLI-only, no
+  // file-read fallback: branch state lives in git, only the CLI computes it.
+
+  app.get("/session", async (c) => {
+    const viaCli = await runZuzuu(root, ["session", "status"], { binary: opts.binary });
+    if (viaCli) return c.json(viaCli);
+    return c.json({ enabled: false, cliAbsent: true });
+  });
+
+  app.post("/session/merge", (c) => mutate(c, ["session", "merge"]));
+  app.post("/session/continue", (c) => mutate(c, ["session", "continue"]));
+  // --yes rides server-side: the SPA's confirm dialog is the human gate
+  app.post("/session/discard", (c) => mutate(c, ["session", "discard", "--yes"]));
+
   app.get("/eval", async (c) => {
     const viaCli = await runZuzuu(root, ["eval"], { binary: opts.binary });
     if (viaCli) return c.json(viaCli);

@@ -121,6 +121,24 @@ export interface RollbackResult {
 
 // ── Session-git (invisible session branch: agent session = zz/session-*) ──
 
+export interface SessionGitActive {
+  branch: string;
+  checkpoints: number;
+  dirty: boolean;
+  /** checkpoints exist but the tree equals main (exploration-only session) */
+  noNetChanges: boolean;
+}
+
+/** GET /api/zuzuu/session — `zuzuu session status --json`;
+ *  cliAbsent:true when the zuzuu CLI wasn't runnable. */
+export interface SessionGitStatus {
+  enabled: boolean;
+  mainBranch?: string | null;
+  active?: SessionGitActive | null;
+  onSessionBranch?: boolean;
+  cliAbsent?: boolean;
+}
+
 /** `zuzuu session merge --json` (also the agent-exit auto-merge). */
 export interface SessionMergeResult {
   ok: boolean;
