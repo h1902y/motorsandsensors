@@ -4,31 +4,36 @@
 // I/O-free: callers (the CLI + the SessionStart hook) handle output. Every
 // reader is wrapped so a single broken faculty never sinks the whole digest.
 
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { allItems } from './knowledge/items.mjs';
 import { listProposals } from './knowledge/proposals.mjs';
 import { loadRules } from './guardrails.mjs';
 import { allActions } from './actions/manifest.mjs';
+import { listFacultyItems } from './faculty/items.mjs';
 
 const PLACEHOLDER_MARK = '<!-- Fill in:';
 
-/** Read instructions/project.md; classify empty vs steering text. */
+/** Read the instructions items (steering first, then amendments); classify
+ *  empty vs steering text. Items are Faculty Standard envelopes (W24). */
 function readInstructions(agentDir) {
-  const path = join(agentDir, 'instructions', 'project.md');
-  let raw = '';
+  let items = [];
   try {
-    raw = readFileSync(path, 'utf8');
+    items = listFacultyItems(agentDir, 'instructions').items;
   } catch { /* missing or unreadable → treat as empty */ }
-  const stripped = raw.replace(/^#.*$/gm, '').trim();
-  const empty = !stripped || raw.includes(PLACEHOLDER_MARK);
-  return { empty, text: empty ? '' : raw.trim() };
+  // steering pins the top; amendments follow in id order (already sorted)
+  items.sort((a, b) => (a.kind === 'steering' ? -1 : 1) - (b.kind === 'steering' ? -1 : 1));
+  const bodies = items
+    .map((i) => String(i.body ?? ''))
+    .map((raw) => (raw.includes(PLACEHOLDER_MARK) ? '' : raw.replace(/^#.*$/gm, '').trim() && raw.trim()))
+    .filter(Boolean);
+  const text = bodies.join('\n\n');
+  return { empty: !text, text };
 }
 
 const INTERVIEW = [
   'Project steering is empty. Before substantive work, interview your human',
-  '(what is this project, its conventions, its priorities), draft',
-  '.zuzuu/instructions/project.md from their answers, and get their approval.',
+  '(what is this project, its conventions, its priorities), draft the steering item',
+  '.zuzuu/instructions/items/steering.md from their answers, and get their approval.',
 ].join(' ');
 
 function knowledgeSection(agentDir, limit) {
@@ -64,10 +69,10 @@ function actionsSection(agentDir, limit) {
 
 function guardrailsSection(agentDir) {
   try {
-    const loaded = loadRules(join(agentDir, 'guardrails', 'rules.json'));
-    return { ok: loaded.ok, count: loaded.ok ? loaded.rules.length : 0 };
+    const loaded = loadRules(join(agentDir, 'guardrails'));
+    return { ok: loaded.ok, count: loaded.ok ? loaded.rules.length : 0, skipped: loaded.skipped?.length ?? 0 };
   } catch {
-    return { ok: false, count: 0 };
+    return { ok: false, count: 0, skipped: 0 };
   }
 }
 

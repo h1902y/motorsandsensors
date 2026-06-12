@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 
 import { miner, aggregate, propose, escapeRegex } from '../../zuzuu/miners/guardrails.mjs';
 import * as registry from '../../zuzuu/miners/registry.mjs';
+import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -231,9 +232,9 @@ test('propose: idempotent — second call returns 0', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Test 9: propose skips id already present in rules.json
+// Test 9: propose skips id already live as a rule item
 
-test('propose: skips if the rule id already exists in rules.json', () => {
+test('propose: skips if the rule id already exists as a live rule item', () => {
   const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-guard-rules-skip-'));
   const cmd = 'rm -rf /data';
   const sessions = [
@@ -243,23 +244,17 @@ test('propose: skips if the rule id already exists in rules.json', () => {
   const cands = aggregate(sessions);
   assert.equal(cands.length, 1);
 
-  // Pre-populate rules.json with the same rule id
-  const guardrailsDir = join(agentDir, 'guardrails');
-  mkdirSync(guardrailsDir, { recursive: true });
-  const existingRule = {
-    id: cands[0].payload.id,
-    action: 'ask',
-    tool: 'Bash',
-    pattern: 'something',
-    reason: 'pre-existing',
-  };
-  writeFileSync(
-    join(guardrailsDir, 'rules.json'),
-    JSON.stringify({ version: 1, rules: [existingRule] }, null, 2)
-  );
+  // Pre-populate guardrails/items/ with the same rule id
+  const itemsDir = join(agentDir, 'guardrails', 'items');
+  mkdirSync(itemsDir, { recursive: true });
+  writeFileSync(join(itemsDir, `${cands[0].payload.id}.md`), serializeEnvelope({
+    id: cands[0].payload.id, faculty: 'guardrails', kind: 'rule', title: 'pre-existing',
+    status: 'active', created_at: '2026-06-12T00:00:00Z',
+    payload: { action: 'ask', tool: 'Bash', pattern: 'something', reason: 'pre-existing' }, body: '',
+  }));
 
   const n = propose(agentDir, cands);
-  assert.equal(n, 0, 'skipped because rule id already in rules.json');
+  assert.equal(n, 0, 'skipped because rule id already live as an item');
 });
 
 // ---------------------------------------------------------------------------

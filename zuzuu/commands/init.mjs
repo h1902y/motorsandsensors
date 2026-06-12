@@ -16,7 +16,7 @@ import { applyScaffold, ensureGitignore, homeExists } from '../scaffold.mjs';
 import { injectBlock, facultiesBlock, hasBlock, BLOCK_VERSION } from '../inject.mjs';
 import { detected } from '../capture/adapters/registry.mjs';
 import { repoRoot } from '../store.mjs';
-import { migrateHome } from './migrate.mjs';
+import { migrateHome, migrateItems, needsItemsMigration } from './migrate.mjs';
 
 const HOST_FILES = ['CLAUDE.md', 'AGENTS.md', 'GEMINI.md'];
 // dotfiles/dirs that don't make a directory "a project" for emptiness purposes
@@ -77,6 +77,19 @@ export function init(args = {}) {
   try {
     if (migrateHome(cwd).migrated) {
       console.log('Migrated agent/ → .zuzuu/ (the faculty home is hidden now, like .git; transparency via `zuzuu status` / `digest` / `explain`)');
+    }
+  } catch { /* fail-open */ }
+
+  // One-shot items migration (W24): pre-standard faculty shapes (rules.json /
+  // project.md / action.json / legacy item frontmatter) become Faculty Standard
+  // envelopes. Gated on detection, idempotent, fail-open — like migrateHome.
+  try {
+    const home = join(cwd, '.zuzuu');
+    if (existsSync(home) && needsItemsMigration(home)) {
+      const r = migrateItems(home);
+      const total = r.knowledge + r.memory + r.guardrails + r.actions + r.instructions;
+      if (total) console.log(`Migrated ${total} faculty item(s) to the envelope standard (knowledge ${r.knowledge} · memory ${r.memory} · guardrails ${r.guardrails} · actions ${r.actions} · instructions ${r.instructions})`);
+      for (const e of r.errors) console.log(`  ✗ ${e.file}: ${e.error} — left in place; fix and rerun \`zuzuu migrate --items\``);
     }
   } catch { /* fail-open */ }
 

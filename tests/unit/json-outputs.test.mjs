@@ -10,6 +10,12 @@ import { inboxData } from '../../zuzuu/commands/inbox.mjs';
 import { generationListData, generationShowData, mintGenerationData, rollbackData } from '../../zuzuu/commands/generation.mjs';
 import { evalData } from '../../zuzuu/commands/eval.mjs';
 import { proposalsListData, approveData, rejectData } from '../../zuzuu/commands/review.mjs';
+import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+
+const actionMd = (slug, snippet) => serializeEnvelope({
+  id: slug, faculty: 'actions', kind: 'script', title: slug, status: 'active',
+  created_at: '2026-06-12T00:00:00Z', payload: { exec: 'run.mjs' }, body: snippet,
+});
 import { actInboxData, actApproveData, actRejectData } from '../../zuzuu/commands/act.mjs';
 import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
 import { writeProposal, makeProposal } from '../../zuzuu/faculty/proposal.mjs';
@@ -43,7 +49,7 @@ function withActHome(slug, fn) {
   const home = join(root, '.zuzuu');
   const dir = join(home, 'actions', 'inbox', slug);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'action.json'), JSON.stringify({ slug, kind: 'script', promptSnippet: 'do the thing' }));
+  writeFileSync(join(dir, 'ACTION.md'), actionMd(slug, 'do the thing'));
   writeFileSync(join(dir, 'run.mjs'), 'export async function main(){ return { ok: true }; }');
   try { return fn(home); } finally { rmSync(root, { recursive: true, force: true }); }
 }

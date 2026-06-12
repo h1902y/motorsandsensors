@@ -16,8 +16,13 @@
 import { join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from './knowledge/registry.mjs';
+import { serializeEnvelope, PAYLOAD_SCHEMAS, FACULTY_KINDS } from './faculty/envelope.mjs';
 
-export const MANIFEST_VERSION = 3;
+export const MANIFEST_VERSION = 4;
+
+// Deterministic seed timestamp (the Faculty Standard date) — seeds are pinned
+// definitions, so idempotent re-inits must produce byte-identical files.
+const SEED_AT = '2026-06-12T00:00:00Z';
 
 const AGENT_README = `# .zuzuu/ — your agent's home (hidden, like .git — yours to read & version)
 
@@ -70,17 +75,23 @@ Curated recollections of past sessions, distilled from the observability traces 
 - **Who writes:** zuzuu (distillation — *not built yet*), human (curation). Raw traces stay in traces/ — this is the *curated* layer.
 - **Where:** one Markdown file per entry under \`entries/\`, named \`<id>.md\`.
 
-## Record schema (Markdown + YAML frontmatter)
+## Record schema (the Faculty Standard envelope)
 \`\`\`markdown
 ---
 id: mem-2026-06-11-flaky-ci-retry      # mem-<YYYY-MM-DD>-<slug>, stable
-date: 2026-06-11                        # ISO date the episode occurred
+faculty: memory
+kind: episode
 title: Flaky CI fixed by pinning node 22
-provenance:                            # links back to observability
-  sessions: [ses_abc123]               # ids that exist in .zuzuu/sessions.json
-  hosts: [claude-code]
-tags: [ci, flaky-test]                 # optional
-status: curated                        # curated (human) | proposed (reserved — future distiller)
+status: active
+created_at: 2026-06-11                 # ISO date the episode occurred
+payload:
+  sessions:                            # ids that exist in .zuzuu/sessions.json
+    - ses_abc123
+  hosts:
+    - claude-code
+  tags:                                # optional
+    - ci
+    - flaky-test
 ---
 ## Attempted
 What was tried.
@@ -89,7 +100,6 @@ What happened (outcome / error / fix).
 ## Remember next time
 The durable lesson.
 \`\`\`
-\`status: proposed\` and the distiller→review pipeline are **reserved** (not built this pass).
 `;
 
 const ACTIONS_README = `# actions/ — procedural faculty (how to DO things)
@@ -104,55 +114,106 @@ const INSTRUCTIONS_README = `# instructions/ — the Instructions faculty (direc
 
 Cognition steering: identity, conventions, priorities — the project-level seed of
 the pinned system prompt. The host agent reads and follows this.
-- \`project.md\` — project-specific steering (what this is, conventions, priorities).
+- \`items/steering.md\` — the pinned steering item (what this is, conventions, priorities).
+- Approved amendments land as further items in \`items/\` (kind: amendment).
 - Hard *enforced* rules live in \`../guardrails/\` (a separate faculty), not here.
 `;
 
-const PROJECT_SEED = `# Project steering
-
-<!-- Fill in: what this project is, conventions, priorities. The host agent reads this. -->
-`;
+const STEERING_SEED = serializeEnvelope({
+  id: 'steering',
+  faculty: 'instructions',
+  kind: 'steering',
+  title: 'Project steering',
+  status: 'active',
+  created_at: SEED_AT,
+  payload: { scope: 'project' },
+  body: '<!-- Fill in: what this project is, conventions, priorities. The host agent reads this. -->',
+});
 
 const GUARDRAILS_README = `# guardrails/ — the Guardrails faculty (enforced, not advisory)
 
-Declarative rules in \`rules.json\`, evaluated on every tool call by the zuzuu
-PreToolUse gate (installed by \`zuzuu enable\`). Severity wins: deny > ask > allow;
-no match → the host's normal permission flow. The engine FAILS OPEN — a
-guardrail bug can block nothing — and matched decisions are logged for the trace.
-
-Rule shape: \`{ id, action: deny|ask|allow, tool: "Bash"|"*", pattern: <regex
-over the tool input>, reason }\`. Edit, commit, done — rules are definitions,
+One rule per envelope item in \`items/\` (markdown + frontmatter; payload =
+\`{ action: deny|ask|allow, tool: "Bash"|"*", pattern: <regex over the tool
+input>, reason }\`; the body is optional rationale prose). Every tool call is
+evaluated by the zuzuu PreToolUse gate (installed by \`zuzuu enable\`). Severity
+wins: deny > ask > allow; no match → the host's normal permission flow. The
+engine FAILS OPEN — a malformed item is skipped, never a block — and matched
+decisions are logged for the trace. Edit, commit, done — rules are definitions,
 versioned in git like everything else.
 `;
 
-const RULES_SEED =
-  JSON.stringify(
-    {
-      version: 1,
-      rules: [
-        { id: 'no-root-wipe', action: 'deny', tool: 'Bash', pattern: 'rm\\s+-[a-z]*r[a-z]*\\s+/(\\s|$)', reason: 'destructive delete at filesystem root' },
-        { id: 'no-secret-reads', action: 'deny', tool: '*', pattern: '\\.env(\\.|\\b)|id_rsa|\\.pem\\b', reason: 'secret material should not enter the context' },
-        // \b.*\bpush, not push adjacent to git: a real session bypassed the
-        // adjacent form with `git -C /path push --force-with-lease` (exp-8).
-        { id: 'confirm-force-push', action: 'ask', tool: 'Bash', pattern: 'git\\b.*\\bpush\\b.*--force', reason: 'force-push rewrites shared history' },
-      ],
+/** Seeded rules, one envelope item each (the Faculty Standard, W24). */
+const ruleSeed = ({ id, title, action, tool, pattern, reason, body }) =>
+  serializeEnvelope({
+    id, faculty: 'guardrails', kind: 'rule', title, status: 'active', created_at: SEED_AT,
+    payload: { action, tool, pattern, reason }, body,
+  });
+
+const RULE_SEEDS = {
+  'no-root-wipe': ruleSeed({
+    id: 'no-root-wipe', title: 'No destructive delete at filesystem root', action: 'deny', tool: 'Bash',
+    pattern: 'rm\\s+-[a-z]*r[a-z]*\\s+/(\\s|$)', reason: 'destructive delete at filesystem root',
+    body: 'Blocks `rm -rf /` and flag-order variants targeting the filesystem root.',
+  }),
+  'no-secret-reads': ruleSeed({
+    id: 'no-secret-reads', title: 'No reading secret material', action: 'deny', tool: '*',
+    pattern: '\\.env(\\.|\\b)|id_rsa|\\.pem\\b', reason: 'secret material should not enter the context',
+    body: 'Keys and env files must not enter the model context — across every tool, not just Bash.',
+  }),
+  'confirm-force-push': ruleSeed({
+    id: 'confirm-force-push', title: 'Confirm before force-push', action: 'ask', tool: 'Bash',
+    pattern: 'git\\b.*\\bpush\\b.*--force', reason: 'force-push rewrites shared history',
+    // \b.*\bpush, not push adjacent to git: a real session bypassed the
+    // adjacent form with `git -C /path push --force-with-lease` (exp-8).
+    body: 'Asks (never blocks) on any force-push. The loose `git\\b.*\\bpush` form catches the real exp-8 bypass: `git -C /path push --force-with-lease`.',
+  }),
+};
+
+/** Envelope spec seed (.zuzuu/schema.json) — descriptive, for humans + tools. */
+const ENVELOPE_SPEC = JSON.stringify(
+  {
+    standard: 'zuzuu-faculty-envelope',
+    version: 1,
+    description: 'One file per item: markdown body + strict frontmatter. One rigid envelope across all five faculties; payload is faculty-typed and validated by <faculty>/schema.json.',
+    envelope: {
+      id: 'required — slug [a-z0-9-]',
+      faculty: 'required — knowledge|memory|actions|instructions|guardrails',
+      kind: 'required — per-faculty kinds (see kinds)',
+      title: 'required — single line',
+      status: 'active|archived (default active)',
+      created_at: 'required — ISO date/datetime',
+      updated_at: 'optional — ISO date/datetime',
+      provenance: 'optional list of {session, ref}',
+      payload: 'faculty-typed machine fields (see <faculty>/schema.json)',
     },
-    null,
-    2,
-  ) + '\n';
+    kinds: { ...FACULTY_KINDS, knowledge: 'registry-governed (knowledge/registry/types.json)' },
+  },
+  null,
+  2,
+) + '\n';
+
+const payloadSchemaSeed = (f) => JSON.stringify(PAYLOAD_SCHEMAS[f], null, 2) + '\n';
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['.zuzuu', '.zuzuu/knowledge', '.zuzuu/knowledge/registry', '.zuzuu/knowledge/items', '.zuzuu/knowledge/inbox', '.zuzuu/knowledge/proposals', '.zuzuu/memory', '.zuzuu/memory/entries', '.zuzuu/memory/inbox', '.zuzuu/memory/proposals', '.zuzuu/actions', '.zuzuu/actions/inbox', '.zuzuu/instructions', '.zuzuu/instructions/inbox', '.zuzuu/instructions/proposals', '.zuzuu/guardrails', '.zuzuu/guardrails/inbox', '.zuzuu/guardrails/proposals', '.zuzuu/generations', '.zuzuu/generations/snapshots'],
+  dirs: ['.zuzuu', '.zuzuu/knowledge', '.zuzuu/knowledge/registry', '.zuzuu/knowledge/items', '.zuzuu/knowledge/inbox', '.zuzuu/knowledge/proposals', '.zuzuu/memory', '.zuzuu/memory/entries', '.zuzuu/memory/inbox', '.zuzuu/memory/proposals', '.zuzuu/actions', '.zuzuu/actions/inbox', '.zuzuu/instructions', '.zuzuu/instructions/items', '.zuzuu/instructions/inbox', '.zuzuu/instructions/proposals', '.zuzuu/guardrails', '.zuzuu/guardrails/items', '.zuzuu/guardrails/inbox', '.zuzuu/guardrails/proposals', '.zuzuu/generations', '.zuzuu/generations/snapshots'],
   files: {
     '.zuzuu/README.md': AGENT_README,
+    '.zuzuu/schema.json': ENVELOPE_SPEC,
     '.zuzuu/knowledge/README.md': KNOWLEDGE_README,
+    '.zuzuu/knowledge/schema.json': payloadSchemaSeed('knowledge'),
     '.zuzuu/memory/README.md': MEMORY_README,
+    '.zuzuu/memory/schema.json': payloadSchemaSeed('memory'),
     '.zuzuu/actions/README.md': ACTIONS_README,
+    '.zuzuu/actions/schema.json': payloadSchemaSeed('actions'),
     '.zuzuu/instructions/README.md': INSTRUCTIONS_README,
-    '.zuzuu/instructions/project.md': PROJECT_SEED,
+    '.zuzuu/instructions/schema.json': payloadSchemaSeed('instructions'),
+    '.zuzuu/instructions/items/steering.md': STEERING_SEED,
     '.zuzuu/guardrails/README.md': GUARDRAILS_README,
-    '.zuzuu/guardrails/rules.json': RULES_SEED,
+    '.zuzuu/guardrails/schema.json': payloadSchemaSeed('guardrails'),
+    '.zuzuu/guardrails/items/no-root-wipe.md': RULE_SEEDS['no-root-wipe'],
+    '.zuzuu/guardrails/items/no-secret-reads.md': RULE_SEEDS['no-secret-reads'],
+    '.zuzuu/guardrails/items/confirm-force-push.md': RULE_SEEDS['confirm-force-push'],
     '.zuzuu/knowledge/registry/types.json': JSON.stringify(SEED_TYPES, null, 2) + '\n',
     '.zuzuu/knowledge/registry/attributes.json': JSON.stringify(SEED_ATTRIBUTES, null, 2) + '\n',
     '.zuzuu/knowledge/registry/relations.json': JSON.stringify(SEED_RELATIONS, null, 2) + '\n',

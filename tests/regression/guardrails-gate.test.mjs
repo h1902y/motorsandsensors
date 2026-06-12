@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -47,9 +47,9 @@ test('seed rule asks on force-push; benign call stays silent (normal flow)', () 
   });
 });
 
-test('fail-open: garbage stdin, and projects with no rules file, never block', () => {
+test('fail-open: garbage stdin, and projects with no rule items, never block', () => {
   withProject((cwd) => {
-    rmSync(join(cwd, '.zuzuu', 'guardrails', 'rules.json'));
+    rmSync(join(cwd, '.zuzuu', 'guardrails', 'items'), { recursive: true, force: true });
     const noRules = gate(cwd, { session_id: 's1', tool_name: 'Bash', tool_input: { command: 'rm -rf / ' } });
     assert.equal(noRules.stdout, '');
     assert.equal(noRules.status, 0);
@@ -62,6 +62,20 @@ test('fail-open: garbage stdin, and projects with no rules file, never block', (
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('a malformed rule item is skipped silently — seeds still enforce', () => {
+  withProject((cwd) => {
+    const items = join(cwd, '.zuzuu', 'guardrails', 'items');
+    mkdirSync(items, { recursive: true });
+    // a broken envelope next to the seeds must not disarm the gate
+    writeFileSync(join(items, 'broken.md'), '{ not an envelope at all');
+    const denied = gate(cwd, { session_id: 's1', tool_name: 'Bash', tool_input: { command: 'rm -rf / ' } });
+    assert.equal(denied.status, 0);
+    assert.equal(JSON.parse(denied.stdout).hookSpecificOutput.permissionDecision, 'deny', 'seed rules survive a malformed sibling');
+    const ok = gate(cwd, { session_id: 's1', tool_name: 'Bash', tool_input: { command: 'ls' } });
+    assert.equal(ok.stdout, '', 'no spurious decision from the malformed item');
+  });
 });
 
 test('matched decisions are logged for the trace', () => {

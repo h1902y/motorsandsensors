@@ -1,9 +1,10 @@
 // zuzuu/actions/schema.mjs
 // A hand-rolled JSON-Schema *subset* validator — zero-dep (no Ajv), matching the
 // project's node-builtins-only policy. Supports: object (properties, required),
-// array (items), string/number/integer/boolean scalars, enum, and basic length/
-// range constraints. Returns an array of error strings ([] = valid). No coercion:
-// values are expected to already carry real JSON types.
+// array (items), string/number/integer/boolean scalars, enum, pattern, and basic
+// length/range constraints. Returns an array of error strings ([] = valid). No
+// coercion: values are expected to already carry real JSON types. Shared by the
+// actions runner AND the faculty envelope (payload validation — W24).
 
 function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -41,6 +42,11 @@ export function validate(schema, value, path = '$') {
   if (typeof value === 'string') {
     if (schema.minLength != null && value.length < schema.minLength) errors.push(`${path}: shorter than minLength ${schema.minLength}`);
     if (schema.maxLength != null && value.length > schema.maxLength) errors.push(`${path}: longer than maxLength ${schema.maxLength}`);
+    if (schema.pattern != null) {
+      try {
+        if (!new RegExp(schema.pattern).test(value)) errors.push(`${path}: does not match pattern ${schema.pattern}`);
+      } catch { /* an unparseable authored pattern never blocks (fail-open) */ }
+    }
   }
   if (typeof value === 'number') {
     if (schema.minimum != null && value < schema.minimum) errors.push(`${path}: below minimum ${schema.minimum}`);

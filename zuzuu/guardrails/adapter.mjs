@@ -1,42 +1,23 @@
 // zuzuu/guardrails/adapter.mjs
-// The Guardrails faculty adapter (WS2-T4). Wraps the rules engine behind the
+// The Guardrails faculty adapter. Wraps the rules engine behind the
 // faculty-spine adapter contract — { name, ingest, validate, apply, render } —
 // so `zuzuu review` can surface and approve/reject rule proposals the same way it
 // does Knowledge proposals.
 //
 // A guardrails proposal payload is a single rule record:
-//   { id, action: deny|ask|allow, tool, pattern, reason }
+//   { id, action: deny|ask|allow, tool, pattern, reason, body? }
 //
-// apply: loads .zuzuu/guardrails/rules.json (seeding {version:1,rules:[]} if
-//        absent), appends the rule or replaces an existing one with the same id,
-//        then writes the file back.
+// apply: writes the rule as a Faculty Standard envelope item at
+//        .zuzuu/guardrails/items/<id>.md (upsert — same id replaces the file).
 //
 // Registers itself on import.
 
-import { join } from 'node:path';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import * as registry from '../faculty/registry.mjs';
+import { writeFacultyItem } from '../faculty/items.mjs';
+import { deriveTitle } from '../faculty/envelope.mjs';
 
 const name = 'guardrails';
 const VALID_ACTIONS = new Set(['deny', 'ask', 'allow']);
-
-// ---------------------------------------------------------------------------
-// helpers
-// ---------------------------------------------------------------------------
-
-function rulesPath(agentDir) {
-  return join(agentDir, 'guardrails', 'rules.json');
-}
-
-function loadRulesFile(agentDir) {
-  const path = rulesPath(agentDir);
-  if (!existsSync(path)) return { version: 1, rules: [] };
-  try {
-    return JSON.parse(readFileSync(path, 'utf8'));
-  } catch {
-    return { version: 1, rules: [] };
-  }
-}
 
 // ---------------------------------------------------------------------------
 // adapter contract
@@ -84,35 +65,23 @@ function validate(_agentDir, payload) {
 }
 
 /**
- * Apply an approved rule proposal: upsert into rules.json.
+ * Apply an approved rule proposal: write the envelope item (upsert by id).
  * @returns {{ok:boolean, action:string, itemIds:string[]}}
  */
 function apply(agentDir, proposal) {
   const rule = proposal?.payload ?? {};
   const id = rule.id;
-
-  // Ensure the guardrails dir exists
-  mkdirSync(join(agentDir, 'guardrails'), { recursive: true });
-
-  const data = loadRulesFile(agentDir);
-  if (!Array.isArray(data.rules)) data.rules = [];
-
-  const idx = data.rules.findIndex((r) => r.id === id);
-  // Store only the canonical fields (id, action, tool, pattern, reason)
-  const entry = {
-    id: rule.id,
-    action: rule.action,
-    tool: rule.tool,
-    pattern: rule.pattern,
-    reason: rule.reason,
-  };
-  if (idx >= 0) {
-    data.rules[idx] = entry;
-  } else {
-    data.rules.push(entry);
-  }
-
-  writeFileSync(rulesPath(agentDir), JSON.stringify(data, null, 2) + '\n');
+  writeFacultyItem(agentDir, {
+    id,
+    faculty: name,
+    kind: 'rule',
+    title: deriveTitle(rule.reason, id),
+    status: 'active',
+    created_at: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+    provenance: Array.isArray(proposal?.provenance) ? proposal.provenance : [],
+    payload: { action: rule.action, tool: rule.tool || '*', pattern: rule.pattern, reason: rule.reason },
+    body: rule.body ?? '',
+  });
   return { ok: true, action: `added rule ${id}`, itemIds: [id] };
 }
 

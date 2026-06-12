@@ -1,29 +1,25 @@
 // zuzuu/instructions/adapter.mjs
-// The Instructions faculty adapter (WS2-T4). Wraps steering-amendment proposals
+// The Instructions faculty adapter. Wraps steering-amendment proposals
 // behind the faculty-spine adapter contract — { name, ingest, validate, apply,
 // render } — so `zuzuu review` can surface and approve them uniformly.
 //
 // An instructions proposal payload is a steering amendment:
-//   { text }  — a line or paragraph to append to project.md
+//   { id?, text }  — a line or paragraph of steering
 //
-// apply: appends the text as a line to .zuzuu/instructions/project.md (creates
-//        the file if absent; never duplicates an already-present line).
+// apply: writes the amendment as a Faculty Standard envelope item under
+//        .zuzuu/instructions/items/<id>.md (kind: amendment; body = the text).
+//        The pinned steering itself lives at items/steering.md; future
+//        amendments are MORE items, never edits to steering. Idempotent: a
+//        text already present in any instructions item is not duplicated.
 //
 // Registers itself on import.
 
-import { join } from 'node:path';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import * as registry from '../faculty/registry.mjs';
+import { listFacultyItems, writeFacultyItem } from '../faculty/items.mjs';
+import { deriveTitle } from '../faculty/envelope.mjs';
+import { slugify } from '../knowledge/items.mjs';
 
 const name = 'instructions';
-
-// ---------------------------------------------------------------------------
-// helpers
-// ---------------------------------------------------------------------------
-
-function projectMdPath(agentDir) {
-  return join(agentDir, 'instructions', 'project.md');
-}
 
 // ---------------------------------------------------------------------------
 // adapter contract
@@ -50,29 +46,33 @@ function validate(_agentDir, payload) {
 }
 
 /**
- * Apply an approved amendment: append text to project.md (idempotent on
- * identical lines — won't duplicate a line already present).
+ * Apply an approved amendment: write an amendment item (idempotent on
+ * identical text — won't duplicate steering already present in any item).
  * @returns {{ok:boolean, action:string, itemIds:string[]}}
  */
 function apply(agentDir, proposal) {
-  const text = proposal?.payload?.text ?? '';
+  const text = String(proposal?.payload?.text ?? '').trim();
 
-  // Ensure the instructions dir exists
-  mkdirSync(join(agentDir, 'instructions'), { recursive: true });
-
-  const path = projectMdPath(agentDir);
-  const existing = existsSync(path) ? readFileSync(path, 'utf8') : '';
-
-  // Idempotence: skip if the exact text is already present
-  if (existing.includes(text)) {
+  // Idempotence: skip if the exact text already lives in an instructions item
+  const { items } = listFacultyItems(agentDir, 'instructions');
+  if (items.some((i) => String(i.body ?? '').includes(text))) {
     return { ok: true, action: 'amended instructions (already present)', itemIds: [] };
   }
 
-  // Append (with trailing newline)
-  const separator = existing && !existing.endsWith('\n') ? '\n' : '';
-  writeFileSync(path, existing + separator + text + '\n');
+  const id = proposal?.payload?.id || slugify(text, 50);
+  writeFacultyItem(agentDir, {
+    id,
+    faculty: name,
+    kind: 'amendment',
+    title: deriveTitle(text, id),
+    status: 'active',
+    created_at: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+    provenance: Array.isArray(proposal?.provenance) ? proposal.provenance : [],
+    payload: { scope: 'project' },
+    body: text,
+  });
 
-  return { ok: true, action: 'amended instructions', itemIds: [] };
+  return { ok: true, action: 'amended instructions', itemIds: [id] };
 }
 
 /**

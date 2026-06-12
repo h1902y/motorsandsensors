@@ -4,7 +4,7 @@
 // adapter contract — { name, ingest, validate, apply, render } — so the generic
 // `zuzuu review` gate can drive Actions the same way it drives Knowledge.
 //
-// Actions payloads are DIRECTORIES (run.mjs/SKILL.md + action.json), not JSON.
+// Actions payloads are DIRECTORIES (ACTION.md + sibling scripts), not JSON.
 // Strategy (lowest-risk): the inbox stays a dir; this adapter emits/reads a
 // spine-shaped proposal RECORD that REFERENCES the dir
 // (payload = { slug, kind, dir:'inbox/<slug>' }). The gate resolves a single
@@ -18,7 +18,7 @@ import { join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { listActions, inboxDir, isSafeSlug } from './manifest.mjs';
 import { activateAction, rejectAction } from './inbox.mjs';
-import { validateInputs } from './schema.mjs';
+import { parseEnvelope, validateEnvelope, PAYLOAD_SCHEMAS } from '../faculty/envelope.mjs';
 import * as registry from '../faculty/registry.mjs';
 
 const name = 'actions';
@@ -64,30 +64,22 @@ function ingest(_agentDir, raw) {
 }
 
 /**
- * Validate a proposed action's manifest against the schema subset and confirm
- * the manifest slug matches the dir. Missing manifest → accept (slug fallback).
+ * Validate a proposed action's ACTION.md envelope (id matches the dir; the
+ * payload validates against the actions schema). Missing ACTION.md → accept
+ * (slug fallback, mirrors the historical missing-manifest tolerance).
  * @returns {{ok:boolean, errors:string[], warnings:string[]}}
  */
 function validate(agentDir, payload) {
   const slug = payload?.slug;
   if (!isSafeSlug(slug)) return { ok: false, errors: [`invalid slug '${slug}'`], warnings: [] };
-  const manPath = join(inboxDir(agentDir), slug, 'action.json');
+  const manPath = join(inboxDir(agentDir), slug, 'ACTION.md');
   if (!existsSync(manPath)) return { ok: true, errors: [], warnings: [] };
-  let man;
-  try { man = JSON.parse(readFileSync(manPath, 'utf8')); }
-  catch { return { ok: false, errors: ['manifest is not valid JSON'], warnings: [] }; }
-  if (man.slug && man.slug !== slug) return { ok: false, errors: [`manifest slug '${man.slug}' ≠ dir '${slug}'`], warnings: [] };
-  const errors = [];
-  // the manifest schema is itself JSON-Schema-subset shaped; sanity-check both ends
-  if (man.inputs) {
-    const vi = validateInputs(man.inputs, man.default_args, {});
-    // inputs schema is for caller args, not the manifest — only flag a structurally
-    // broken schema (validateInputs is permissive on empty args), so this is a no-op
-    // for well-formed manifests. Kept for symmetry with the knowledge adapter.
-    if (vi.ok === false && !/required/i.test(vi.error ?? '')) errors.push(vi.error);
-  }
-  if (man.outputs && typeof man.outputs !== 'object') errors.push('outputs schema must be an object');
-  return { ok: errors.length === 0, errors, warnings: [] };
+  const { ok, item, errors: parseErrors } = parseEnvelope(readFileSync(manPath, 'utf8'));
+  if (!ok) return { ok: false, errors: [`ACTION.md is not a valid envelope: ${parseErrors[0]}`], warnings: [] };
+  if (item.id && item.id !== slug) return { ok: false, errors: [`ACTION.md id '${item.id}' ≠ dir '${slug}'`], warnings: [] };
+  if (item.faculty !== 'actions') return { ok: false, errors: [`ACTION.md faculty must be 'actions' (got '${item.faculty}')`], warnings: [] };
+  const v = validateEnvelope(item, PAYLOAD_SCHEMAS.actions);
+  return { ok: v.ok, errors: v.errors, warnings: [] };
 }
 
 /**

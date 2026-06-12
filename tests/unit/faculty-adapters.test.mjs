@@ -17,6 +17,8 @@ import * as registry from '../../zuzuu/faculty/registry.mjs';
 import * as gate from '../../zuzuu/faculty/gate.mjs';
 import { writeProposal, makeProposal } from '../../zuzuu/faculty/proposal.mjs';
 import { applyScaffold, LAYOUT } from '../../zuzuu/scaffold.mjs';
+import { loadRules } from '../../zuzuu/guardrails.mjs';
+import { parseEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -92,7 +94,7 @@ test('guardrails adapter.validate: rejects empty reason', () => {
   assert.ok(r.errors.some((e) => /reason/.test(e)));
 });
 
-test('guardrails gate.approve: appends rule to rules.json', () => {
+test('guardrails gate.approve: writes the rule as an envelope item', () => {
   withHome((agentDir) => {
     ensureProposalsDir(agentDir, 'guardrails');
     const rule = { id: 'block-curl', action: 'deny', tool: 'Bash', pattern: 'curl\\s+.*secret', reason: 'exfil risk' };
@@ -103,24 +105,24 @@ test('guardrails gate.approve: appends rule to rules.json', () => {
     assert.ok(r.ok, JSON.stringify(r));
     assert.match(r.action, /block-curl/);
 
-    // rules.json now contains the rule
-    const rulesPath = join(agentDir, 'guardrails', 'rules.json');
-    assert.ok(existsSync(rulesPath), 'rules.json created');
-    const data = JSON.parse(readFileSync(rulesPath, 'utf8'));
-    assert.ok(Array.isArray(data.rules), 'rules is array');
-    assert.ok(data.rules.some((x) => x.id === 'block-curl'), 'rule present');
+    // guardrails/items/<id>.md now carries the rule, gate-loadable
+    const itemPath = join(agentDir, 'guardrails', 'items', 'block-curl.md');
+    assert.ok(existsSync(itemPath), 'rule item created');
+    const { rules } = loadRules(join(agentDir, 'guardrails'));
+    const live = rules.find((x) => x.id === 'block-curl');
+    assert.ok(live, 'rule live in the engine');
+    assert.equal(live.action, 'deny');
+    assert.ok(live.re.test('curl http://x?token=secret'), 'pattern survives the envelope round-trip');
   });
 });
 
 test('guardrails gate.approve: replaces existing rule with same id', () => {
   withHome((agentDir) => {
     ensureProposalsDir(agentDir, 'guardrails');
-    // Seed an existing rules.json with the same id
-    mkdirSync(join(agentDir, 'guardrails'), { recursive: true });
-    writeFileSync(join(agentDir, 'guardrails', 'rules.json'), JSON.stringify({
-      version: 1,
-      rules: [{ id: 'my-rule', action: 'ask', tool: 'Bash', pattern: 'old', reason: 'old reason' }],
-    }));
+    // Seed an existing rule item with the same id
+    const old = makeProposal({ faculty: 'guardrails', kind: 'rule', source: 'seed', payload: { id: 'my-rule', action: 'ask', tool: 'Bash', pattern: 'old', reason: 'old reason' } });
+    writeProposal(agentDir, old);
+    gate.approve(agentDir, 'guardrails', old.id);
 
     const rule = { id: 'my-rule', action: 'deny', tool: 'Bash', pattern: 'new', reason: 'updated reason' };
     const p = makeProposal({ faculty: 'guardrails', kind: 'rule', source: 'test', payload: rule });
@@ -129,9 +131,9 @@ test('guardrails gate.approve: replaces existing rule with same id', () => {
     const r = gate.approve(agentDir, 'guardrails', p.id);
     assert.ok(r.ok, JSON.stringify(r));
 
-    const data = JSON.parse(readFileSync(join(agentDir, 'guardrails', 'rules.json'), 'utf8'));
-    assert.equal(data.rules.filter((x) => x.id === 'my-rule').length, 1, 'no duplicate rule');
-    assert.equal(data.rules.find((x) => x.id === 'my-rule').action, 'deny', 'updated');
+    const { rules } = loadRules(join(agentDir, 'guardrails'));
+    assert.equal(rules.filter((x) => x.id === 'my-rule').length, 1, 'no duplicate rule');
+    assert.equal(rules.find((x) => x.id === 'my-rule').action, 'deny', 'updated');
   });
 });
 
@@ -178,7 +180,7 @@ test('instructions adapter.validate: rejects missing text', () => {
   assert.equal(r.ok, false);
 });
 
-test('instructions gate.approve: appends text to project.md', () => {
+test('instructions gate.approve: writes an amendment item', () => {
   withHome((agentDir) => {
     ensureProposalsDir(agentDir, 'instructions');
     const p = makeProposal({
@@ -190,11 +192,14 @@ test('instructions gate.approve: appends text to project.md', () => {
     const r = gate.approve(agentDir, 'instructions', p.id);
     assert.ok(r.ok, JSON.stringify(r));
     assert.match(r.action, /amended instructions/);
+    assert.equal(r.itemIds.length, 1);
 
-    const projectMd = join(agentDir, 'instructions', 'project.md');
-    assert.ok(existsSync(projectMd), 'project.md created');
-    const content = readFileSync(projectMd, 'utf8');
-    assert.ok(content.includes('prefer immutable data structures'), 'text appended');
+    const itemPath = join(agentDir, 'instructions', 'items', `${r.itemIds[0]}.md`);
+    assert.ok(existsSync(itemPath), 'amendment item created');
+    const { ok, item } = parseEnvelope(readFileSync(itemPath, 'utf8'));
+    assert.ok(ok);
+    assert.equal(item.kind, 'amendment');
+    assert.ok(item.body.includes('prefer immutable data structures'), 'text is the body');
   });
 });
 
@@ -216,11 +221,12 @@ test('instructions gate.approve: re-applying the same text does not duplicate', 
       payload: { text: 'use strict mode' },
     });
     writeProposal(agentDir, p2);
-    gate.approve(agentDir, 'instructions', p2.id);
+    const r2 = gate.approve(agentDir, 'instructions', p2.id);
+    assert.match(r2.action, /already present/);
 
-    const content = readFileSync(join(agentDir, 'instructions', 'project.md'), 'utf8');
-    const occurrences = (content.match(/use strict mode/g) || []).length;
-    assert.equal(occurrences, 1, 'text not duplicated');
+    const { item } = parseEnvelope(readFileSync(join(agentDir, 'instructions', 'items', 'use-strict-mode.md'), 'utf8'));
+    const occurrences = (item.body.match(/use strict mode/g) || []).length;
+    assert.equal(occurrences, 1, 'text not duplicated in the item body');
   });
 });
 
@@ -293,10 +299,15 @@ test('memory gate.approve: writes entry file with frontmatter', () => {
 
     const entryPath = join(agentDir, 'memory', 'entries', 'mem-2026-06-11-ci-fix.md');
     assert.ok(existsSync(entryPath), 'entry file written');
-    const content = readFileSync(entryPath, 'utf8');
-    assert.ok(content.includes('status: curated'), 'frontmatter has curated status');
-    assert.ok(content.includes('CI fixed by pinning node 22'), 'title in frontmatter');
-    assert.ok(content.includes('## Remember next time'), 'body section present');
+    const { ok, item } = parseEnvelope(readFileSync(entryPath, 'utf8'));
+    assert.ok(ok, 'entry is a valid envelope');
+    assert.equal(item.faculty, 'memory');
+    assert.equal(item.kind, 'episode');
+    assert.equal(item.title, 'CI fixed by pinning node 22');
+    assert.equal(item.created_at, '2026-06-11');
+    assert.deepEqual(item.payload.sessions, ['ses_abc123']);
+    assert.deepEqual(item.payload.hosts, ['claude-code']);
+    assert.ok(item.body.includes('## Remember next time'), 'body section present');
   });
 });
 

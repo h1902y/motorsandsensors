@@ -110,8 +110,9 @@ export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Dat
 }
 
 /**
- * The Guardrails gate (PreToolUse). Evaluates the tool call against
- * .zuzuu/guardrails/rules.json and prints Claude's hookSpecificOutput decision —
+ * The Guardrails gate (PreToolUse). Evaluates the tool call against the
+ * envelope rule items in .zuzuu/guardrails/items/ and prints Claude's
+ * hookSpecificOutput decision —
  * or NOTHING (exit 0, no JSON = defer to the host's normal permission flow).
  * That silence is the fail-open: engine errors and rule-file problems can slow
  * nothing down and block nothing. Matched decisions are logged for the trace.
@@ -127,14 +128,15 @@ function guardrailsLogName(sessionId) {
 const GATE_EVENTS = new Set(['PreToolUse', 'BeforeTool']);
 
 /**
- * Evaluate a tool call against rules.json and return the host's block decision
- * (or null = fail-open / no match → host's normal flow). Logs matched decisions.
+ * Evaluate a tool call against the guardrail rule items and return the host's
+ * block decision (or null = fail-open / no match → host's normal flow). Logs
+ * matched decisions.
  *   codex + claude-code → hookSpecificOutput · gemini-cli → {decision,reason}
  */
 export function gateDecision({ host = 'claude-code', payload = {}, cwd = process.cwd() } = {}) {
   try {
     const { dir } = paths(cwd);
-    const loaded = loadRules(join(dir, 'guardrails', 'rules.json'));
+    const loaded = loadRules(join(dir, 'guardrails'));
     if (!loaded.ok) return null;
     const verdict = evaluate(loaded.rules, { tool: payload.tool_name, input: payload.tool_input });
     if (verdict) {

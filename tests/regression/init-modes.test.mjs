@@ -85,7 +85,7 @@ test('mode 3 — reinit: byte-identical no-op on a complete home; user edits sur
     writeFileSync(join(cwd, 'CLAUDE.md'), '# Mine\n');
     run(cwd);
     // user customizes a seeded file
-    writeFileSync(join(cwd, '.zuzuu', 'instructions', 'project.md'), 'CUSTOM\n');
+    writeFileSync(join(cwd, '.zuzuu', 'instructions', 'items', 'steering.md'), 'CUSTOM\n');
     const before = snapshot(cwd);
     const out = run(cwd);
     assert.match(out, /Reinitialized existing zuzuu home/);
@@ -98,7 +98,7 @@ test('mode 3 — reinit restores missing pieces only', () => {
     run(cwd);
     rmSync(join(cwd, '.zuzuu', 'actions'), { recursive: true });
     const out = run(cwd);
-    assert.match(out, /restored : 3 missing piece/);
+    assert.match(out, /restored : 4 missing piece/);
     assert.ok(existsSync(join(cwd, '.zuzuu', 'actions', 'README.md')));
   });
 });

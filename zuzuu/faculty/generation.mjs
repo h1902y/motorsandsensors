@@ -61,13 +61,14 @@ function knowledgeFiles(agentDir) {
 function actionFiles(agentDir) {
   const dir = join(agentDir, 'actions');
   return sortDirents(dir)
-    .filter((e) => e.isDirectory() && e.name !== 'inbox' && e.name !== 'proposals')
+    .filter((e) => e.isDirectory() && e.name !== 'inbox' && e.name !== 'proposals' && e.name !== '_rolledback')
     .map((e) => {
       const adir = join(dir, e.name);
-      // Hash the dir's defining files concatenated (action.json + run.mjs/SKILL.md).
-      const parts = ['action.json', 'run.mjs', 'SKILL.md']
-        .map((f) => join(adir, f))
-        .filter((p) => existsSync(p));
+      // Hash the dir's defining files concatenated: the ACTION.md envelope
+      // (W24) + sibling scripts (*.mjs — run.mjs and any payload.exec module).
+      const parts = sortDirents(adir)
+        .filter((f) => f.isFile() && (f.name === 'ACTION.md' || f.name.endsWith('.mjs')))
+        .map((f) => join(adir, f.name));
       const concat = Buffer.concat(parts.map((p) => readFileSync(p)));
       return {
         id: e.name, faculty: 'actions', files: parts.map((p) => p.slice(adir.length + 1)),
@@ -75,6 +76,20 @@ function actionFiles(agentDir) {
       };
     });
 }
+
+/** Flat envelope-item faculties share one enumerator. */
+function mdItemFiles(agentDir, faculty, ...segments) {
+  const dir = join(agentDir, ...segments);
+  return sortDirents(dir)
+    .filter((e) => e.isFile() && e.name.endsWith('.md'))
+    .map((e) => {
+      const src = join(dir, e.name);
+      return { id: e.name.replace(/\.md$/, ''), faculty, src, rel: e.name, hash: sha256(readFileSync(src)) };
+    });
+}
+
+const guardrailFiles = (agentDir) => mdItemFiles(agentDir, 'guardrails', 'guardrails', 'items');
+const instructionFiles = (agentDir) => mdItemFiles(agentDir, 'instructions', 'instructions', 'items');
 
 function memoryFiles(agentDir) {
   const dir = join(agentDir, 'memory', 'entries');
@@ -93,10 +108,6 @@ function registryHash(agentDir) {
   return sha256(Buffer.concat(files.map((e) => readFileSync(join(dir, e.name)))));
 }
 
-function fileHashOrNull(p) {
-  return existsSync(p) ? sha256(readFileSync(p)) : null;
-}
-
 /**
  * Snapshot the current faculty state → the `faculties` manifest object.
  * Tolerates missing files (empty arrays / null hashes).
@@ -111,10 +122,10 @@ export function snapshotFaculties(agentDir) {
       items: actionFiles(agentDir).map(({ id, hash }) => ({ id, hash })),
     },
     guardrails: {
-      rulesHash: fileHashOrNull(join(agentDir, 'guardrails', 'rules.json')),
+      items: guardrailFiles(agentDir).map(({ id, hash }) => ({ id, hash })),
     },
     instructions: {
-      projectHash: fileHashOrNull(join(agentDir, 'instructions', 'project.md')),
+      items: instructionFiles(agentDir).map(({ id, hash }) => ({ id, hash })),
     },
     memory: {
       items: memoryFiles(agentDir).map(({ id, hash }) => ({ id, hash })),
@@ -169,9 +180,6 @@ export function readGeneration(agentDir, id) {
   return existsSync(p) ? readJson(p) : null;
 }
 
-/** Item-list faculties carry {id,hash}[]; single-file faculties a *Hash scalar. */
-const HASH_KEYS = { knowledge: 'registryHash', instructions: 'projectHash', guardrails: 'rulesHash' };
-
 /** Diff two item-manifest arrays → {added, changed, removed} (id lists). */
 function diffItems(parentItems = [], childItems = []) {
   const p = new Map(parentItems.map((i) => [i.id, i.hash]));
@@ -187,11 +195,10 @@ function diffItems(parentItems = [], childItems = []) {
 
 /**
  * Per-faculty diff of generation `id` against its forkedFrom parent (pure).
- * For item-list faculties (knowledge/actions/memory) reports added/changed/removed
- * id lists. For hash-only faculties (guardrails/instructions, and knowledge's
- * registry) reports a `changed` boolean when the scalar hash differs. When there
- * is no parent (forkedFrom null), everything present counts as added.
- * Returns null for an unknown id.
+ * ALL five faculties are item lists under the Faculty Standard (W24) —
+ * added/changed/removed id lists per faculty; knowledge additionally reports
+ * registryChanged. When there is no parent (forkedFrom null), everything
+ * present counts as added. Returns null for an unknown id.
  */
 export function diffGenerations(agentDir, id) {
   const child = readGeneration(agentDir, id);
@@ -200,16 +207,12 @@ export function diffGenerations(agentDir, id) {
   const cf = child.faculties || {};
   const pf = parent?.faculties || {};
   const faculties = {};
-  for (const f of ['knowledge', 'actions', 'memory']) {
+  for (const f of ['knowledge', 'actions', 'memory', 'guardrails', 'instructions']) {
     faculties[f] = diffItems(pf[f]?.items, cf[f]?.items);
     // knowledge also has a registry hash
     if (f === 'knowledge') {
       faculties[f].registryChanged = (cf.knowledge?.registryHash ?? null) !== (pf.knowledge?.registryHash ?? null);
     }
-  }
-  for (const f of ['guardrails', 'instructions']) {
-    const key = HASH_KEYS[f];
-    faculties[f] = { changed: (cf[f]?.[key] ?? null) !== (pf[f]?.[key] ?? null) };
   }
   return {
     id,
@@ -247,18 +250,15 @@ function copySnapshot(agentDir, id) {
       writeFileSync(dest, readFileSync(join(a.adir, rel)));
     }
   }
-  // single-file faculties
-  const rules = join(agentDir, 'guardrails', 'rules.json');
-  if (existsSync(rules)) {
-    const dest = join(base, 'guardrails', 'rules.json');
+  for (const it of guardrailFiles(agentDir)) {
+    const dest = join(base, 'guardrails', it.rel);
     mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, readFileSync(rules));
+    writeFileSync(dest, readFileSync(it.src));
   }
-  const proj = join(agentDir, 'instructions', 'project.md');
-  if (existsSync(proj)) {
-    const dest = join(base, 'instructions', 'project.md');
+  for (const it of instructionFiles(agentDir)) {
+    const dest = join(base, 'instructions', it.rel);
     mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, readFileSync(proj));
+    writeFileSync(dest, readFileSync(it.src));
   }
 }
 
@@ -369,20 +369,26 @@ export function rollback(agentDir, id) {
     }
   }
 
-  // 4) restore single-file faculties from the snapshot
-  const grules = join(base, 'guardrails', 'rules.json');
-  if (existsSync(grules)) {
-    const dest = join(agentDir, 'guardrails', 'rules.json');
-    mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, readFileSync(grules));
-    restored++;
-  }
-  const proj = join(base, 'instructions', 'project.md');
-  if (existsSync(proj)) {
-    const dest = join(agentDir, 'instructions', 'project.md');
-    mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, readFileSync(proj));
-    restored++;
+  // 4) restore guardrails + instructions items (same item-list contract)
+  for (const [faculty, liveSeg] of [['guardrails', ['guardrails', 'items']], ['instructions', ['instructions', 'items']]]) {
+    const targetIds = new Set((target.faculties[faculty]?.items ?? []).map((i) => i.id));
+    for (const i of target.faculties[faculty]?.items ?? []) {
+      const snap = join(base, faculty, `${i.id}.md`);
+      if (existsSync(snap)) {
+        const dest = join(agentDir, ...liveSeg, `${i.id}.md`);
+        mkdirSync(dirname(dest), { recursive: true });
+        writeFileSync(dest, readFileSync(snap));
+        restored++;
+      }
+    }
+    const liveDir = join(agentDir, ...liveSeg);
+    if (existsSync(liveDir)) {
+      for (const e of readdirSync(liveDir, { withFileTypes: true })) {
+        if (e.isFile() && e.name.endsWith('.md') && !targetIds.has(e.name.replace(/\.md$/, ''))) {
+          archive(agentDir, faculty, join(liveDir, e.name));
+        }
+      }
+    }
   }
 
   // 5) regenerate the derived knowledge index + flip the pointer

@@ -16,9 +16,9 @@
 // Self-registers on import.
 
 import { join } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
 import { slugify } from '../knowledge/items.mjs';
 import { makeProposal, writeProposal, listProposals, isArchivedResolved } from '../faculty/proposal.mjs';
+import { loadRules as loadRuleItems } from '../guardrails.mjs';
 import { register } from './registry.mjs';
 
 // ---------------------------------------------------------------------------
@@ -48,14 +48,12 @@ function guardId(cmd) {
   return 'guard-' + slugify(cmd, 50);
 }
 
-/** Load rules.json; returns { version, rules:[] } if absent/unreadable. */
-function loadRules(agentDir) {
-  const path = join(agentDir, 'guardrails', 'rules.json');
-  if (!existsSync(path)) return { version: 1, rules: [] };
+/** Ids of live rule items (guardrails/items/*.md); absent/unreadable → none. */
+function liveRuleIds(agentDir) {
   try {
-    return JSON.parse(readFileSync(path, 'utf8'));
+    return new Set(loadRuleItems(join(agentDir, 'guardrails')).rules.map((r) => r.id));
   } catch {
-    return { version: 1, rules: [] };
+    return new Set();
   }
 }
 
@@ -126,7 +124,7 @@ export function aggregate(sessions, { minFailures = 3, minSessions = 2 } = {}) {
  * Write a guardrails proposal into .zuzuu/guardrails/proposals/ for each candidate.
  * Idempotent:
  *   - skips if a guardrails proposal with the same payload.id already exists
- *   - skips if rules.json already has a rule with that id
+ *   - skips if a live rule item (guardrails/items/<id>.md) already exists
  *   - skips if the id is already resolved in proposals/archive/ — a rejection
  *     is remembered; re-distilling never resurrects it
  *
@@ -141,9 +139,8 @@ export function propose(agentDir, aggregated) {
   const existing = listProposals(agentDir, 'guardrails');
   const existingIds = new Set(existing.map((p) => p.payload?.id).filter(Boolean));
 
-  // Load existing rules (ids already applied).
-  const rulesData = loadRules(agentDir);
-  const rulesIds = new Set((rulesData.rules ?? []).map((r) => r.id).filter(Boolean));
+  // Live rule items (ids already applied).
+  const rulesIds = liveRuleIds(agentDir);
 
   let count = 0;
   for (const c of aggregated) {

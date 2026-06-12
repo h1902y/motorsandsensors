@@ -5,15 +5,19 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { sessionStartContext, writeLiveDigest, handleHook } from '../../zuzuu/commands/hook.mjs';
+import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 function withHome(fn, project) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-hook-'));
   const home = join(root, '.zuzuu');
   mkdirSync(join(home, 'knowledge', 'items'), { recursive: true });
   mkdirSync(join(home, 'knowledge', 'proposals'), { recursive: true });
-  mkdirSync(join(home, 'instructions'), { recursive: true });
-  mkdirSync(join(home, 'guardrails'), { recursive: true });
-  writeFileSync(join(home, 'instructions', 'project.md'), project);
+  mkdirSync(join(home, 'instructions', 'items'), { recursive: true });
+  mkdirSync(join(home, 'guardrails', 'items'), { recursive: true });
+  writeFileSync(join(home, 'instructions', 'items', 'steering.md'), serializeEnvelope({
+    id: 'steering', faculty: 'instructions', kind: 'steering', title: 'Project steering',
+    status: 'active', created_at: '2026-06-12T00:00:00Z', payload: {}, body: project,
+  }));
   try {
     return fn(root); // pass repo root; paths() derives .zuzuu/ under it
   } finally {

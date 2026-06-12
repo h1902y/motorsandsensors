@@ -10,7 +10,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { paths } from '../store.mjs';
-import { allActions, loadManifest, actionsDir, isSafeSlug } from '../actions/manifest.mjs';
+import { allActions, actionsDir, isSafeSlug } from '../actions/manifest.mjs';
 import { runAction } from '../actions/dispatch.mjs';
 import { MARKER } from '../actions/marker.mjs';
 import { newAction, schema as schemaCmd, proposeAction } from './act-author.mjs';
@@ -35,10 +35,8 @@ function list(agentDir) {
 
 function show(agentDir, slug) {
   if (!slug) { console.error('usage: zuzuu act show <slug>'); process.exit(1); }
-  const man = loadManifest(agentDir, slug);
-  if (man) return console.log(JSON.stringify(man, null, 2));
-  const skill = join(actionsDir(agentDir), slug, 'SKILL.md');
-  if (existsSync(skill)) return process.stdout.write(readFileSync(skill, 'utf8'));
+  const actionMd = join(actionsDir(agentDir), slug, 'ACTION.md');
+  if (existsSync(actionMd)) return process.stdout.write(readFileSync(actionMd, 'utf8'));
   console.error(`no action '${slug}'`);
   process.exit(1);
 }

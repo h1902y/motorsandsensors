@@ -5,8 +5,14 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
+
+const actionMd = (slug, snippet) => serializeEnvelope({
+  id: slug, faculty: 'actions', kind: 'script', title: slug, status: 'active',
+  created_at: '2026-06-12T00:00:00Z', payload: { exec: 'run.mjs' }, body: snippet,
+});
 
 function withProposed(slug, fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-rev-'));
@@ -14,7 +20,7 @@ function withProposed(slug, fn) {
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox/' + slug]) {
     mkdirSync(join(home, d), { recursive: true });
   }
-  writeFileSync(join(home, 'actions', 'inbox', slug, 'action.json'), JSON.stringify({ slug, promptSnippet: 'do it' }));
+  writeFileSync(join(home, 'actions', 'inbox', slug, 'ACTION.md'), actionMd(slug, 'do it'));
   writeFileSync(join(home, 'actions', 'inbox', slug, 'run.mjs'), 'export async function main(){ return {}; }');
   try { return fn(root, home); } finally { rmSync(root, { recursive: true, force: true }); }
 }
@@ -45,7 +51,7 @@ test('piped review: one stdin drives BOTH the actions pass and the knowledge pas
   // seed the type registry so 'fact' is a valid type
   writeFileSync(join(home, 'knowledge', 'registry', 'types.json'), JSON.stringify([{ name: 'fact', description: 'A declarative truth' }]));
   // a proposed action…
-  writeFileSync(join(home, 'actions', 'inbox', 'deploy', 'action.json'), JSON.stringify({ slug: 'deploy', promptSnippet: 'ship it' }));
+  writeFileSync(join(home, 'actions', 'inbox', 'deploy', 'ACTION.md'), actionMd('deploy', 'ship it'));
   writeFileSync(join(home, 'actions', 'inbox', 'deploy', 'run.mjs'), 'export async function main(){ return {}; }');
   // …and a knowledge inbox candidate (processInbox turns it into a pending proposal)
   writeFileSync(join(home, 'knowledge', 'inbox', 'fact.md'), 'releases must be tagged before publishing');

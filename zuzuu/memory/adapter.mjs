@@ -1,57 +1,25 @@
 // zuzuu/memory/adapter.mjs
-// The Memory faculty adapter (WS2-T4). Wraps episode proposals behind the
+// The Memory faculty adapter. Wraps episode proposals behind the
 // faculty-spine adapter contract — { name, ingest, validate, apply, render } —
 // so `zuzuu review` can surface and approve memory entries uniformly.
 //
-// A memory proposal payload is an episode record matching the WS1 Memory schema:
-//   { id, date, title, provenance, body }
+// A memory proposal payload is an episode record:
+//   { id, date, title, provenance: {sessions, hosts}, tags, body }
 //   id format: mem-<YYYY-MM-DD>-<slug>
 //
-// apply: writes .zuzuu/memory/entries/<id>.md with YAML frontmatter (status: curated)
-//        and the body sections (Attempted / Resulted / Remember next time).
+// apply: writes .zuzuu/memory/entries/<id>.md as a Faculty Standard envelope
+//        (kind: episode; payload = {sessions, hosts, tags}; body = the
+//        Attempted / Resulted / Remember-next-time sections).
 //
 // Registers itself on import.
 
-import { join } from 'node:path';
-import { writeFileSync, mkdirSync } from 'node:fs';
 import * as registry from '../faculty/registry.mjs';
+import { writeFacultyItem } from '../faculty/items.mjs';
 
 const name = 'memory';
 
 // mem-<YYYY-MM-DD>-<slug>: the id must START with "mem-"
 const MEM_ID_RE = /^mem-/;
-
-// ---------------------------------------------------------------------------
-// helpers
-// ---------------------------------------------------------------------------
-
-function entriesDir(agentDir) {
-  return join(agentDir, 'memory', 'entries');
-}
-
-function entryPath(agentDir, id) {
-  return join(entriesDir(agentDir), `${id}.md`);
-}
-
-/** Render YAML frontmatter block from the payload fields. */
-function renderFrontmatter(payload) {
-  const lines = ['---'];
-  lines.push(`id: ${payload.id}`);
-  if (payload.date) lines.push(`date: ${payload.date}`);
-  if (payload.title) lines.push(`title: ${payload.title}`);
-  if (payload.provenance) {
-    lines.push('provenance:');
-    const p = payload.provenance;
-    if (Array.isArray(p.sessions)) lines.push(`  sessions: [${p.sessions.join(', ')}]`);
-    if (Array.isArray(p.hosts)) lines.push(`  hosts: [${p.hosts.join(', ')}]`);
-  }
-  if (Array.isArray(payload.tags) && payload.tags.length) {
-    lines.push(`tags: [${payload.tags.join(', ')}]`);
-  }
-  lines.push('status: curated');
-  lines.push('---');
-  return lines.join('\n');
-}
 
 // ---------------------------------------------------------------------------
 // adapter contract
@@ -83,22 +51,29 @@ function validate(_agentDir, payload) {
 }
 
 /**
- * Apply an approved episode proposal: write the entry Markdown file.
+ * Apply an approved episode proposal: write the envelope entry file.
  * @returns {{ok:boolean, action:string, itemIds:string[]}}
  */
 function apply(agentDir, proposal) {
-  const payload = proposal?.payload ?? {};
-  const id = payload.id;
+  const p = proposal?.payload ?? {};
+  const envPayload = {};
+  if (Array.isArray(p.provenance?.sessions) && p.provenance.sessions.length) envPayload.sessions = p.provenance.sessions.map(String);
+  if (Array.isArray(p.provenance?.hosts) && p.provenance.hosts.length) envPayload.hosts = p.provenance.hosts.map(String);
+  if (Array.isArray(p.tags) && p.tags.length) envPayload.tags = p.tags.map(String);
 
-  mkdirSync(entriesDir(agentDir), { recursive: true });
+  writeFacultyItem(agentDir, {
+    id: p.id,
+    faculty: name,
+    kind: 'episode',
+    title: p.title,
+    status: 'active',
+    created_at: p.date || new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+    provenance: Array.isArray(proposal?.provenance) ? proposal.provenance : [],
+    payload: envPayload,
+    body: p.body ?? '',
+  });
 
-  const frontmatter = renderFrontmatter(payload);
-  const body = payload.body ?? '';
-  const content = frontmatter + '\n' + body + (body.endsWith('\n') ? '' : '\n');
-
-  writeFileSync(entryPath(agentDir, id), content);
-
-  return { ok: true, action: `wrote memory ${id}`, itemIds: [id] };
+  return { ok: true, action: `wrote memory ${p.id}`, itemIds: [p.id] };
 }
 
 /**

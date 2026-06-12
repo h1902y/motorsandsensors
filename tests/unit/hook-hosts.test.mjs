@@ -7,6 +7,7 @@ import { geminiRef } from '../../zuzuu/commands/hook.mjs';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { gateDecision } from '../../zuzuu/commands/hook.mjs';
+import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fx = (h) => readFileSync(join(here, '..', 'fixtures', 'hooks', `${h}.probe.jsonl`), 'utf8')
@@ -30,8 +31,14 @@ test('real codex PreToolUse payload carries tool_name + tool_input for the gate'
 
 function withRules(rules, fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-gate-'));
-  mkdirSync(join(root, '.zuzuu', 'guardrails'), { recursive: true });
-  writeFileSync(join(root, '.zuzuu', 'guardrails', 'rules.json'), JSON.stringify({ version: 1, rules }));
+  const items = join(root, '.zuzuu', 'guardrails', 'items');
+  mkdirSync(items, { recursive: true });
+  for (const r of rules) {
+    writeFileSync(join(items, `${r.id}.md`), serializeEnvelope({
+      id: r.id, faculty: 'guardrails', kind: 'rule', title: r.reason, status: 'active',
+      created_at: '2026-06-12T00:00:00Z', payload: { action: r.action, tool: r.tool, pattern: r.pattern, reason: r.reason }, body: '',
+    }));
+  }
   try { return fn(root); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 const SECRET_RULE = { id: 'no-secret-reads', action: 'deny', tool: '*', pattern: '\\.env', reason: 'secrets' };
