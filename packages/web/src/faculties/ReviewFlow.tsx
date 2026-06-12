@@ -87,26 +87,36 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
   // belt-and-braces guard against any future re-fire (e.g. a phase reset);
   // explicit retry bypasses it by calling runMint directly.
   const done = state !== null && isDone(state);
+  // CLI parity: quitting mid-ceremony still mints what was already approved
+  // (the CLI's review does the same — applied approvals without a pinned
+  // generation would be untracked). Closing with approvals routes through the
+  // end state instead of discarding.
+  const [closing, setClosing] = useState(false);
+  const finished = done || closing;
+  const requestClose = () => {
+    if (state && !done && approvedIds.length > 0 && mint.phase === "idle") setClosing(true);
+    else onClose();
+  };
   const mintStarted = useRef(false);
   useEffect(() => {
-    if (done && approvedIds.length > 0 && mint.phase === "idle" && !mintStarted.current) {
+    if (finished && approvedIds.length > 0 && mint.phase === "idle" && !mintStarted.current) {
       mintStarted.current = true;
       void runMint(approvedIds);
     }
-  }, [done, approvedIds, mint.phase, runMint]);
+  }, [finished, approvedIds, mint.phase, runMint]);
 
   const item = state ? currentItem(state) : null;
 
   return (
-    <Overlay onClose={onClose}>
+    <Overlay onClose={requestClose}>
       <Dialog width="lg">
         <DialogHeader
           title={
-            state && !done
+            state && !finished
               ? <>Review <span className="font-normal text-ink-500">· {state.index + 1} of {state.queue.length}</span></>
               : "Review"
           }
-          onClose={onClose}
+          onClose={requestClose}
         />
         <div className="flex flex-col gap-3 p-4">
           {state?.cliAbsent && (
@@ -119,11 +129,11 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
             <div className="flex items-center gap-2 py-6 text-ui text-ink-500"><Spinner /> loading queue…</div>
           )}
 
-          {state !== null && done && (
+          {state !== null && finished && (
             <EndState approvedCount={approvedIds.length} mint={mint} onRetry={() => void runMint(approvedIds)} onDone={onClose} />
           )}
 
-          {state !== null && !done && item && (
+          {state !== null && !finished && item && (
             <>
               <ItemCard item={item} />
               {state.error && (
