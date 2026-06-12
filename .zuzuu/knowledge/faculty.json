@@ -1,0 +1,26 @@
+{
+  "id": "knowledge",
+  "title": "Knowledge",
+  "tagline": "what's TRUE — facts about this project",
+  "version": "1.0.0",
+  "contract": 1,
+  "kinds": [
+    "fact",
+    "entity",
+    "command",
+    "decision"
+  ],
+  "itemsDir": "items",
+  "schema": "schema.json",
+  "hooks": {
+    "miner": true,
+    "digest": true,
+    "eval": false,
+    "gate": false
+  },
+  "ui": {
+    "icon": "book",
+    "accent": "info",
+    "teaching": "Facts zuzuu learns from your sessions land here after your approval."
+  }
+}

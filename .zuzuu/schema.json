@@ -1,0 +1,33 @@
+{
+  "standard": "zuzuu-faculty-envelope",
+  "version": 1,
+  "description": "One file per item: markdown body + strict frontmatter. One rigid envelope across all five faculties; payload is faculty-typed and validated by <faculty>/schema.json.",
+  "envelope": {
+    "id": "required — slug [a-z0-9-]",
+    "faculty": "required — knowledge|memory|actions|instructions|guardrails",
+    "kind": "required — per-faculty kinds (see kinds)",
+    "title": "required — single line",
+    "status": "active|archived (default active)",
+    "created_at": "required — ISO date/datetime",
+    "updated_at": "optional — ISO date/datetime",
+    "provenance": "optional list of {session, ref}",
+    "payload": "faculty-typed machine fields (see <faculty>/schema.json)"
+  },
+  "kinds": {
+    "knowledge": "registry-governed (knowledge/registry/types.json)",
+    "memory": [
+      "episode"
+    ],
+    "actions": [
+      "runbook",
+      "script"
+    ],
+    "instructions": [
+      "steering",
+      "amendment"
+    ],
+    "guardrails": [
+      "rule"
+    ]
+  }
+}

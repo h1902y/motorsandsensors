@@ -1,0 +1,24 @@
+{
+  "id": "actions",
+  "title": "Actions",
+  "tagline": "how to DO things — runbooks + runnable scripts",
+  "version": "1.0.0",
+  "contract": 1,
+  "kinds": [
+    "runbook",
+    "script"
+  ],
+  "itemsDir": ".",
+  "schema": "schema.json",
+  "hooks": {
+    "miner": true,
+    "digest": true,
+    "eval": false,
+    "gate": false
+  },
+  "ui": {
+    "icon": "play",
+    "accent": "success",
+    "teaching": "Reusable runbooks and scripts, mined from how you actually work and approved by you."
+  }
+}
