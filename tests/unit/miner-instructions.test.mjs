@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 
 import { miner, aggregate, propose } from '../../zuzuu/miners/instructions.mjs';
 import * as registry from '../../zuzuu/miners/registry.mjs';
+import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 // Import memory miner so it self-registers (needed for Test 4 + Test 5).
 import '../../zuzuu/miners/memory.mjs';
@@ -112,7 +113,7 @@ test('propose: idempotent — second call returns 0', () => {
   assert.equal(n2, 0, 'second propose returns 0');
 });
 
-test('propose: idempotent — skips if text already present in project.md', () => {
+test('propose: idempotent — skips if text already present in an instructions item', () => {
   const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-instr-projmd-'));
   const text = 'always run tests before committing';
   const sessions = [
@@ -121,13 +122,16 @@ test('propose: idempotent — skips if text already present in project.md', () =
   ];
   const cands = aggregate(sessions);
 
-  // Pre-populate project.md with the text already in it.
-  const instrDir = join(agentDir, 'instructions');
-  mkdirSync(instrDir, { recursive: true });
-  writeFileSync(join(instrDir, 'project.md'), text + '\n');
+  // Pre-populate the steering item with the text already in it.
+  const itemsDir = join(agentDir, 'instructions', 'items');
+  mkdirSync(itemsDir, { recursive: true });
+  writeFileSync(join(itemsDir, 'steering.md'), serializeEnvelope({
+    id: 'steering', faculty: 'instructions', kind: 'steering', title: 'Project steering',
+    status: 'active', created_at: '2026-06-12T00:00:00Z', payload: {}, body: text,
+  }));
 
   const n = propose(agentDir, cands);
-  assert.equal(n, 0, 'skips when text is already in project.md');
+  assert.equal(n, 0, 'skips when text is already applied');
 });
 
 // ---------------------------------------------------------------------------

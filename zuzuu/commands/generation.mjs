@@ -86,7 +86,8 @@ export function showLines(dir, id) {
   lines.push(`  forkedFrom: ${d.forkedFrom ?? '(none — first generation)'}`);
   lines.push(`  mintedFrom: ${d.mintedFrom.length} proposal(s)`);
   lines.push('  changes vs parent:');
-  for (const f of ['knowledge', 'actions', 'memory']) {
+  // all five faculties are envelope-item lists under the Faculty Standard (W24)
+  for (const f of ['knowledge', 'actions', 'memory', 'guardrails', 'instructions']) {
     const x = d.faculties[f] || { added: [], changed: [], removed: [] };
     const parts = [];
     if (x.added.length) parts.push(`+${x.added.length} added`);
@@ -94,9 +95,6 @@ export function showLines(dir, id) {
     if (x.removed.length) parts.push(`-${x.removed.length} removed`);
     if (f === 'knowledge' && x.registryChanged) parts.push('registry changed');
     lines.push(`    ${f}: ${parts.length ? parts.join(' · ') : 'no change'}`);
-  }
-  for (const f of ['guardrails', 'instructions']) {
-    lines.push(`    ${f}: ${d.faculties[f]?.changed ? 'changed' : 'no change'}`);
   }
   return lines.join('\n');
 }

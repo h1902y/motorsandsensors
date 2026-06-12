@@ -9,9 +9,8 @@
 // Shape: { faculty:'instructions', aggregate(sessions, opts), propose(agentDir, aggregated) }
 // Self-registers on import.
 
-import { join } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
 import { makeProposal, writeProposal, listProposals, isArchivedResolved } from '../faculty/proposal.mjs';
+import { listFacultyItems } from '../faculty/items.mjs';
 import { register } from './registry.mjs';
 
 // ---------------------------------------------------------------------------
@@ -102,7 +101,8 @@ export function aggregate(sessions, { minSessions = 2 } = {}) {
  *
  * Idempotent:
  *   - skips if an instructions proposal with the same derived id already exists
- *   - skips if the text is already present in project.md
+ *   - skips if the text is already present in an instructions item (steering
+ *     or a prior amendment)
  *   - skips if the id is already resolved in proposals/archive/ — a rejection
  *     is remembered; re-distilling never resurrects it
  *
@@ -115,11 +115,11 @@ export function propose(agentDir, aggregated) {
   const existing = listProposals(agentDir, 'instructions');
   const existingIds = new Set(existing.map((p) => p.payload?.id).filter(Boolean));
 
-  // Read project.md to skip amendments already applied.
-  const projectMdPath = join(agentDir, 'instructions', 'project.md');
-  const projectMdContent = existsSync(projectMdPath)
-    ? readFileSync(projectMdPath, 'utf8')
-    : '';
+  // Read the instructions items (steering + amendments) to skip applied text.
+  let appliedText = '';
+  try {
+    appliedText = listFacultyItems(agentDir, 'instructions').items.map((i) => i.body ?? '').join('\n');
+  } catch { appliedText = ''; }
 
   let count = 0;
   for (const c of aggregated) {
@@ -128,8 +128,8 @@ export function propose(agentDir, aggregated) {
     // Idempotent: skip if already proposed.
     if (existingIds.has(payload.id)) continue;
 
-    // Idempotent: skip if text already present in project.md.
-    if (projectMdContent.includes(payload.text)) continue;
+    // Idempotent: skip if text already present in an instructions item.
+    if (appliedText.includes(payload.text)) continue;
 
     const proposal = makeProposal({
       faculty: 'instructions',

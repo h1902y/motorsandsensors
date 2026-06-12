@@ -40,8 +40,8 @@ export function detectDrift(agentDir) {
     const pinned = lockfile.faculties || {};
     const drifted = [];
 
-    // Compare per-faculty item arrays (knowledge, actions, memory).
-    for (const faculty of ['knowledge', 'actions', 'memory']) {
+    // Compare per-faculty item arrays — all five are envelope-item lists (W24).
+    for (const faculty of ['knowledge', 'actions', 'memory', 'guardrails', 'instructions']) {
       const pinnedItems = (pinned[faculty]?.items ?? []);
       const currentItems = (current[faculty]?.items ?? []);
 
@@ -62,19 +62,6 @@ export function detectDrift(agentDir) {
         if (!pinnedMap.has(id)) {
           drifted.push({ id, faculty, reason: 'added', current: hash });
         }
-      }
-    }
-
-    // Compare single-file faculties (guardrails.rulesHash, instructions.projectHash)
-    const singleFile = [
-      { faculty: 'guardrails', field: 'rulesHash' },
-      { faculty: 'instructions', field: 'projectHash' },
-    ];
-    for (const { faculty, field } of singleFile) {
-      const pinnedHash = pinned[faculty]?.[field] ?? null;
-      const currentHash = current[faculty]?.[field] ?? null;
-      if (pinnedHash !== currentHash) {
-        drifted.push({ id: field, faculty, reason: 'hash_changed', pinned: pinnedHash, current: currentHash });
       }
     }
 

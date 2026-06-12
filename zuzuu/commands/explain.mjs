@@ -26,12 +26,12 @@ const FACULTY_CONTRACTS = {
     'Propose one with `zuzuu act propose <slug>` (lands in actions/inbox/); on approval ' +
     'it becomes an active action you can run with `zuzuu act <slug>`.',
   instructions:
-    'instructions — the directive faculty: who to BE. The pinned steering artifact ' +
-    '(instructions/project.md) that grounds every session. Empty by default — the ' +
+    'instructions — the directive faculty: who to BE. The pinned steering item ' +
+    '(instructions/items/steering.md) that grounds every session. Empty by default — the ' +
     'digest tells the agent to interview you and draft it for your approval.',
   guardrails:
-    'guardrails — the protective faculty: what NOT to do, ENFORCED. Rules in ' +
-    'guardrails/rules.json gate tool calls (deny > ask > allow) before they run. ' +
+    'guardrails — the protective faculty: what NOT to do, ENFORCED. One rule per item in ' +
+    'guardrails/items/ gates tool calls (deny > ask > allow) before they run. ' +
     'A refusal here is policy, not preference. The gate fails open — never breaks the host.',
 };
 

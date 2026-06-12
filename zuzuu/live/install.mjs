@@ -13,7 +13,7 @@ const DENY_RULES = ['Read(./.zuzuu/.traces/**)', 'Read(./.zuzuu/.live/**)'];
 
 // Minimal hook set: lifecycle (Design B re-captures the transcript — no
 // PostToolUse needed) + the PreToolUse Guardrails GATE (the one place we *do*
-// sit on the hot path: it evaluates .zuzuu/guardrails/rules.json per tool call,
+// sit on the hot path: it evaluates the .zuzuu/guardrails/items/ rules per tool call,
 // fails open, and stays silent unless a rule matches).
 export const LIFECYCLE_EVENTS = ['SessionStart', 'Stop', 'SessionEnd'];
 export const GATE_EVENTS = ['PreToolUse'];
