@@ -70,9 +70,9 @@ test('aggregate: correction in only one session → no candidate (cross-session 
 
 // ---------------------------------------------------------------------------
 // Test 3: propose writes an instructions proposal (kind:'block') to
-// .mns/instructions/proposals/; idempotent re-run → 0.
+// .home/instructions/proposals/; idempotent re-run → 0.
 
-test('propose: writes instructions proposal JSON (kind:block) to mns/instructions/proposals/', () => {
+test('propose: writes instructions proposal JSON (kind:block) to home/instructions/proposals/', () => {
   const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-instr-miner-'));
   const text = 'always run tests before committing';
   const sessions = [

@@ -59,7 +59,7 @@ test('writeLiveDigest on an absent home does not throw (fail-open)', () => {
 test('sessionStartContext on an absent home degrades gracefully (no throw, well-formed)', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-nohome-'));
   try {
-    // No .mns/ here, yet computeDigest is fail-soft per faculty and still
+    // No .home/ here, yet computeDigest is fail-soft per faculty and still
     // renders headers (interview directive + empty knowledge + guardrails) →
     // a non-empty digest, so we get a well-formed payload, never null/throw.
     const out = sessionStartContext(root); // must not throw

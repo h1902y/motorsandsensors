@@ -10,7 +10,7 @@ import { EventKind, Status } from '../../experiments/experiment-1-trace-capture/
 // Fixture is parsed-row shape (the pure buildTrace input), mirroring REAL
 // opencode.db rows: session(model JSON) + message(role) + part(text|tool|reasoning).
 // Tests the normalization hermetically — no SQLite needed (the real DB read is
-// validated by `mns capture --host opencode`).
+// validated by `home capture --host opencode`).
 const FIXTURE = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'opencode-sample.json'), 'utf8'));
 const parsed = buildTrace(FIXTURE);
 const byKind = (k) => parsed.events.filter((e) => e.kind === k);

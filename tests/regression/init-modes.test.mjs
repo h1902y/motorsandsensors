@@ -6,7 +6,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-// Drives the REAL binary (`mns init`) in temp dirs — the three git-style modes.
+// Drives the REAL binary (`home init`) in temp dirs — the three git-style modes.
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
 
 function run(cwd) {

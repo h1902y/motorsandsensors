@@ -126,7 +126,7 @@ test('enable failure → summary shows degraded, still launches', () => {
 
 test('no such directory → exit 1', () => {
   const { calls, deps } = fakeDeps();
-  const ex = code({ _: ['/no/such/dir/xyz-mns-code'] }, deps);
+  const ex = code({ _: ['/no/such/dir/xyz-home-code'] }, deps);
   assert.equal(ex, 1);
   assert.ok(!calls.some((c) => c[0] === 'launch'));
 });

@@ -12,10 +12,10 @@ function withHome(fn) {
 }
 
 test('recordOutcome appends a JSONL line with slug + ok + error', () => {
-  withHome((mns) => {
-    recordOutcome(mns, { slug: 'deploy', ok: true });
-    recordOutcome(mns, { slug: 'deploy', ok: false, error: 'invalid_input' });
-    const path = join(mns, '.live', 'actions.jsonl');
+  withHome((home) => {
+    recordOutcome(home, { slug: 'deploy', ok: true });
+    recordOutcome(home, { slug: 'deploy', ok: false, error: 'invalid_input' });
+    const path = join(home, '.live', 'actions.jsonl');
     assert.ok(existsSync(path));
     const lines = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     assert.equal(lines.length, 2);

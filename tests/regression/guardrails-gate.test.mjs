@@ -6,8 +6,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
-// Drives the REAL gate: `mns hook PreToolUse` with a payload on stdin, in a
-// temp project scaffolded by the real `mns init` (so the seed rules are the
+// Drives the REAL gate: `home hook PreToolUse` with a payload on stdin, in a
+// temp project scaffolded by the real `home init` (so the seed rules are the
 // ones users actually get). Asserts the wire contract Claude Code consumes.
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
 

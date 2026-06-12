@@ -12,19 +12,19 @@ function withHome(fn) {
 }
 
 test('proposeAction scaffolds into actions/inbox/<slug>/, not the active dir', () => {
-  withHome((mns) => {
-    const r = proposeAction(mns, 'shipit');
+  withHome((home) => {
+    const r = proposeAction(home, 'shipit');
     assert.equal(r.created.length, 2);
-    assert.ok(existsSync(join(mns, 'actions', 'inbox', 'shipit', 'action.json')));
-    assert.ok(existsSync(join(mns, 'actions', 'inbox', 'shipit', 'run.mjs')));
-    assert.ok(!existsSync(join(mns, 'actions', 'shipit')), 'not active until reviewed');
-    const man = JSON.parse(readFileSync(join(mns, 'actions', 'inbox', 'shipit', 'action.json'), 'utf8'));
+    assert.ok(existsSync(join(home, 'actions', 'inbox', 'shipit', 'action.json')));
+    assert.ok(existsSync(join(home, 'actions', 'inbox', 'shipit', 'run.mjs')));
+    assert.ok(!existsSync(join(home, 'actions', 'shipit')), 'not active until reviewed');
+    const man = JSON.parse(readFileSync(join(home, 'actions', 'inbox', 'shipit', 'action.json'), 'utf8'));
     assert.equal(man.slug, 'shipit');
   });
 });
 
 test('proposeAction rejects an unsafe slug', () => {
-  withHome((mns) => {
-    assert.throws(() => proposeAction(mns, '../../escape'), /invalid slug/);
+  withHome((home) => {
+    assert.throws(() => proposeAction(home, '../../escape'), /invalid slug/);
   });
 });

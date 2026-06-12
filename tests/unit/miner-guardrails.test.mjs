@@ -185,7 +185,7 @@ test('aggregate: 2 occurrences across 2 sessions (below minFailures=3) → no pr
 // ---------------------------------------------------------------------------
 // Test 7: propose writes a guardrails proposal JSON and is idempotent
 
-test('propose: writes guardrails proposal JSON to mns/guardrails/proposals/', () => {
+test('propose: writes guardrails proposal JSON to home/guardrails/proposals/', () => {
   const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-guard-miner-'));
   const cmd = 'rm -rf /data';
   const sessions = [

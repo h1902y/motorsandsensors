@@ -16,32 +16,32 @@ import { listGenerations, readGeneration, activeGeneration } from '../../zuzuu/f
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
 
 /**
- * Build a minimal .mns home with N knowledge inbox facts (which processInbox
- * turns into pending proposals during `mns review`).
+ * Build a minimal .home home with N knowledge inbox facts (which processInbox
+ * turns into pending proposals during `home review`).
  */
 function freshHome(facts) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-rev-gen-'));
-  const mns = join(root, 'agent');
+  const home = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
-    mkdirSync(join(mns, d), { recursive: true });
+    mkdirSync(join(home, d), { recursive: true });
   }
   // seed the type registry so 'fact' is a valid type during apply
   writeFileSync(
-    join(mns, 'knowledge', 'registry', 'types.json'),
+    join(home, 'knowledge', 'registry', 'types.json'),
     JSON.stringify([{ name: 'fact', description: 'A declarative truth' }]),
   );
   // drop each fact into the inbox (one file = one candidate = one proposal)
   for (let i = 0; i < facts.length; i++) {
-    writeFileSync(join(mns, 'knowledge', 'inbox', `fact${i}.md`), facts[i]);
+    writeFileSync(join(home, 'knowledge', 'inbox', `fact${i}.md`), facts[i]);
   }
-  return { root, mns };
+  return { root, home };
 }
 
 // ---------------------------------------------------------------------------
 // Test 1: approve both → exactly ONE generation minted with both proposal ids
 // ---------------------------------------------------------------------------
 test('review: approve both proposals → exactly one generation minted, mintedFrom contains both ids', () => {
-  const { root, mns } = freshHome([
+  const { root, home } = freshHome([
     'zero deps is a hard policy',
     'playground exit 2 means skip not fail',
   ]);
@@ -51,16 +51,16 @@ test('review: approve both proposals → exactly one generation minted, mintedFr
     assert.equal(r.status, 0, `process exited non-zero: ${r.stderr}`);
 
     // exactly ONE generation
-    const gens = listGenerations(mns);
+    const gens = listGenerations(home);
     assert.equal(gens.length, 1, `expected 1 generation, got ${gens.length}`);
 
-    const gen = readGeneration(mns, gens[0]);
+    const gen = readGeneration(home, gens[0]);
     assert.ok(gen, 'generation lockfile readable');
     assert.ok(Array.isArray(gen.mintedFrom), 'mintedFrom is an array');
     assert.equal(gen.mintedFrom.length, 2, `mintedFrom should contain 2 ids, got ${gen.mintedFrom.length}`);
 
     // activeGeneration should be this generation
-    assert.equal(activeGeneration(mns), gens[0], 'active generation updated');
+    assert.equal(activeGeneration(home), gens[0], 'active generation updated');
 
     // stdout should mention the mint as a graduation ceremony
     assert.match(r.stdout, /generation gen_001 minted/);
@@ -74,7 +74,7 @@ test('review: approve both proposals → exactly one generation minted, mintedFr
 // Test 2: reject both → NO generation minted
 // ---------------------------------------------------------------------------
 test('review: reject all proposals → no generation minted', () => {
-  const { root, mns } = freshHome([
+  const { root, home } = freshHome([
     'no generation on reject',
     'second reject fact',
   ]);
@@ -83,7 +83,7 @@ test('review: reject all proposals → no generation minted', () => {
     const r = spawnSync(process.execPath, [BIN, 'review'], { cwd: root, input: 'n\n\nn\n\n', encoding: 'utf8' });
     assert.equal(r.status, 0, `process exited non-zero: ${r.stderr}`);
 
-    const gens = listGenerations(mns);
+    const gens = listGenerations(home);
     assert.equal(gens.length, 0, `expected 0 generations, got ${gens.length}`);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -94,7 +94,7 @@ test('review: reject all proposals → no generation minted', () => {
 // Test 3: approve one then quit → one generation minted with only that id
 // ---------------------------------------------------------------------------
 test('review: approve first, quit before second → one generation with one approved id', () => {
-  const { root, mns } = freshHome([
+  const { root, home } = freshHome([
     'early quit after approve',
     'this one never gets reviewed',
   ]);
@@ -103,10 +103,10 @@ test('review: approve first, quit before second → one generation with one appr
     const r = spawnSync(process.execPath, [BIN, 'review'], { cwd: root, input: 'y\nq\n', encoding: 'utf8' });
     assert.equal(r.status, 0, `process exited non-zero: ${r.stderr}`);
 
-    const gens = listGenerations(mns);
+    const gens = listGenerations(home);
     assert.equal(gens.length, 1, `expected 1 generation, got ${gens.length}`);
 
-    const gen = readGeneration(mns, gens[0]);
+    const gen = readGeneration(home, gens[0]);
     assert.ok(gen, 'generation lockfile readable');
     assert.equal(gen.mintedFrom.length, 1, 'mintedFrom has exactly one approved id');
 

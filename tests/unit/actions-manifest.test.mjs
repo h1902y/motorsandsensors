@@ -7,8 +7,8 @@ import { loadManifest, allActions, listActions, inboxDir } from '../../zuzuu/act
 
 function withActions(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-act-'));
-  const mns = join(root, 'agent');
-  const A = join(mns, 'actions');
+  const home = join(root, 'agent');
+  const A = join(home, 'actions');
   mkdirSync(A, { recursive: true });
   writeFileSync(join(A, 'README.md'), '# actions'); // must be ignored
   mkdirSync(join(A, 'run-tests'), { recursive: true });
@@ -20,25 +20,25 @@ function withActions(fn) {
   mkdirSync(join(A, 'deploy'), { recursive: true });
   writeFileSync(join(A, 'deploy', 'SKILL.md'), '---\nname: Deploy\ndescription: how to ship\n---\nsteps...');
   try {
-    return fn(mns);
+    return fn(home);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 }
 
 test('loadManifest reads action.json or returns null', () => {
-  withActions((mns) => {
-    const m = loadManifest(mns, 'run-tests');
+  withActions((home) => {
+    const m = loadManifest(home, 'run-tests');
     assert.equal(m.slug, 'run-tests');
     assert.equal(m.promptSnippet, 'run the test suite');
-    assert.equal(loadManifest(mns, 'nope'), null);
-    assert.equal(loadManifest(mns, 'deploy'), null); // runbook has no action.json
+    assert.equal(loadManifest(home, 'nope'), null);
+    assert.equal(loadManifest(home, 'deploy'), null); // runbook has no action.json
   });
 });
 
 test('allActions lists scripts and runbooks, ignores README', () => {
-  withActions((mns) => {
-    const list = allActions(mns).sort((a, b) => a.slug.localeCompare(b.slug));
+  withActions((home) => {
+    const list = allActions(home).sort((a, b) => a.slug.localeCompare(b.slug));
     assert.equal(list.length, 2);
     assert.deepEqual(list.map((a) => a.slug), ['deploy', 'run-tests']);
     const rt = list.find((a) => a.slug === 'run-tests');
@@ -77,24 +77,24 @@ test('script dir without action.json falls back to slug', () => {
 });
 
 test('allActions skips the inbox subdir', () => {
-  withActions((mns) => {
-    const inb = join(mns, 'actions', 'inbox', 'proposed');
+  withActions((home) => {
+    const inb = join(home, 'actions', 'inbox', 'proposed');
     mkdirSync(inb, { recursive: true });
     writeFileSync(join(inb, 'action.json'), JSON.stringify({ slug: 'proposed' }));
     writeFileSync(join(inb, 'run.mjs'), 'export async function main(){ return {}; }');
-    const slugs = allActions(mns).map((a) => a.slug);
+    const slugs = allActions(home).map((a) => a.slug);
     assert.ok(!slugs.includes('inbox'), 'inbox not listed as an action');
     assert.ok(!slugs.includes('proposed'), 'inbox contents not listed as active actions');
   });
 });
 
 test('listActions on the inbox dir lists proposed actions', () => {
-  withActions((mns) => {
-    const inb = join(mns, 'actions', 'inbox', 'proposed');
+  withActions((home) => {
+    const inb = join(home, 'actions', 'inbox', 'proposed');
     mkdirSync(inb, { recursive: true });
     writeFileSync(join(inb, 'action.json'), JSON.stringify({ slug: 'proposed', promptSnippet: 'do a thing' }));
     writeFileSync(join(inb, 'run.mjs'), 'export async function main(){ return {}; }');
-    const list = listActions(inboxDir(mns));
+    const list = listActions(inboxDir(home));
     assert.equal(list.length, 1);
     assert.equal(list[0].slug, 'proposed');
     assert.equal(list[0].kind, 'script');

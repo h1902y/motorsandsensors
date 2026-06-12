@@ -69,7 +69,7 @@ test('seeded force-push rule catches the real exp-8 bypass (git -C … --force-w
     const { rules } = loadRules(p);
     const bypass = evaluate(rules, {
       tool: 'Bash',
-      input: { command: 'git -C /Users/hkc/Documents/mns-livefire-2 push --force-with-lease origin main' },
+      input: { command: 'git -C /Users/hkc/Documents/home-livefire-2 push --force-with-lease origin main' },
     });
     assert.equal(bypass?.action, 'ask');
     assert.equal(bypass?.rule, 'confirm-force-push');

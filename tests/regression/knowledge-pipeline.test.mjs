@@ -141,7 +141,7 @@ test('inbox: plain-text candidates become ER-verdicted proposals; files consumed
   });
 });
 
-test('mns review (piped): approve / reject / EOF-quit through the real binary', () => {
+test('home review (piped): approve / reject / EOF-quit through the real binary', () => {
   withHome((agentDir, projectDir) => {
     writeFileSync(join(agentDir, 'knowledge', 'inbox', 'one.md'), 'First durable fact about alpha systems');
     writeFileSync(join(agentDir, 'knowledge', 'inbox', 'two.md'), 'Second durable fact about beta systems');

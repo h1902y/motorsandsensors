@@ -1,5 +1,5 @@
 // tests/unit/inbox.test.mjs (WS-C)
-// `mns inbox` — what is pending your approval, per faculty. Uses an injected
+// `home inbox` — what is pending your approval, per faculty. Uses an injected
 // `log` (no console scraping) over a temp faculty home.
 
 import { test } from 'node:test';
@@ -11,12 +11,12 @@ import { inbox } from '../../zuzuu/commands/inbox.mjs';
 
 function homeWithKnowledgeProposals(n) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-inbox-'));
-  const mns = join(root, 'agent');
-  mkdirSync(join(mns, 'knowledge', 'proposals'), { recursive: true });
+  const home = join(root, 'agent');
+  mkdirSync(join(home, 'knowledge', 'proposals'), { recursive: true });
   for (let i = 0; i < n; i++) {
     const id = `fact-${i}`;
     writeFileSync(
-      join(mns, 'knowledge', 'proposals', `${id}.json`),
+      join(home, 'knowledge', 'proposals', `${id}.json`),
       JSON.stringify({
         id,
         faculty: 'knowledge',
@@ -28,21 +28,21 @@ function homeWithKnowledgeProposals(n) {
       }, null, 2),
     );
   }
-  return { root, mns };
+  return { root, home };
 }
 
 function emptyHome() {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-inbox-'));
-  const mns = join(root, 'agent');
-  mkdirSync(join(mns, 'knowledge', 'proposals'), { recursive: true });
-  return { root, mns };
+  const home = join(root, 'agent');
+  mkdirSync(join(home, 'knowledge', 'proposals'), { recursive: true });
+  return { root, home };
 }
 
 test('inbox lists pending knowledge proposals + the review hint', () => {
-  const { root, mns } = homeWithKnowledgeProposals(2);
+  const { root, home } = homeWithKnowledgeProposals(2);
   try {
     const lines = [];
-    inbox({ _: [], agentDir: mns }, (s) => lines.push(s));
+    inbox({ _: [], agentDir: home }, (s) => lines.push(s));
     const out = lines.join('\n');
     assert.match(out, /knowledge: 2 pending/);
     assert.match(out, /zuzuu review/);
@@ -52,10 +52,10 @@ test('inbox lists pending knowledge proposals + the review hint', () => {
 });
 
 test('empty home → all caught up', () => {
-  const { root, mns } = emptyHome();
+  const { root, home } = emptyHome();
   try {
     const lines = [];
-    inbox({ _: [], agentDir: mns }, (s) => lines.push(s));
+    inbox({ _: [], agentDir: home }, (s) => lines.push(s));
     const out = lines.join('\n');
     assert.match(out, /all caught up/i);
     assert.doesNotMatch(out, /zuzuu review/);

@@ -1,5 +1,5 @@
 // tests/unit/eval-wire.test.mjs
-// WS4-T2: wire the eval lens into review + add `mns eval`
+// WS4-T2: wire the eval lens into review + add `home eval`
 // TDD — written before implementation (red → green).
 
 import { test } from 'node:test';
@@ -32,13 +32,13 @@ test('evalLine appends low-signal warning when confidence is low', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Test: mns eval prints proposals highest-score-first.
+// Test: home eval prints proposals highest-score-first.
 // ---------------------------------------------------------------------------
-test('mns eval prints proposals highest-score-first', () => {
+test('home eval prints proposals highest-score-first', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-eval-'));
-  const mns = join(root, 'agent');
+  const home = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
-    mkdirSync(join(mns, d), { recursive: true });
+    mkdirSync(join(home, d), { recursive: true });
   }
   // Write two proposals with distinct evidence:
   //   p-high: occurrences=12, sessions=3, verdict=new → score 0.775 (high)
@@ -67,12 +67,12 @@ test('mns eval prints proposals highest-score-first', () => {
     provenance: [],
     er: { verdict: 'duplicate', confidence: 0.5, reason: 'dup' },
   };
-  writeFileSync(join(mns, 'knowledge', 'proposals', 'p-high.json'), JSON.stringify(highProposal, null, 2));
-  writeFileSync(join(mns, 'knowledge', 'proposals', 'p-low.json'), JSON.stringify(lowProposal, null, 2));
+  writeFileSync(join(home, 'knowledge', 'proposals', 'p-high.json'), JSON.stringify(highProposal, null, 2));
+  writeFileSync(join(home, 'knowledge', 'proposals', 'p-low.json'), JSON.stringify(lowProposal, null, 2));
 
   try {
     const r = spawnSync(process.execPath, [BIN, 'eval'], { cwd: root, encoding: 'utf8' });
-    assert.equal(r.status, 0, `mns eval failed: ${r.stderr}`);
+    assert.equal(r.status, 0, `home eval failed: ${r.stderr}`);
     const lines = r.stdout.split('\n').filter((l) => l.trim());
     // p-high must appear before p-low
     const idxHigh = lines.findIndex((l) => l.includes('p-high'));
@@ -89,13 +89,13 @@ test('mns eval prints proposals highest-score-first', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Test: mns eval --faculty filters to one faculty.
+// Test: home eval --faculty filters to one faculty.
 // ---------------------------------------------------------------------------
-test('mns eval --faculty knowledge shows only knowledge proposals', () => {
+test('home eval --faculty knowledge shows only knowledge proposals', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-eval-fac-'));
-  const mns = join(root, 'agent');
+  const home = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
-    mkdirSync(join(mns, d), { recursive: true });
+    mkdirSync(join(home, d), { recursive: true });
   }
   const proposal = {
     id: 'kp1',
@@ -109,10 +109,10 @@ test('mns eval --faculty knowledge shows only knowledge proposals', () => {
     provenance: [],
     er: { verdict: 'new', confidence: 0.8, reason: 'new' },
   };
-  writeFileSync(join(mns, 'knowledge', 'proposals', 'kp1.json'), JSON.stringify(proposal, null, 2));
+  writeFileSync(join(home, 'knowledge', 'proposals', 'kp1.json'), JSON.stringify(proposal, null, 2));
   try {
     const r = spawnSync(process.execPath, [BIN, 'eval', '--faculty', 'knowledge'], { cwd: root, encoding: 'utf8' });
-    assert.equal(r.status, 0, `mns eval --faculty failed: ${r.stderr}`);
+    assert.equal(r.status, 0, `home eval --faculty failed: ${r.stderr}`);
     assert.ok(r.stdout.includes('kp1'), 'kp1 in output');
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -124,15 +124,15 @@ test('mns eval --faculty knowledge shows only knowledge proposals', () => {
 // ---------------------------------------------------------------------------
 test('distill persists score on created proposal', async () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-distill-score-'));
-  const mns = join(root, 'agent');
+  const home = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry']) {
-    mkdirSync(join(mns, d), { recursive: true });
+    mkdirSync(join(home, d), { recursive: true });
   }
   // Write a minimal type registry
-  writeFileSync(join(mns, 'knowledge', 'registry', 'types.json'), JSON.stringify([{ name: 'command', description: 'a command' }]));
+  writeFileSync(join(home, 'knowledge', 'registry', 'types.json'), JSON.stringify([{ name: 'command', description: 'a command' }]));
 
   const { createProposal } = await import('../../zuzuu/knowledge/proposals.mjs');
-  const p = createProposal(mns, {
+  const p = createProposal(home, {
     candidate: {
       id: 'cmd-npm-test',
       type: 'command',
@@ -151,7 +151,7 @@ test('distill persists score on created proposal', async () => {
   assert.ok(typeof p.score.rationale === 'string', 'score.rationale is a string');
 
   // Verify it was persisted to disk too
-  const onDisk = JSON.parse(readFileSync(join(mns, 'knowledge', 'proposals', `${p.id}.json`), 'utf8'));
+  const onDisk = JSON.parse(readFileSync(join(home, 'knowledge', 'proposals', `${p.id}.json`), 'utf8'));
   assert.ok(onDisk.score, 'score written to disk');
   assert.equal(onDisk.score.score, p.score.score, 'disk score matches returned score');
 
@@ -159,17 +159,17 @@ test('distill persists score on created proposal', async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Test: review card includes eval: line (test via mns review output).
+// Test: review card includes eval: line (test via home review output).
 // ---------------------------------------------------------------------------
 test('review displays eval: line for knowledge proposals', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-rev-eval-'));
-  const mns = join(root, 'agent');
+  const home = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
-    mkdirSync(join(mns, d), { recursive: true });
+    mkdirSync(join(home, d), { recursive: true });
   }
-  writeFileSync(join(mns, 'knowledge', 'registry', 'types.json'), JSON.stringify([{ name: 'fact', description: 'A fact' }]));
+  writeFileSync(join(home, 'knowledge', 'registry', 'types.json'), JSON.stringify([{ name: 'fact', description: 'A fact' }]));
   // Drop a fact into inbox; processInbox will turn it into a proposal on review start
-  writeFileSync(join(mns, 'knowledge', 'inbox', 'myfact.md'), 'zero deps is a hard policy');
+  writeFileSync(join(home, 'knowledge', 'inbox', 'myfact.md'), 'zero deps is a hard policy');
 
   const r = spawnSync(process.execPath, [BIN, 'review'], { cwd: root, input: 's\n', encoding: 'utf8' });
   assert.equal(r.status, 0, `review failed: ${r.stderr}`);

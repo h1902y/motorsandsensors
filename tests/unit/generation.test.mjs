@@ -16,7 +16,7 @@ import {
   diffGenerations,
 } from '../../zuzuu/faculty/generation.mjs';
 
-// Build a minimal .mns home with a couple knowledge items + a rules.json.
+// Build a minimal .home home with a couple knowledge items + a rules.json.
 function freshHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-gen-'));
   const agentDir = join(root, 'agent');

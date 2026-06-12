@@ -14,10 +14,10 @@ function withHome(fn) {
 }
 
 test('scaffoldAction creates manifest + run.mjs; manifest is valid JSON with the slug', () => {
-  withHome((mns) => {
-    const r = scaffoldAction(mns, 'deploy-thing');
+  withHome((home) => {
+    const r = scaffoldAction(home, 'deploy-thing');
     assert.equal(r.created.length, 2);
-    const dir = join(mns, 'actions', 'deploy-thing');
+    const dir = join(home, 'actions', 'deploy-thing');
     assert.ok(existsSync(join(dir, 'action.json')));
     assert.ok(existsSync(join(dir, 'run.mjs')));
     const man = JSON.parse(readFileSync(join(dir, 'action.json'), 'utf8'));
@@ -27,11 +27,11 @@ test('scaffoldAction creates manifest + run.mjs; manifest is valid JSON with the
 });
 
 test('scaffoldAction is no-clobber: existing files survive', () => {
-  withHome((mns) => {
-    const dir = join(mns, 'actions', 'keep');
+  withHome((home) => {
+    const dir = join(home, 'actions', 'keep');
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, 'run.mjs'), 'export async function main(){ return { mine: true }; }');
-    const r = scaffoldAction(mns, 'keep');
+    const r = scaffoldAction(home, 'keep');
     assert.ok(readFileSync(join(dir, 'run.mjs'), 'utf8').includes('mine: true'), 'user run.mjs untouched');
     assert.ok(r.created.includes('action.json'));
     assert.ok(!r.created.includes('run.mjs'));
@@ -39,12 +39,12 @@ test('scaffoldAction is no-clobber: existing files survive', () => {
 });
 
 test('scaffoldAction throws on an unsafe slug (containment at the lib layer)', () => {
-  withHome((mns) => {
-    assert.throws(() => scaffoldAction(mns, '../../escaped'), /invalid slug/);
+  withHome((home) => {
+    assert.throws(() => scaffoldAction(home, '../../escaped'), /invalid slug/);
   });
 });
 
-test('mns act new rejects a path-traversal slug (containment)', () => {
+test('home act new rejects a path-traversal slug (containment)', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-trav-'));
   mkdirSync(join(root, 'agent', 'actions'), { recursive: true });
   const bin = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');

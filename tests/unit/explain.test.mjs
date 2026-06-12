@@ -1,5 +1,5 @@
 // tests/unit/explain.test.mjs (WS-B)
-// `mns explain [topic]` — discoverable docs for the 5 faculties + graduation.
+// `home explain [topic]` — discoverable docs for the 5 faculties + graduation.
 // Tests drive the pure explainText(topic) helper (no console scraping).
 
 import { test } from 'node:test';

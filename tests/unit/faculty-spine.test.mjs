@@ -34,11 +34,11 @@ test('FACULTIES lists all five faculty names', () => {
 });
 
 test('contract path helpers return expected sub-paths', () => {
-  const mns = '/tmp/agent';
-  assert.equal(facultyDir(mns, 'knowledge'), '/tmp/agent/knowledge');
-  assert.equal(inboxDir(mns, 'knowledge'), '/tmp/agent/knowledge/inbox');
-  assert.equal(proposalsDir(mns, 'knowledge'), '/tmp/agent/knowledge/proposals');
-  assert.equal(archiveDir(mns, 'knowledge'), '/tmp/agent/knowledge/proposals/archive');
+  const home = '/tmp/agent';
+  assert.equal(facultyDir(home, 'knowledge'), '/tmp/agent/knowledge');
+  assert.equal(inboxDir(home, 'knowledge'), '/tmp/agent/knowledge/inbox');
+  assert.equal(proposalsDir(home, 'knowledge'), '/tmp/agent/knowledge/proposals');
+  assert.equal(archiveDir(home, 'knowledge'), '/tmp/agent/knowledge/proposals/archive');
 });
 
 // ---------------------------------------------------------------------------
@@ -67,21 +67,21 @@ test('makeProposal produces a well-formed pending record', () => {
 });
 
 test('writeProposal → listProposals returns the proposal; readProposal round-trips', () => {
-  withHome((mns) => {
+  withHome((home) => {
     const p = makeProposal({
       faculty: 'knowledge',
       kind: 'item',
       source: 'test-source',
       payload: { id: 'beta', body: 'Beta fact' },
     });
-    writeProposal(mns, p);
+    writeProposal(home, p);
 
-    const list = listProposals(mns, 'knowledge');
+    const list = listProposals(home, 'knowledge');
     assert.equal(list.length, 1);
     assert.equal(list[0].id, p.id);
     assert.ok(list[0].payload, 'list entry has payload');
 
-    const read = readProposal(mns, 'knowledge', p.id);
+    const read = readProposal(home, 'knowledge', p.id);
     assert.ok(read, 'readProposal returns the record');
     assert.equal(read.id, p.id);
     assert.deepEqual(read.payload, p.payload);
@@ -92,8 +92,8 @@ test('writeProposal → listProposals returns the proposal; readProposal round-t
 });
 
 test('readProposal returns null for a missing file', () => {
-  withHome((mns) => {
-    const result = readProposal(mns, 'knowledge', 'nonexistent-id');
+  withHome((home) => {
+    const result = readProposal(home, 'knowledge', 'nonexistent-id');
     assert.equal(result, null);
   });
 });
@@ -102,9 +102,9 @@ test('readProposal returns null for a missing file', () => {
 // proposal.mjs — dual-read (legacy migration)
 // ---------------------------------------------------------------------------
 test('dual-read: legacy {candidate, er} is normalized to {payload, analysis.er}', () => {
-  withHome((mns) => {
+  withHome((home) => {
     const faculty = 'knowledge';
-    const dir = join(mns, faculty, 'proposals');
+    const dir = join(home, faculty, 'proposals');
     mkdirSync(dir, { recursive: true });
     const legacy = {
       id: 'legacy-fact-abc123',
@@ -119,14 +119,14 @@ test('dual-read: legacy {candidate, er} is normalized to {payload, analysis.er}'
     writeFileSync(join(dir, `${legacy.id}.json`), JSON.stringify(legacy, null, 2) + '\n');
 
     // readProposal normalizes it
-    const r = readProposal(mns, faculty, legacy.id);
+    const r = readProposal(home, faculty, legacy.id);
     assert.ok(r, 'returns a record');
     assert.deepEqual(r.payload, legacy.candidate, 'candidate → payload');
     assert.deepEqual(r.analysis, { er: legacy.er }, 'er → analysis.er');
     assert.equal(r.faculty, faculty, 'faculty is set');
 
     // listProposals also normalizes
-    const list = listProposals(mns, faculty);
+    const list = listProposals(home, faculty);
     assert.equal(list.length, 1);
     assert.deepEqual(list[0].payload, legacy.candidate);
     assert.deepEqual(list[0].analysis, { er: legacy.er });
@@ -134,9 +134,9 @@ test('dual-read: legacy {candidate, er} is normalized to {payload, analysis.er}'
 });
 
 test('dual-read: legacy with both candidate AND payload keeps payload', () => {
-  withHome((mns) => {
+  withHome((home) => {
     const faculty = 'knowledge';
-    const dir = join(mns, faculty, 'proposals');
+    const dir = join(home, faculty, 'proposals');
     mkdirSync(dir, { recursive: true });
     const mixed = {
       id: 'mixed-abc123',
@@ -149,7 +149,7 @@ test('dual-read: legacy with both candidate AND payload keeps payload', () => {
       evidence: {},
     };
     writeFileSync(join(dir, `${mixed.id}.json`), JSON.stringify(mixed, null, 2) + '\n');
-    const r = readProposal(mns, faculty, mixed.id);
+    const r = readProposal(home, faculty, mixed.id);
     // payload already present — should remain
     assert.deepEqual(r.payload, { id: 'new', body: 'new format' });
   });
@@ -159,7 +159,7 @@ test('dual-read: legacy with both candidate AND payload keeps payload', () => {
 // proposal.mjs — archiveProposal
 // ---------------------------------------------------------------------------
 test('archiveProposal moves record to archive/ with status + resolved_at', () => {
-  withHome((mns) => {
+  withHome((home) => {
     const faculty = 'knowledge';
     const p = makeProposal({
       faculty,
@@ -167,12 +167,12 @@ test('archiveProposal moves record to archive/ with status + resolved_at', () =>
       source: 'test',
       payload: { id: 'gamma', body: 'Gamma' },
     });
-    writeProposal(mns, p);
+    writeProposal(home, p);
 
     // confirm it is in pending
-    assert.equal(listProposals(mns, faculty).length, 1);
+    assert.equal(listProposals(home, faculty).length, 1);
 
-    const resolved = archiveProposal(mns, faculty, p.id, {
+    const resolved = archiveProposal(home, faculty, p.id, {
       status: 'approved',
       reason: 'looks good',
       applied: 'created gamma',
@@ -184,10 +184,10 @@ test('archiveProposal moves record to archive/ with status + resolved_at', () =>
     assert.equal(resolved.applied, 'created gamma');
 
     // pending list is now empty
-    assert.equal(listProposals(mns, faculty).length, 0);
+    assert.equal(listProposals(home, faculty).length, 0);
 
     // archive file exists
-    const archPath = join(mns, faculty, 'proposals', 'archive', `${p.id}.json`);
+    const archPath = join(home, faculty, 'proposals', 'archive', `${p.id}.json`);
     assert.ok(existsSync(archPath), 'archive file present');
 
     const archived = JSON.parse(readFileSync(archPath, 'utf8'));
@@ -196,13 +196,13 @@ test('archiveProposal moves record to archive/ with status + resolved_at', () =>
 });
 
 test('archiveProposal with status rejected', () => {
-  withHome((mns) => {
+  withHome((home) => {
     const faculty = 'memory';
     const p = makeProposal({ faculty, kind: 'item', source: 's', payload: { id: 'x' } });
-    writeProposal(mns, p);
-    const resolved = archiveProposal(mns, faculty, p.id, { status: 'rejected', reason: 'dupe' });
+    writeProposal(home, p);
+    const resolved = archiveProposal(home, faculty, p.id, { status: 'rejected', reason: 'dupe' });
     assert.equal(resolved.status, 'rejected');
-    assert.equal(listProposals(mns, faculty).length, 0);
+    assert.equal(listProposals(home, faculty).length, 0);
   });
 });
 
@@ -263,10 +263,10 @@ test('mergeProvenance handles empty arrays', () => {
 // trail.mjs
 // ---------------------------------------------------------------------------
 test('recordTrail appends a JSONL line with at + entry fields', () => {
-  withHome((mns) => {
-    recordTrail(mns, 'knowledge', { action: 'proposal-created', id: 'abc' });
-    recordTrail(mns, 'knowledge', { action: 'proposal-archived', id: 'abc', status: 'approved' });
-    const path = join(mns, '.live', 'knowledge.jsonl');
+  withHome((home) => {
+    recordTrail(home, 'knowledge', { action: 'proposal-created', id: 'abc' });
+    recordTrail(home, 'knowledge', { action: 'proposal-archived', id: 'abc', status: 'approved' });
+    const path = join(home, '.live', 'knowledge.jsonl');
     assert.ok(existsSync(path));
     const lines = readFileSync(path, 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     assert.equal(lines.length, 2);
@@ -283,11 +283,11 @@ test('recordTrail is fail-soft: a bad agentDir never throws', () => {
 });
 
 test('recordTrail uses the faculty name for the file (knowledge.jsonl vs actions.jsonl)', () => {
-  withHome((mns) => {
-    recordTrail(mns, 'actions', { action: 'run' });
-    recordTrail(mns, 'guardrails', { action: 'denied' });
-    assert.ok(existsSync(join(mns, '.live', 'actions.jsonl')));
-    assert.ok(existsSync(join(mns, '.live', 'guardrails.jsonl')));
+  withHome((home) => {
+    recordTrail(home, 'actions', { action: 'run' });
+    recordTrail(home, 'guardrails', { action: 'denied' });
+    assert.ok(existsSync(join(home, '.live', 'actions.jsonl')));
+    assert.ok(existsSync(join(home, '.live', 'guardrails.jsonl')));
   });
 });
 
