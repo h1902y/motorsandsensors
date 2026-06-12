@@ -1,10 +1,64 @@
 // Pure tests for the panel kit's logic: card status mapping, kind→icon
 // totality over every envelope kind, relative-time formatting.
 import { describe, expect, it } from "vitest";
+import type { FacultyOverviewEntry } from "@zuzuu-web/protocol";
 import {
   ALL_ENVELOPE_KINDS, DEFAULT_KIND_ICON, FACULTY_META, FACULTY_ORDER,
-  KIND_ICONS, cardStatus, kindIcon, latestUpdate, relativeTime,
+  KIND_ICONS, UI_ICON_PATHS, cardStatus, facultyDisplay, kindIcon, latestUpdate, relativeTime,
 } from "./kit";
+
+describe("facultyDisplay (manifest ui descriptors first, FACULTY_META fallback)", () => {
+  const overviewEntry = (over: Partial<FacultyOverviewEntry>): FacultyOverviewEntry => ({
+    id: "knowledge",
+    title: "Knowledge",
+    counts: { items: 0, pending: 0, errors: 0 },
+    top: [],
+    ...over,
+  });
+
+  it("prefers the overview's title + ui descriptor", () => {
+    const d = facultyDisplay("knowledge", overviewEntry({
+      title: "Wissen",
+      ui: { icon: "shield", accent: "info", teaching: "Custom teaching line." },
+    }));
+    expect(d.label).toBe("Wissen");
+    expect(d.icon).toBe(UI_ICON_PATHS.shield);
+    expect(d.teach).toBe("Custom teaching line.");
+  });
+  it("falls back to FACULTY_META without an overview entry (CLI absent)", () => {
+    const d = facultyDisplay("memory");
+    expect(d).toMatchObject({
+      label: FACULTY_META.memory.label,
+      icon: FACULTY_META.memory.icon,
+      teach: FACULTY_META.memory.teach,
+      emptyHeadline: FACULTY_META.memory.emptyHeadline,
+    });
+  });
+  it("unknown icon name keeps the built-in icon; unknown faculty gets generic display", () => {
+    const d = facultyDisplay("knowledge", overviewEntry({
+      ui: { icon: "no-such-icon", accent: "info", teaching: "T." },
+    }));
+    expect(d.icon).toBe(FACULTY_META.knowledge.icon);
+
+    const third = facultyDisplay("todo", overviewEntry({
+      id: "todo", title: "Todo",
+      ui: { icon: "book", accent: "neutral", teaching: "Tasks land here." },
+    }));
+    expect(third).toMatchObject({ label: "Todo", icon: UI_ICON_PATHS.book, teach: "Tasks land here." });
+
+    // declarative faculty with no ui block at all → still complete display
+    const bare = facultyDisplay("todo");
+    expect(bare.label).toBe("Todo");
+    expect(bare.icon).toBe(DEFAULT_KIND_ICON);
+    expect(bare.emptyHeadline).toBe("No todo yet");
+    expect(bare.teach).toBeTruthy();
+  });
+  it("ui icon names cover the five built-in manifests", () => {
+    for (const name of ["book", "clock", "play", "compass", "shield"]) {
+      expect(UI_ICON_PATHS[name], `missing ui icon '${name}'`).toBeTruthy();
+    }
+  });
+});
 
 describe("cardStatus (the 3px status bar)", () => {
   it("empty: no items, nothing pending", () => {

@@ -9,7 +9,7 @@ import { statusData } from '../../zuzuu/commands/status.mjs';
 import { inboxData } from '../../zuzuu/commands/inbox.mjs';
 import { generationListData, generationShowData, mintGenerationData, rollbackData } from '../../zuzuu/commands/generation.mjs';
 import { evalData } from '../../zuzuu/commands/eval.mjs';
-import { proposalsListData, approveData, rejectData } from '../../zuzuu/commands/review.mjs';
+import { proposalsListData, approveData, rejectData } from '../../zuzuu/commands/proposals.mjs';
 import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 const actionMd = (slug, snippet) => serializeEnvelope({
@@ -17,7 +17,7 @@ const actionMd = (slug, snippet) => serializeEnvelope({
   created_at: '2026-06-12T00:00:00Z', payload: { exec: 'run.mjs' }, body: snippet,
 });
 import { actInboxData, actApproveData, actRejectData } from '../../zuzuu/commands/act.mjs';
-import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
+import { mintGeneration } from '../../zuzuu/faculty/generation/write.mjs';
 import { writeProposal, makeProposal } from '../../zuzuu/faculty/proposal.mjs';
 import { processInbox } from '../../zuzuu/knowledge/inbox.mjs';
 import { digestData } from '../../zuzuu/commands/digest.mjs';

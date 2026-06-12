@@ -10,34 +10,29 @@ const leftover: SessionGitStatus = {
   onSessionBranch: false,
 };
 
-describe("centerCard (none / start / recovery)", () => {
-  it("shows nothing while sessions exist and none was requested", () => {
-    expect(centerCard(2, false, undefined)).toEqual({ kind: "none" });
-    expect(centerCard(1, false, leftover)).toEqual({ kind: "none" }); // tabs win over leftover
+describe("centerCard (none / recovery — starting moved to the composer)", () => {
+  it("shows nothing while sessions exist", () => {
+    expect(centerCard(2, undefined)).toEqual({ kind: "none" });
+    expect(centerCard(1, leftover)).toEqual({ kind: "none" }); // tabs win over leftover
   });
 
-  it("shows the start card when the user requested one over existing terminals", () => {
-    expect(centerCard(2, true, undefined)).toEqual({ kind: "start" });
-    expect(centerCard(1, true, leftover)).toEqual({ kind: "start" }); // recovery is a load-time card only
+  it("shows nothing with zero sessions (the composer is the start surface)", () => {
+    expect(centerCard(0, undefined)).toEqual({ kind: "none" });
   });
 
-  it("defaults to the start card with zero sessions (no auto-shell)", () => {
-    expect(centerCard(0, false, undefined)).toEqual({ kind: "start" });
-  });
-
-  it("shows recovery instead of start for a leftover session branch", () => {
-    expect(centerCard(0, false, leftover)).toEqual({
+  it("shows recovery for a leftover session branch on load", () => {
+    expect(centerCard(0, leftover)).toEqual({
       kind: "recovery",
       branch: "zz/session-abc",
       checkpoints: 3,
     });
   });
 
-  it("treats on-branch / disabled / cli-absent / branchless states as start, not recovery", () => {
-    expect(centerCard(0, false, { ...leftover, onSessionBranch: true })).toEqual({ kind: "start" });
-    expect(centerCard(0, false, { ...leftover, enabled: false })).toEqual({ kind: "start" });
-    expect(centerCard(0, false, { ...leftover, cliAbsent: true })).toEqual({ kind: "start" });
-    expect(centerCard(0, false, { ...leftover, active: null })).toEqual({ kind: "start" });
+  it("treats on-branch / disabled / cli-absent / branchless states as none, not recovery", () => {
+    expect(centerCard(0, { ...leftover, onSessionBranch: true })).toEqual({ kind: "none" });
+    expect(centerCard(0, { ...leftover, enabled: false })).toEqual({ kind: "none" });
+    expect(centerCard(0, { ...leftover, cliAbsent: true })).toEqual({ kind: "none" });
+    expect(centerCard(0, { ...leftover, active: null })).toEqual({ kind: "none" });
   });
 });
 

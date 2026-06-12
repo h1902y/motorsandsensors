@@ -6,27 +6,25 @@ import type { SessionCloseResult, SessionGitStatus } from "@zuzuu-web/protocol";
 
 export type CenterCard =
   | { kind: "none" }
-  | { kind: "start" }
   | { kind: "recovery"; branch: string; checkpoints: number };
 
 /**
- * What the terminal pane's center shows:
- * - sessions exist and none requested → nothing (the terminals),
- * - user asked for a new agent session (the + menu / end-card CTA) → start card,
+ * What the terminal pane's center shows. Starting sessions moved to the
+ * bottom composer bar — the center keeps only the load-time recovery card:
+ * - sessions exist → nothing (the terminals),
  * - no sessions + a leftover session branch (same condition as the footer
  *   indicator's "leftover": active && !onSessionBranch) → recovery card,
- * - no sessions otherwise → start card (the boot default — no auto-shell).
+ * - otherwise → nothing (the calm resting state above the composer).
  */
 export function centerCard(
   tabCount: number,
-  startRequested: boolean,
   git: SessionGitStatus | undefined,
 ): CenterCard {
-  if (tabCount > 0) return startRequested ? { kind: "start" } : { kind: "none" };
+  if (tabCount > 0) return { kind: "none" };
   if (git?.enabled && !git.cliAbsent && git.active && !git.onSessionBranch) {
     return { kind: "recovery", branch: git.active.branch, checkpoints: git.active.checkpoints };
   }
-  return { kind: "start" };
+  return { kind: "none" };
 }
 
 /** Single-active-agent v1 rule: at most ONE alive agent session (shells unlimited). */

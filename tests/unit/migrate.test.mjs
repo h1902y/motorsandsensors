@@ -7,7 +7,8 @@ import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync, existsSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { migrateProposals, migrateHome } from '../../zuzuu/commands/migrate.mjs';
+import { migrateProposals } from '../../zuzuu/commands/migrations/proposals.mjs';
+import { migrateHome } from '../../zuzuu/commands/migrations/home.mjs';
 import { readProposal } from '../../zuzuu/faculty/proposal.mjs';
 
 // ---------------------------------------------------------------------------

@@ -1,0 +1,24 @@
+{
+  "id": "instructions",
+  "title": "Instructions",
+  "tagline": "who to BE — steering and project conventions",
+  "version": "1.0.0",
+  "contract": 1,
+  "kinds": [
+    "steering",
+    "amendment"
+  ],
+  "itemsDir": "items",
+  "schema": "schema.json",
+  "hooks": {
+    "miner": true,
+    "digest": true,
+    "eval": false,
+    "gate": false
+  },
+  "ui": {
+    "icon": "compass",
+    "accent": "warning",
+    "teaching": "The pinned steering the agent is told at session start; corrections graduate into amendments here."
+  }
+}

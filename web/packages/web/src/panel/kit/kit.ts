@@ -1,7 +1,8 @@
 // Pure logic for the faculty panel kit (React-free, unit-tested):
 // card status mapping, the kind→icon map (universal over every envelope
-// kind), faculty display metadata, and relative-time formatting.
-import type { FacultyItem, FacultyKey } from "@zuzuu-web/protocol";
+// kind), faculty display metadata (manifest ui descriptors first, built-in
+// FACULTY_META as the fallback), and relative-time formatting.
+import type { FacultyItem, FacultyKey, FacultyOverviewEntry } from "@zuzuu-web/protocol";
 
 // ── card status ───────────────────────────────────────────────────────
 
@@ -94,6 +95,44 @@ export const FACULTY_META: Record<FacultyKey, FacultyMeta> = {
     teach: "Hard rules enforced on tool calls — a refusal here is policy, not preference.",
   },
 };
+
+// ── manifest ui descriptors → display (FACULTY_META is the FALLBACK) ──
+
+/** Manifest `ui.icon` names → 16×16 stroke paths. New faculties pick from
+ *  this set (or fall back to a neutral document icon) — no frontend code. */
+export const UI_ICON_PATHS: Record<string, string> = {
+  book: FACULTY_META.knowledge.icon,
+  clock: FACULTY_META.memory.icon,
+  play: FACULTY_META.actions.icon,
+  compass: FACULTY_META.instructions.icon,
+  shield: FACULTY_META.guardrails.icon,
+};
+
+export interface FacultyDisplay {
+  label: string;
+  /** resolved 16×16 stroke icon path */
+  icon: string;
+  emptyHeadline: string;
+  teach: string;
+}
+
+const isBuiltin = (id: string): id is FacultyKey => id in FACULTY_META;
+
+/** A faculty's display block: the overview's manifest `ui` descriptor wins;
+ *  the kit's built-in FACULTY_META covers CLI-less degradation; unknown
+ *  (declarative third-party) faculties get generic-but-complete display. */
+export function facultyDisplay(id: string, entry?: FacultyOverviewEntry): FacultyDisplay {
+  const builtin = isBuiltin(id) ? FACULTY_META[id] : undefined;
+  const label = entry?.title ?? builtin?.label ?? id.charAt(0).toUpperCase() + id.slice(1);
+  const iconName = entry?.ui?.icon;
+  const icon = (iconName && UI_ICON_PATHS[iconName]) ?? builtin?.icon ?? DEFAULT_KIND_ICON;
+  return {
+    label,
+    icon,
+    emptyHeadline: builtin?.emptyHeadline ?? `No ${label.toLowerCase()} yet`,
+    teach: entry?.ui?.teaching ?? builtin?.teach ?? "Items graduate here through your review.",
+  };
+}
 
 // ── relative time ─────────────────────────────────────────────────────
 

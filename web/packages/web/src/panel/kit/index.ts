@@ -1,5 +1,6 @@
 export * from "./kit";
 export { MetricChip } from "./MetricChip";
 export { ItemRow } from "./ItemRow";
-export { FacultyCard } from "./FacultyCard";
+export { FacultyTile } from "./FacultyTile";
 export { TeachingEmpty } from "./TeachingEmpty";
+export { Section } from "./Section";

@@ -9,7 +9,7 @@
 
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { paths } from '../store.mjs';
+import { paths } from '../core/store.mjs';
 import { allActions, actionsDir, isSafeSlug } from '../actions/manifest.mjs';
 import { runAction } from '../actions/dispatch.mjs';
 import { MARKER } from '../actions/marker.mjs';

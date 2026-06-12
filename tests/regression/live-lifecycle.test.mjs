@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { handleHook } from '../../zuzuu/commands/hook.mjs';
 import { openLive, listLive } from '../../zuzuu/live/live-store.mjs';
 import { reconcile } from '../../zuzuu/live/reconcile.mjs';
-import { readIndex } from '../../zuzuu/store.mjs';
-import { SessionState } from '../../zuzuu/session.mjs';
+import { readIndex } from '../../zuzuu/core/store.mjs';
+import { SessionState } from '../../zuzuu/core/session.mjs';
 
 const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'claude-sample.jsonl');
 // The fixture's session id (claude-code adapter derives this from the transcript).

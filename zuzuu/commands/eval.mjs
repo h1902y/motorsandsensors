@@ -7,16 +7,11 @@
 // a one-line eval annotation per proposal card.
 
 import { join } from 'node:path';
-import { paths, readIndex } from '../store.mjs';
+import { paths } from '../core/store.mjs';
 import * as registry from '../faculty/registry.mjs';
-import { listProposals as spineListProposals } from '../faculty/proposal.mjs';
+import { buildSessionMtimes, facultyPending } from '../faculty/pending.mjs';
 import { rank } from '../eval/rank.mjs';
 import { getScorer } from '../eval/score.mjs';
-import '../knowledge/adapter.mjs';    // self-registers the 'knowledge' adapter
-import '../actions/adapter.mjs';      // self-registers the 'actions' adapter
-import '../guardrails/adapter.mjs';   // self-registers the 'guardrails' adapter
-import '../instructions/adapter.mjs'; // self-registers the 'instructions' adapter
-import '../memory/adapter.mjs';       // self-registers the 'memory' adapter
 
 /**
  * Format one eval annotation line for a proposal card in `zuzuu review`.
@@ -28,34 +23,6 @@ import '../memory/adapter.mjs';       // self-registers the 'memory' adapter
 export function evalLine({ score, confidence, rationale }) {
   const warn = confidence === 'low' ? ' ⚠ low-signal' : '';
   return `eval: ${score} [${confidence}] · ${rationale}${warn}`;
-}
-
-/**
- * Build sessionMtimes from the sessions index — cheap best-effort.
- * Falls back to {} on any error.
- * @param {string} [cwd]
- * @returns {Record<string, number>}
- */
-function buildSessionMtimes(cwd) {
-  try {
-    const idx = readIndex(cwd);
-    const map = {};
-    for (const s of idx.sessions ?? []) {
-      if (!s.id) continue;
-      // prefer startedAt ms; fall back to 0 (neutral recency)
-      const ms = s.startedAt ? Date.parse(s.startedAt) : 0;
-      if (!isNaN(ms) && ms > 0) map[s.id] = ms;
-    }
-    return map;
-  } catch {
-    return {};
-  }
-}
-
-/** Collect proposals for a given adapter (mirrors review.mjs's facultyPending). */
-function collectProposals(agentDir, adapter) {
-  if (typeof adapter.listProposals === 'function') return adapter.listProposals(agentDir);
-  return spineListProposals(agentDir, adapter.name);
 }
 
 /**
@@ -77,7 +44,7 @@ export function evalData(agentDir, { faculty: onlyFaculty = null } = {}) {
   const allEntries = [];
   for (const adapter of adapters) {
     if (onlyFaculty && adapter.name !== onlyFaculty) continue;
-    const proposals = collectProposals(agentDir, adapter);
+    const proposals = facultyPending(agentDir, adapter);
     for (const proposal of proposals) {
       allEntries.push({ proposal, faculty: adapter.name });
     }

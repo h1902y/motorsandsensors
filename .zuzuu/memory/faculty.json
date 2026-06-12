@@ -1,0 +1,23 @@
+{
+  "id": "memory",
+  "title": "Memory",
+  "tagline": "what HAPPENED — curated episodes from past sessions",
+  "version": "1.0.0",
+  "contract": 1,
+  "kinds": [
+    "episode"
+  ],
+  "itemsDir": "entries",
+  "schema": "schema.json",
+  "hooks": {
+    "miner": true,
+    "digest": false,
+    "eval": false,
+    "gate": false
+  },
+  "ui": {
+    "icon": "clock",
+    "accent": "neutral",
+    "teaching": "Curated episodes from past sessions — what was attempted, what resulted, what to remember."
+  }
+}

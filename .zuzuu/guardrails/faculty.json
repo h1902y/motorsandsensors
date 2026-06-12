@@ -1,0 +1,23 @@
+{
+  "id": "guardrails",
+  "title": "Guardrails",
+  "tagline": "what NOT to do — enforced rules on every tool call",
+  "version": "1.0.0",
+  "contract": 1,
+  "kinds": [
+    "rule"
+  ],
+  "itemsDir": "items",
+  "schema": "schema.json",
+  "hooks": {
+    "miner": true,
+    "digest": true,
+    "eval": false,
+    "gate": true
+  },
+  "ui": {
+    "icon": "shield",
+    "accent": "danger",
+    "teaching": "Hard rules enforced by the zuzuu gate on every tool call — a refusal here is policy, not preference."
+  }
+}

@@ -2,7 +2,7 @@
 
 import { existsSync } from 'node:fs';
 import { loadSpans, renderTree } from '../capture/core/render.mjs';
-import { lastTrace } from '../store.mjs';
+import { lastTrace } from '../core/store.mjs';
 
 export function trace(args) {
   let file = args._[0];

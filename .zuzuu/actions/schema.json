@@ -1,0 +1,12 @@
+{
+  "type": "object",
+  "properties": {
+    "exec": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "args": {
+      "type": "object"
+    }
+  }
+}

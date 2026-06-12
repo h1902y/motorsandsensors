@@ -1,0 +1,29 @@
+{
+  "type": "object",
+  "required": [
+    "action",
+    "pattern",
+    "reason"
+  ],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "deny",
+        "ask",
+        "allow"
+      ]
+    },
+    "tool": {
+      "type": "string"
+    },
+    "pattern": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reason": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

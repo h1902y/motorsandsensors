@@ -3,16 +3,17 @@
 
 import { mkdirSync, accessSync, constants } from 'node:fs';
 import { detected } from '../capture/adapters/registry.mjs';
-import { paths, gitInfo } from '../store.mjs';
+import { paths, gitInfo } from '../core/store.mjs';
 import { listLive } from '../live/live-store.mjs';
 import { reconcile } from '../live/reconcile.mjs';
-import { planScaffold, homeExists } from '../scaffold.mjs';
+import { planScaffold, homeExists } from '../home/scaffold.mjs';
+import { facultiesOf, hookFailures } from '../faculty/registry.mjs';
 import { loadRegistry } from '../knowledge/registry.mjs';
 import { allItems } from '../knowledge/items.mjs';
 import { listProposals } from '../knowledge/proposals.mjs';
 import { detectEmbedder } from '../knowledge/embed.mjs';
-import { activeGeneration, readGeneration, snapshotFaculties } from '../faculty/generation.mjs';
-import { sessionStatus } from '../session-git.mjs';
+import { activeGeneration, readGeneration, snapshotFaculties } from '../faculty/generation/read.mjs';
+import { sessionStatus } from '../sessions/session-git.mjs';
 import { leftoverLine } from './session.mjs';
 
 /**
@@ -78,6 +79,32 @@ export function detectDrift(agentDir) {
   }
 }
 
+/**
+ * Pure-ish: faculty-module health for doctor — broken manifests + recorded
+ * hook failures become warnings (the module degraded to items-only);
+ * declarative faculties get an informational note. Fail-open: any error
+ * returns empty lists rather than throwing into doctor.
+ * @returns {{warnings: string[], notes: string[]}}
+ */
+export function facultyModuleHealth(agentDir) {
+  try {
+    const warnings = [];
+    const notes = [];
+    const entries = facultiesOf(agentDir);
+    for (const e of entries.filter((x) => x.manifestError)) {
+      warnings.push(`faculty '${e.id}' faculty.json unreadable (${e.manifestError}) — module degraded to items-only`);
+    }
+    const declarative = entries.filter((x) => x.declarative && !x.manifestError);
+    if (declarative.length) notes.push(`declarative faculties: ${declarative.map((x) => x.id).join(', ')}`);
+    for (const f of hookFailures()) {
+      warnings.push(`faculty '${f.faculty}' hook ${f.hook} failed (${f.error}) — degraded, items-only`);
+    }
+    return { warnings, notes };
+  } catch {
+    return { warnings: [], notes: [] }; // module health must never break doctor
+  }
+}
+
 /** The closing line: honest about warnings, never "all good" under them. */
 export function summaryLine(problems, warnings) {
   if (problems) return `\n${problems} problem(s) found`;
@@ -131,6 +158,14 @@ export async function doctor() {
     const gaps = missing.dirs.length + missing.files.length + (missing.manifestMissing ? 1 : 0);
     if (gaps) warn(`faculty home incomplete (${gaps} piece(s) missing) — rerun \`zuzuu init\``);
     else ok('faculty home complete (knowledge/ memory/ actions/ instructions/ guardrails/)');
+  }
+
+  // faculty modules (the Faculty Module contract): a broken manifest or a
+  // failed hook degrades that faculty to items-only — surface it, never throw.
+  if (homeExists(root)) {
+    const health = facultyModuleHealth(dir);
+    for (const w of health.warnings) warn(w);
+    for (const n of health.notes) info(n);
   }
 
   // knowledge faculty

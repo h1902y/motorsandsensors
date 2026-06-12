@@ -12,7 +12,7 @@ import { spawnSync } from 'node:child_process';
 import {
   sessionGitEnabled, sessionBranchName, mainBranch, listSessionBranches,
   openSession, checkpoint, sessionStatus, closeSession, continueSession, discardSession,
-} from '../../zuzuu/session-git.mjs';
+} from '../../zuzuu/sessions/session-git.mjs';
 import { handleHook } from '../../zuzuu/commands/hook.mjs';
 import { listLive } from '../../zuzuu/live/live-store.mjs';
 import { statusData } from '../../zuzuu/commands/status.mjs';

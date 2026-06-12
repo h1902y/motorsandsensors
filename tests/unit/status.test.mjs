@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { facultiesLine } from '../../zuzuu/commands/status.mjs';
-import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
+import { mintGeneration } from '../../zuzuu/faculty/generation/write.mjs';
 
 function freshHome() {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-status-'));

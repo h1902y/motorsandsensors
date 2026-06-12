@@ -1,6 +1,6 @@
 // Pure logic tests for the Start-agent-session host rows (no DOM needed).
 import { describe, expect, it } from "vitest";
-import { agentTabTitle, buildHostRows, hostSpawnSpec } from "./host-launch";
+import { agentTabTitle, buildHostRows, composerDefaultHost, hostSpawnSpec } from "./host-launch";
 
 describe("buildHostRows", () => {
   it("lists the four known hosts plus the always-available bundled OpenCode", () => {
@@ -67,5 +67,30 @@ describe("agentTabTitle", () => {
   it("falls back to the raw host id, then to 'agent'", () => {
     expect(agentTabTitle("somefuturehost")).toBe("somefuturehost");
     expect(agentTabTitle(undefined)).toBe("agent");
+  });
+});
+
+describe("composerDefaultHost (Enter = first detected, in menu order)", () => {
+  it("picks the first detected row in menu order", () => {
+    const rows = buildHostRows([{ name: "codex" }, { name: "claude-code" }]);
+    expect(composerDefaultHost(rows)?.command).toBe("claude"); // menu order, not detection order
+  });
+
+  it("falls back to bundled OpenCode when no host CLI is detected", () => {
+    const rows = buildHostRows([]);
+    expect(composerDefaultHost(rows)?.command).toBe("zuzuu code");
+  });
+
+  it("keeps undetected hosts out of the default (they render greyed)", () => {
+    const rows = buildHostRows([{ name: "pi" }]);
+    expect(composerDefaultHost(rows)?.command).toBe("pi");
+    // ordering invariant: rows stay in menu order with detection flags
+    expect(rows.map((r) => `${r.command}:${r.detected ? 1 : 0}`)).toEqual([
+      "claude:0", "gemini:0", "codex:0", "pi:1", "zuzuu code:1",
+    ]);
+  });
+
+  it("null only for an empty row set (defensive)", () => {
+    expect(composerDefaultHost([])).toBeNull();
   });
 });

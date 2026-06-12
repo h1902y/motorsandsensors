@@ -1,4 +1,3 @@
-import crypto from "node:crypto";
 import fs from "node:fs";
 import fsp from "node:fs/promises";
 import path from "node:path";
@@ -6,7 +5,6 @@ import { Readable } from "node:stream";
 import type { IncomingMessage } from "node:http";
 import type { Duplex } from "node:stream";
 import { Hono } from "hono";
-import { getCookie, setCookie } from "hono/cookie";
 import { serve } from "@hono/node-server";
 import type { ServerType } from "@hono/node-server";
 import { WebSocketServer } from "ws";
@@ -22,8 +20,10 @@ import type { Workflow } from "@zuzuu-web/protocol";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { SessionManager, type Session } from "./sessions.js";
+import { AuthGate } from "./auth.js";
 import { createFsApi } from "./fs-api.js";
-import { createZuzuuApi, runZuzuuMut } from "./zuzuu-api.js";
+import { createZuzuuApi } from "./zuzuu-routes.js";
+import { runZuzuuMut } from "./zuzuu-cli.js";
 import { search } from "./search.js";
 import { listFiles } from "./file-list.js";
 import { listWorkflows, saveWorkflow } from "./workflows.js";
@@ -36,9 +36,6 @@ const execFileAsync = promisify(execFile);
 import { handleTermSocket } from "./ws-term.js";
 import { handleFsSocket } from "./ws-fs.js";
 import { PathError, resolveSafe, safeJoin } from "./safe-path.js";
-
-const AUTH_COOKIE = "webcode_auth";
-const COOKIE_MAX_AGE = 30 * 24 * 3600;
 
 export interface ServerConfig {
   /** realpath'd absolute workspace root */
@@ -85,9 +82,7 @@ export class WebcodeServer {
   /** mutable workspace root — switchable at runtime via switchTo() */
   private root: string;
   private readonly startedAt = Date.now();
-  private readonly authSessions = new Set<string>();
-  private readonly allowedHosts: Set<string>;
-  private readonly allowedOrigins: Set<string>;
+  private readonly auth: AuthGate;
   private readonly commandAllowlist: Set<string>;
   private server: ServerType | null = null;
 
@@ -95,19 +90,12 @@ export class WebcodeServer {
     this.root = cfg.root;
     this.commandAllowlist = new Set(cfg.commandAllowlist ?? DEFAULT_COMMAND_ALLOWLIST);
     this.sessions = new SessionManager(cfg.root);
-    const hostNames = ["127.0.0.1", "localhost", "[::1]"];
-    this.allowedHosts = new Set(hostNames.flatMap((h) => [h, `${h}:${cfg.port}`]));
-    this.allowedOrigins = new Set([
-      ...hostNames.map((h) => `http://${h}:${cfg.port}`),
-      ...(cfg.extraOrigins ?? []),
-    ]);
-    // hosted: also accept the public hostname (Fly's edge sets Host to it);
-    // Host/Origin defense stays on, just widened to the one public origin.
-    if (cfg.publicHost) {
-      this.allowedHosts.add(cfg.publicHost.toLowerCase());
-      this.allowedOrigins.add(`https://${cfg.publicHost}`);
-      this.allowedOrigins.add(`http://${cfg.publicHost}`);
-    }
+    this.auth = new AuthGate({
+      port: cfg.port,
+      token: cfg.token,
+      ...(cfg.extraOrigins !== undefined ? { extraOrigins: cfg.extraOrigins } : {}),
+      ...(cfg.publicHost !== undefined ? { publicHost: cfg.publicHost } : {}),
+    });
     this.app = this.buildApp();
   }
 
@@ -141,65 +129,15 @@ export class WebcodeServer {
     return { ok: false, ...(r.stderr !== undefined ? { stderr: r.stderr } : {}), ...(r.data !== undefined ? { refusal: r.data as Record<string, unknown> } : {}) };
   }
 
-  // ── security gates ─────────────────────────────────────────────────
-
-  /** Host allowlist defeats DNS rebinding: rebinding changes DNS, not the Host header. */
-  private hostAllowed(host: string | undefined): boolean {
-    return !!host && this.allowedHosts.has(host.toLowerCase());
-  }
-
-  /** Origin allowlist defeats cross-site WS hijacking / CSRF from arbitrary websites. */
-  private originAllowed(origin: string | undefined): boolean {
-    return origin === undefined || this.allowedOrigins.has(origin);
-  }
-
-  private cookieAuthed(cookieHeader: string | undefined): boolean {
-    if (!cookieHeader) return false;
-    const match = /(?:^|;\s*)webcode_auth=([^;]+)/.exec(cookieHeader);
-    return !!match && this.authSessions.has(match[1]!);
-  }
-
   // ── HTTP app ───────────────────────────────────────────────────────
 
   private buildApp(): Hono {
     const { cfg } = this;
     const app = new Hono();
 
-    app.use("*", async (c, next) => {
-      if (!this.hostAllowed(c.req.header("host"))) {
-        return c.text("forbidden host", 403);
-      }
-      if (!this.originAllowed(c.req.header("origin"))) {
-        return c.text("forbidden origin", 403);
-      }
-      // Token exchange: any page request carrying ?token= gets a cookie.
-      const token = c.req.query("token");
-      if (token && !c.req.path.startsWith("/api/")) {
-        if (!timingSafeEqualStr(token, cfg.token)) return c.text("invalid token", 403);
-        const secret = crypto.randomBytes(24).toString("base64url");
-        this.authSessions.add(secret);
-        setCookie(c, AUTH_COOKIE, secret, {
-          httpOnly: true,
-          sameSite: "Strict",
-          path: "/",
-          maxAge: COOKIE_MAX_AGE,
-        });
-        const url = new URL(c.req.url);
-        url.searchParams.delete("token");
-        // /auth?token=… exists so the Vite dev server can proxy the
-        // exchange; land on the app root afterwards either way.
-        const dest = url.pathname === "/auth" ? "/" : url.pathname + url.search;
-        return c.redirect(dest);
-      }
-      await next();
-    });
-
-    app.use("/api/*", async (c, next) => {
-      if (!this.authSessions.has(getCookie(c, AUTH_COOKIE) ?? "")) {
-        return c.json({ error: "unauthorized" }, 401);
-      }
-      await next();
-    });
+    // security gates live in auth.ts: Host/Origin allowlists + token→cookie
+    app.use("*", this.auth.gate());
+    app.use("/api/*", this.auth.requireAuth());
 
     app.get("/api/workspace", (c) => {
       const body: WorkspaceInfo = {
@@ -493,9 +431,9 @@ export class WebcodeServer {
         socket.write(`HTTP/1.1 ${status} ${msg}\r\nConnection: close\r\n\r\n`);
         socket.destroy();
       };
-      if (!this.hostAllowed(req.headers.host)) return reject(403, "Forbidden");
-      if (!this.originAllowed(req.headers.origin)) return reject(403, "Forbidden");
-      if (!this.cookieAuthed(req.headers.cookie)) return reject(401, "Unauthorized");
+      if (!this.auth.hostAllowed(req.headers.host)) return reject(403, "Forbidden");
+      if (!this.auth.originAllowed(req.headers.origin)) return reject(403, "Forbidden");
+      if (!this.auth.cookieAuthed(req.headers.cookie)) return reject(401, "Unauthorized");
 
       const url = new URL(req.url ?? "/", "http://localhost");
       const termMatch = /^\/ws\/term\/([0-9a-f]+)$/.exec(url.pathname);
@@ -518,10 +456,4 @@ export class WebcodeServer {
     this.sessions.shutdown();
     this.server?.close();
   }
-}
-
-function timingSafeEqualStr(a: string, b: string): boolean {
-  const ba = Buffer.from(a);
-  const bb = Buffer.from(b);
-  return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
 }

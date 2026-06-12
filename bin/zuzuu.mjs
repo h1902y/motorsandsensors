@@ -21,11 +21,12 @@ import { doctor } from '../zuzuu/commands/doctor.mjs';
 import { enable, disable } from '../zuzuu/commands/enable.mjs';
 import { runHook } from '../zuzuu/commands/hook.mjs';
 import { remember, recall, knowledge } from '../zuzuu/commands/knowledge.mjs';
-import { review, proposals } from '../zuzuu/commands/review.mjs';
+import { review } from '../zuzuu/commands/review.mjs';
+import { proposals } from '../zuzuu/commands/proposals.mjs';
 import { distill } from '../zuzuu/commands/distill.mjs';
 import { digest } from '../zuzuu/commands/digest.mjs';
 import { act } from '../zuzuu/commands/act.mjs';
-import { migrate } from '../zuzuu/commands/migrate.mjs';
+import { migrate } from '../zuzuu/commands/migrations/index.mjs';
 import { generation } from '../zuzuu/commands/generation.mjs';
 import { evalCmd } from '../zuzuu/commands/eval.mjs';
 import { code } from '../zuzuu/commands/code.mjs';
@@ -33,6 +34,7 @@ import { web } from '../zuzuu/commands/web.mjs';
 import { explain } from '../zuzuu/commands/explain.mjs';
 import { inbox } from '../zuzuu/commands/inbox.mjs';
 import { session } from '../zuzuu/commands/session.mjs';
+import { sessions } from '../zuzuu/commands/sessions.mjs';
 import { faculty } from '../zuzuu/commands/faculty.mjs';
 
 function parseArgs(argv) {
@@ -79,6 +81,9 @@ usage: zuzuu <command> [options]
                             list a faculty's envelope items (one doc · one line per item)
   faculty schema <f> [--json]
                             print a faculty's payload schema (JSON-Schema subset)
+  faculty manifest <f> [--json]
+                            print a faculty's module manifest (faculty.json)
+  faculty overview [--json] every faculty in one shot: ui + counts + top items + pending
   digest [--json] [--budget N]
                             print the session-start grounding brief
   act [list|show <slug>|new <slug>|schema <slug>]
@@ -99,6 +104,9 @@ usage: zuzuu <command> [options]
   disable                   remove the background hooks
   session [status|merge|continue|discard]
                             the invisible session branch (one per agent session)
+  sessions [--json]         recorded sessions with lifecycle state labels
+  session inspect <id> [--json]
+                            one session: trace summary + per-faculty mined signals
   eval [--faculty f]        rank pending proposals by eval score, highest first
   migrate [--home|--items]  one-time migrators: proposal schema · --home moves agent/ → .zuzuu/
                             · --items rewrites legacy faculty shapes → the envelope standard
@@ -123,7 +131,7 @@ switch (cmd) {
   case 'knowledge': await knowledge(args); break;
   case 'digest': digest(args); break;
   case 'act': act(args); break;
-  case 'distill': distill(args); break;
+  case 'distill': await distill(args); break;
   case 'inbox': inbox(args); break;
   case 'review': await review(args); break;
   case 'proposals': proposals(args); break;
@@ -134,6 +142,7 @@ switch (cmd) {
   case 'disable': disable(args); break;
   case 'hook': runHook(args._[0], { host: args.host, session: args.session }); break;
   case 'session': session(args); break;
+  case 'sessions': sessions(args); break;
   case 'faculty': faculty(args); break;
   case 'eval': evalCmd(args); break;
   case 'migrate': migrate(args); break;

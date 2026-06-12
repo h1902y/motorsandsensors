@@ -6,7 +6,7 @@ import { useExplorer } from "../state/explorer";
 import { useRightPanel } from "../state/right-panel";
 import { confirm } from "../components/ui";
 import { ProposalRow } from "./ProposalRow";
-import { FACULTY_META, ItemRow, TeachingEmpty } from "./kit";
+import { ItemRow, Section, TeachingEmpty, facultyDisplay } from "./kit";
 import { facultyItemPath, facultyReadmePath, facultySchemaPath } from "./faculty-paths";
 
 const openInEditor = (path: string) => useExplorer.getState().openPreviewPath(path);
@@ -22,10 +22,13 @@ const readHintDismissed = (): boolean => {
  *  links. TeachingEmpty when bare. */
 export function FacultyView({ facultyKey }: { facultyKey: FacultyKey }) {
   const queryClient = useQueryClient();
-  const closeFaculty = useRightPanel((s) => s.closeFaculty);
+  const closeDrill = useRightPanel((s) => s.closeDrill);
   const [err, setErr] = useState<string | null>(null);
   const [hintDismissed, setHintDismissed] = useState(readHintDismissed);
-  const meta = FACULTY_META[facultyKey];
+  // display = the manifest ui descriptor when the overview has it (the
+  // shared cache), built-in FACULTY_META as the fallback
+  const overview = useQuery({ queryKey: ["zuzuu", "overview"], queryFn: zuzuuApi.overview, refetchInterval: 8000 });
+  const display = facultyDisplay(facultyKey, overview.data?.faculties.find((f) => f.id === facultyKey));
   const detail = useQuery({
     queryKey: ["zuzuu", "faculty", facultyKey],
     queryFn: () => zuzuuApi.faculty(facultyKey),
@@ -67,7 +70,7 @@ export function FacultyView({ facultyKey }: { facultyKey: FacultyKey }) {
       {/* back to the dashboard root */}
       <div className="flex items-center gap-2">
         <button
-          onClick={closeFaculty}
+          onClick={closeDrill}
           className="text-meta text-ink-500 transition-colors hover:text-accent"
           title="Back to all faculties"
         >
@@ -75,9 +78,9 @@ export function FacultyView({ facultyKey }: { facultyKey: FacultyKey }) {
         </button>
         <span className="ml-auto flex items-center gap-1.5 text-ui font-medium text-ink-100">
           <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-ink-300" fill="none" stroke="currentColor" strokeWidth="1.4">
-            <path d={meta.icon} strokeLinecap="round" strokeLinejoin="round" />
+            <path d={display.icon} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {meta.label}
+          {display.label}
         </span>
       </div>
 
@@ -92,7 +95,7 @@ export function FacultyView({ facultyKey }: { facultyKey: FacultyKey }) {
       )}
 
       {bare ? (
-        <TeachingEmpty facultyKey={facultyKey} />
+        <TeachingEmpty display={display} />
       ) : (
         <>
           {/* pending first — the human gate is the panel's headline */}
@@ -156,15 +159,6 @@ export function FacultyView({ facultyKey }: { facultyKey: FacultyKey }) {
           faculty README ›
         </button>
       </div>
-    </div>
-  );
-}
-
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <div className="text-meta uppercase tracking-wide text-ink-500">{label}</div>
-      {children}
     </div>
   );
 }

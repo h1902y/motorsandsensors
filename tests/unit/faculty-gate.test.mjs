@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import '../../zuzuu/knowledge/adapter.mjs'; // self-registers 'knowledge'
-import { approve, reject } from '../../zuzuu/faculty/gate.mjs';
+import { approve, reject } from '../../zuzuu/faculty/gate.mjs'; // built-in adapters always registered
 import { register } from '../../zuzuu/faculty/registry.mjs';
 import { writeProposal, makeProposal } from '../../zuzuu/faculty/proposal.mjs';
 import { SEED_TYPES } from '../../zuzuu/knowledge/registry.mjs';

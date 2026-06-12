@@ -1,0 +1,34 @@
+{
+  "id": "zuzuu-web-daemon-rest-endpoints-behind-the-auth-cookie-middl-e43611",
+  "kind": "item",
+  "status": "pending",
+  "created_at": "2026-06-12T20:37:30.397Z",
+  "source": "agent",
+  "evidence": {
+    "inboxFile": "20260612-hono-app-request-auth-testing.txt"
+  },
+  "analysis": {
+    "er": {
+      "verdict": "new"
+    }
+  },
+  "score": {
+    "score": 0.175,
+    "confidence": "low",
+    "rationale": "novel signal"
+  },
+  "payload": {
+    "id": "zuzuu-web-daemon-rest-endpoints-behind-the-auth-cookie-middl",
+    "type": "fact",
+    "body": "zuzuu-web daemon REST endpoints behind the auth-cookie middleware CAN be tested without a listening socket: do the token->cookie exchange via server.app.request(\"/auth?token=<token>\", { headers: { host: \"localhost\" } }), grab the set-cookie header, and pass { host, cookie } headers on subsequent app.request calls. First used in web/packages/daemon/test/command-sessions.test.ts (W2.2 Phase 2) -- before this, no test constructed WebcodeServer directly.",
+    "attributes": {},
+    "relations": [],
+    "provenance": [
+      {
+        "session": "agent",
+        "ref": "inbox/20260612-hono-app-request-auth-testing.txt"
+      }
+    ]
+  },
+  "faculty": "knowledge"
+}

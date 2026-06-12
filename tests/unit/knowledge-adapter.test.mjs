@@ -11,9 +11,7 @@ import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../../zuzuu/knowled
 import { createProposal, getProposal } from '../../zuzuu/knowledge/proposals.mjs';
 import { readItem } from '../../zuzuu/knowledge/items.mjs';
 import { search } from '../../zuzuu/knowledge/index.mjs';
-import * as registry from '../../zuzuu/faculty/registry.mjs';
-// importing the adapter module registers it on load
-import '../../zuzuu/knowledge/adapter.mjs';
+import * as registry from '../../zuzuu/faculty/registry.mjs'; // built-ins always present
 
 function withHome(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'zuzuu-kadapter-'));

@@ -12,13 +12,13 @@ const closeTab = (path: string) => useEditor.getState().close(editorTabId({ path
 
 beforeEach(() => {
   useEditor.getState().resetAll();
-  useRightPanel.setState({ mode: "faculties", drillIn: null });
+  useRightPanel.setState({ mode: "faculties", drill: null });
 });
 
 describe("right-panel mode rules", () => {
   it("rests in faculty mode on the dashboard root", () => {
     expect(useRightPanel.getState().mode).toBe("faculties");
-    expect(useRightPanel.getState().drillIn).toBeNull();
+    expect(useRightPanel.getState().drill).toBeNull();
   });
 
   it("opening a file forces files mode", () => {
@@ -78,32 +78,64 @@ describe("faculty drill-in rules", () => {
   it("a card click opens the drill-in (and pins faculty mode)", () => {
     open("src/a.ts"); // files mode
     useRightPanel.getState().openFaculty("guardrails");
-    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drillIn: "guardrails" });
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drill: { kind: "faculty", key: "guardrails" } });
   });
 
   it("‹ All faculties returns to the dashboard root", () => {
     useRightPanel.getState().openFaculty("knowledge");
-    useRightPanel.getState().closeFaculty();
-    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drillIn: null });
+    useRightPanel.getState().closeDrill();
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drill: null });
   });
 
   it("‹ faculties from files mode lands on the dashboard ROOT (drill-in cleared)", () => {
     useRightPanel.getState().openFaculty("knowledge");
     open("src/a.ts"); // e.g. clicked an item file
     useRightPanel.getState().showFaculties();
-    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drillIn: null });
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drill: null });
   });
 
   it("closing the LAST editor tab also lands on the dashboard root", () => {
     useRightPanel.getState().openFaculty("memory");
     open("src/a.ts");
     closeTab("src/a.ts");
-    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drillIn: null });
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drill: null });
   });
 
   it("opening an item file from a drill-in flips to files mode", () => {
     useRightPanel.getState().openFaculty("actions");
     open(".zuzuu/actions/run-tests/ACTION.md");
     expect(useRightPanel.getState().mode).toBe("files");
+  });
+});
+
+describe("session drill-in rules", () => {
+  it("a session row click opens the session detail (and pins faculty mode)", () => {
+    open("src/a.ts"); // files mode
+    useRightPanel.getState().openSession("ses_abc123");
+    expect(useRightPanel.getState()).toMatchObject({
+      mode: "faculties",
+      drill: { kind: "session", id: "ses_abc123" },
+    });
+  });
+
+  it("the back chevron returns to the panel root", () => {
+    useRightPanel.getState().openSession("ses_abc123");
+    useRightPanel.getState().closeDrill();
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drill: null });
+  });
+
+  it("closing the LAST editor tab clears a session drill-in too", () => {
+    useRightPanel.getState().openSession("ses_abc123");
+    open("src/a.ts");
+    closeTab("src/a.ts");
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drill: null });
+  });
+
+  it("drill-ins replace each other (faculty → session → faculty)", () => {
+    useRightPanel.getState().openFaculty("knowledge");
+    useRightPanel.getState().openSession("s1");
+    expect(useRightPanel.getState().drill).toEqual({ kind: "session", id: "s1" });
+    useRightPanel.getState().openFaculty("memory");
+    expect(useRightPanel.getState().drill).toEqual({ kind: "faculty", key: "memory" });
   });
 });

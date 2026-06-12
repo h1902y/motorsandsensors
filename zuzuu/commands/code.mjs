@@ -11,8 +11,8 @@ import { resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { init } from './init.mjs';
 import { enable } from './enable.mjs';
-import { repoRoot } from '../store.mjs';
-import { homeExists } from '../scaffold.mjs';
+import { repoRoot } from '../core/store.mjs';
+import { homeExists } from '../home/scaffold.mjs';
 
 // Run a command inside `dir` without permanently changing the process cwd —
 // init/enable resolve their target from process.cwd(), so we chdir around them.

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { LAYOUT, IGNORE_LINES, planScaffold, applyScaffold, ensureGitignore, homeExists } from '../../zuzuu/scaffold.mjs';
+import { LAYOUT, IGNORE_LINES, planScaffold, applyScaffold, ensureGitignore, homeExists } from '../../zuzuu/home/scaffold.mjs';
 import { parseEnvelope, validateEnvelope, PAYLOAD_SCHEMAS } from '../../zuzuu/faculty/envelope.mjs';
 
 function withTemp(fn) {
@@ -74,7 +74,7 @@ test('partial home: apply restores only the missing pieces', () => {
     rmSync(join(cwd, '.zuzuu', 'memory'), { recursive: true });
     const plan = applyScaffold(cwd, { now: 1 });
     assert.deepEqual(plan.dirs, ['.zuzuu/memory', '.zuzuu/memory/entries', '.zuzuu/memory/inbox', '.zuzuu/memory/proposals']);
-    assert.deepEqual(plan.files, ['.zuzuu/memory/README.md', '.zuzuu/memory/schema.json']);
+    assert.deepEqual(plan.files, ['.zuzuu/memory/README.md', '.zuzuu/memory/schema.json', '.zuzuu/memory/faculty.json']);
     assert.ok(existsSync(join(cwd, '.zuzuu', 'memory', 'README.md')));
   });
 });

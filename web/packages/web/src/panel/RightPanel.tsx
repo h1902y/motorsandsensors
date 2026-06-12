@@ -1,18 +1,25 @@
+import { lazy, Suspense } from "react";
 import { useEditor } from "../state/editor";
 import { useRightPanel } from "../state/right-panel";
-import { EditorPane } from "../editor/EditorPane";
 import { Bar, IconButton } from "../components/ui";
-import { Dashboard } from "./Dashboard";
+import { PanelRoot } from "./PanelRoot";
 import { FacultyView } from "./FacultyView";
-import { FACULTY_META } from "./kit";
+import { SessionDetail } from "./SessionDetail";
+import { facultyDisplay } from "./kit";
+import { shortSessionId } from "./sections";
+
+// Lazy boundary: the editor pane graph (Monaco wrapper, markdown/CSV/cast
+// previews) rides its own chunk — loaded the first time a file opens.
+const EditorPane = lazy(() =>
+  import("../editor/EditorPane").then((m) => ({ default: m.EditorPane })));
 
 /**
  * The right panel — ONE surface, two modes:
  * - files: the EditorPane (Monaco tabs + previews) with a `‹ faculties`
  *   affordance that flips modes without closing tabs;
- * - faculties (resting): the dashboard — five FacultyCards ARE the
- *   navigation (no tabs); a card click slides in that faculty's drill-in
- *   (FacultyView). Mode flips themselves live in state/right-panel.ts.
+ * - faculties (resting): the panel root (three sections — needs you /
+ *   sessions / faculties); a tile click slides in that faculty's view, a
+ *   session row slides in its detail. Mode flips live in state/right-panel.
  */
 export function RightPanel({
   zuzuuHome,
@@ -24,7 +31,7 @@ export function RightPanel({
   onCollapse: () => void;
 }) {
   const mode = useRightPanel((s) => s.mode);
-  const drillIn = useRightPanel((s) => s.drillIn);
+  const drill = useRightPanel((s) => s.drill);
   const showFiles = useRightPanel((s) => s.showFiles);
   const showFaculties = useRightPanel((s) => s.showFaculties);
   const hasEditor = useEditor((s) => s.openFiles.length > 0);
@@ -33,25 +40,34 @@ export function RightPanel({
   // covers the first render after a reload with a stale 'files' mode
   if (mode === "files" && hasEditor) {
     return (
-      <EditorPane
-        leading={
-          <button
-            onClick={showFaculties}
-            className="shrink-0 self-stretch border-r border-border px-2 text-meta text-ink-500 transition-colors hover:text-accent"
-            title="Show faculties (editor tabs stay open)"
-          >
-            ‹ faculties
-          </button>
-        }
-      />
+      <Suspense fallback={<div className="flex h-full items-center justify-center text-ui text-ink-500">loading editor…</div>}>
+        <EditorPane
+          leading={
+            <button
+              onClick={showFaculties}
+              className="shrink-0 self-stretch border-r border-border px-2 text-meta text-ink-500 transition-colors hover:text-accent"
+              title="Show faculties (editor tabs stay open)"
+            >
+              ‹ faculties
+            </button>
+          }
+        />
+      </Suspense>
     );
   }
+
+  const title =
+    drill === null
+      ? "zuzuu"
+      : drill.kind === "faculty"
+        ? `zuzuu · ${facultyDisplay(drill.key).label}`
+        : `zuzuu · session ${shortSessionId(drill.id)}`;
 
   return (
     <div className="flex h-full min-w-0 flex-col bg-surface">
       <Bar border="b">
         <span className="min-w-0 truncate text-meta uppercase tracking-wide text-ink-500">
-          {drillIn ? `zuzuu · ${FACULTY_META[drillIn].label}` : "zuzuu faculties"}
+          {title}
         </span>
         {hasEditor && (
           <button
@@ -72,10 +88,12 @@ export function RightPanel({
       <div className="min-h-0 flex-1 overflow-y-auto">
         {!zuzuuHome ? (
           <EmptyState zuzuuBin={zuzuuBin} />
-        ) : drillIn ? (
-          <FacultyView facultyKey={drillIn} />
+        ) : drill?.kind === "faculty" ? (
+          <FacultyView facultyKey={drill.key} />
+        ) : drill?.kind === "session" ? (
+          <SessionDetail sessionId={drill.id} />
         ) : (
-          <Dashboard zuzuuBin={zuzuuBin} />
+          <PanelRoot zuzuuBin={zuzuuBin} />
         )}
       </div>
     </div>

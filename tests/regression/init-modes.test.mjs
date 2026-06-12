@@ -98,13 +98,13 @@ test('mode 3 — reinit restores missing pieces only', () => {
     run(cwd);
     rmSync(join(cwd, '.zuzuu', 'actions'), { recursive: true });
     const out = run(cwd);
-    assert.match(out, /restored : 4 missing piece/);
+    assert.match(out, /restored : 5 missing piece/); // dirs ×2 + README + schema.json + faculty.json
     assert.ok(existsSync(join(cwd, '.zuzuu', 'actions', 'README.md')));
   });
 });
 
 test('reinit upgrades an older faculty block to the current version in place', async () => {
-  const { facultiesBlock, BLOCK_VERSION } = await import('../../zuzuu/inject.mjs');
+  const { facultiesBlock, BLOCK_VERSION } = await import('../../zuzuu/home/inject.mjs');
   withTemp((cwd) => {
     writeFileSync(join(cwd, 'CLAUDE.md'), '# Mine\n\n' + facultiesBlock(1) + '\n\n## After section\n');
     const out = run(cwd);

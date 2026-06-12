@@ -3,8 +3,8 @@
 // start would inject. Lets a human (or a hookless host) see exactly what the
 // agent sees.
 
-import { paths } from '../store.mjs';
-import { computeDigest } from '../digest.mjs';
+import { paths } from '../core/store.mjs';
+import { computeDigest } from '../digest/compose.mjs';
 
 /** Pure: the digest payload — the zuzuu-web /digest source (the daemon also reads .zuzuu/.live/digest.md directly). */
 export function digestData(agentDir, opts = {}) {

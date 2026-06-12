@@ -5,8 +5,8 @@
 
 import { listLive, isStale, closeLive } from './live-store.mjs';
 import { byName } from '../capture/adapters/registry.mjs';
-import { captureTrace } from '../capture-core.mjs';
-import { SessionState } from '../session.mjs';
+import { captureTrace } from '../core/capture-core.mjs';
+import { SessionState } from '../core/session.mjs';
 
 export const DEFAULT_STALE_MS = 15 * 60 * 1000; // 15 min without a heartbeat → abandoned
 

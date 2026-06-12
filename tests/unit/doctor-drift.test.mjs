@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
+import { mintGeneration } from '../../zuzuu/faculty/generation/write.mjs';
 import { detectDrift } from '../../zuzuu/commands/doctor.mjs';
 
 function withMns(fn) {

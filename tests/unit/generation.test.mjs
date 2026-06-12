@@ -7,14 +7,12 @@ import {
   sha256,
   snapshotFaculties,
   agentId,
-  ensureAgent,
   activeGeneration,
   listGenerations,
   readGeneration,
-  mintGeneration,
-  rollback,
   diffGenerations,
-} from '../../zuzuu/faculty/generation.mjs';
+} from '../../zuzuu/faculty/generation/read.mjs';
+import { ensureAgent, mintGeneration, rollback } from '../../zuzuu/faculty/generation/write.mjs';
 
 // Build a minimal .home home with a couple knowledge items + a rules.json.
 function freshHome(fn) {

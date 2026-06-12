@@ -6,7 +6,7 @@
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { repoRoot } from '../store.mjs';
+import { repoRoot } from '../core/store.mjs';
 import { addHooks, removeHooks, isInstalled, LIFECYCLE_EVENTS, GATE_EVENTS, addHookEntries, removeHookEntries } from '../live/install.mjs';
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');

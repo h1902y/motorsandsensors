@@ -79,8 +79,3 @@ export function reduceReview(state: ReviewState, event: ReviewEvent): ReviewStat
 
 export const currentItem = (s: ReviewState): ReviewItem | null => s.queue[s.index] ?? null;
 export const isDone = (s: ReviewState): boolean => s.index >= s.queue.length;
-
-/** The "Review N" badge count — same combined queue (ranked + action inbox,
- *  deduped) the ceremony walks, so the entry point never under-counts. */
-export const pendingReviewCount = (ranked: RankedProposal[], actionInbox: ProposalSummary[]): number =>
-  buildQueue(ranked, actionInbox).length;

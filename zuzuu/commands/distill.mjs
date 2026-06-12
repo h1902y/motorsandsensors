@@ -2,20 +2,15 @@
 //
 // Default: knowledge only (back-compat, via distillSessions). With
 // `--all-faculties`: mine each transcript ONCE into a superset, then run every
-// registered faculty miner (knowledge today; actions/guardrails/instructions/
-// memory land in later WS5 tasks) over the shared sessions array.
+// faculty module's miner (the Faculty Module registry) over the shared
+// sessions array. Miner hooks are miner-class: fail-soft + time-boxed — a
+// broken or hung miner degrades to 0 proposals, never sinks the others.
 
-import { paths } from '../store.mjs';
+import { paths } from '../core/store.mjs';
 import { distillSessions, transcriptsFor, mineHostSession } from '../knowledge/distill.mjs';
-import * as registry from '../miners/registry.mjs';
-// Import miner modules so they self-register.
-import '../miners/knowledge.mjs';
-import '../miners/actions.mjs';
-import '../miners/guardrails.mjs';
-import '../miners/instructions.mjs';
-import '../miners/memory.mjs';
+import * as registry from '../faculty/registry.mjs';
 
-export function distill(args) {
+export async function distill(args) {
   const scope = args.all ? 'all' : args.session ? null : 'last';
   const pairs = transcriptsFor({ scope: scope ?? 'all', session: args.session || null, cwd: process.cwd() });
   if (!pairs.length) {
@@ -27,13 +22,17 @@ export function distill(args) {
   if (args['all-faculties'] || args.allFaculties) {
     const sessions = pairs.map(mineHostSession).filter(Boolean);
     const hosts = new Set(sessions.map((s) => s.host));
-    console.log(`distilled ${sessions.length} session(s) across ${hosts.size} host(s) and ${registry.all().length} faculty miner(s):`);
+    const miners = registry.miners();
+    console.log(`distilled ${sessions.length} session(s) across ${hosts.size} host(s) and ${miners.length} faculty miner(s):`);
     let total = 0;
-    for (const miner of registry.all()) {
-      const cand = miner.aggregate(sessions, {});
-      const n = miner.propose(agentDir, cand);
+    for (const miner of miners) {
+      const entry = { id: miner.faculty, module: miner };
+      const agg = await registry.invokeTimeboxed(entry, 'aggregate', [sessions, {}]);
+      const prop = agg.ok ? await registry.invokeTimeboxed(entry, 'propose', [agentDir, agg.value]) : agg;
+      const n = prop.ok && Number.isFinite(prop.value) ? prop.value : 0;
       total += n;
-      console.log(`  ${miner.faculty.padEnd(12)} ${n} proposal(s)`);
+      const note = prop.ok ? '' : '  (miner degraded — see zuzuu doctor)';
+      console.log(`  ${miner.faculty.padEnd(12)} ${n} proposal(s)${note}`);
     }
     if (total) console.log('next: zuzuu review');
     return;

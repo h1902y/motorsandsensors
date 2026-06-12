@@ -1,8 +1,7 @@
-// Pure mapping from the daemon's detected-hosts response to the "Start agent
-// session" rows (the start card + StartAgentButton render these), and from a
-// row to the direct-spawn argv (POST /api/sessions {type:'agent',...}). Kept
-// React-free so the detected/disabled rules and the host→command mapping are
-// unit-testable.
+// Pure mapping from the daemon's detected-hosts response to the session
+// composer's host rows, and from a row to the direct-spawn argv
+// (POST /api/sessions {type:'agent',...}). Kept React-free so the
+// detected/disabled rules and the host→command mapping are unit-testable.
 
 /** Argv an agent session spawns directly on the PTY (no shell, no injection). */
 export interface AgentSpawnSpec {
@@ -43,6 +42,12 @@ export function buildHostRows(hosts: { name: string }[]): HostRow[] {
     ...KNOWN_HOSTS.map((h) => ({ label: h.label, command: h.command, detected: detected.has(h.name) })),
     { label: OPENCODE.label, command: OPENCODE.command, detected: true },
   ];
+}
+
+/** The composer's Enter target: the FIRST detected row in menu order
+ *  (OpenCode is always detected — bundled — so a default always exists). */
+export function composerDefaultHost(rows: HostRow[]): HostRow | null {
+  return rows.find((r) => r.detected) ?? null;
 }
 
 /** Row command → direct-spawn argv (opencode → `zuzuu code`); null for unknown. */

@@ -1,6 +1,7 @@
 // REST client for the /api/zuzuu/* observe + act routes (mirrors lib/api.ts).
 import type {
   ZuzuuHealth, ZuzuuStatus, FacultySummary, FacultyDetail, FacultySchema, InboxResponse,
+  FacultyOverviewResponse, SessionInspectResponse,
   GenerationList, GenerationDiff, SessionsResponse, DigestResponse,
   EvalResponse, HostsResponse, ApproveResult, RejectResult, MintResult, RollbackResult,
   SessionGitStatus, SessionMergeResult,
@@ -50,12 +51,16 @@ export const zuzuuApi = {
   health: () => request<ZuzuuHealth>("/health"),
   status: () => request<ZuzuuStatus>("/status"),
   faculties: () => request<{ faculties: FacultySummary[] }>("/faculties"),
+  /** the batched panel-root read — ONE daemon-side CLI spawn for all faculties */
+  overview: () => request<FacultyOverviewResponse>("/overview"),
   faculty: (key: string) => request<FacultyDetail>(`/faculty/${encodeURIComponent(key)}`),
   facultySchema: (key: string) => request<FacultySchema>(`/faculty/${encodeURIComponent(key)}/schema`),
   inbox: () => request<InboxResponse>("/inbox"),
   generations: () => request<GenerationList>("/generations"),
   generation: (id: string) => request<GenerationDiff>(`/generation/${encodeURIComponent(id)}`),
   sessions: () => request<SessionsResponse>("/sessions"),
+  /** one session's trace summary + per-faculty signals (503 = CLI absent) */
+  sessionInspect: (id: string) => request<SessionInspectResponse>(`/session-inspect/${encodeURIComponent(id)}`),
   digest: () => request<DigestResponse>("/digest"),
   evalRanked: () => request<EvalResponse>("/eval"),
   hosts: () => request<HostsResponse>("/hosts"),

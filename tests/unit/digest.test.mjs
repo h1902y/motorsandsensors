@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { mkdirSync as _mkdirA, writeFileSync as _writeA } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { computeDigest } from '../../zuzuu/digest.mjs';
+import { computeDigest } from '../../zuzuu/digest/compose.mjs';
 import { writeItem } from '../../zuzuu/knowledge/items.mjs';
 import { createProposal } from '../../zuzuu/knowledge/proposals.mjs';
 import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';

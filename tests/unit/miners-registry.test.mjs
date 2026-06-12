@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { mineTranscript, aggregate } from '../../zuzuu/knowledge/distill.mjs';
-import * as registry from '../../zuzuu/miners/registry.mjs';
-import { propose as knowledgePropose, miner as knowledgeMiner } from '../../zuzuu/miners/knowledge.mjs';
+import * as registry from '../../zuzuu/faculty/registry.mjs';
+import { propose as knowledgePropose, miner as knowledgeMiner } from '../../zuzuu/faculties/knowledge/index.mjs';
 
 const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'claude-sample.jsonl');
 
@@ -69,29 +69,26 @@ test('mineTranscript: never throws on garbage shapes', () => {
   assert.doesNotThrow(() => mineTranscript(f));
 });
 
-test('knowledge miner self-registers on module import', () => {
-  // the static import at top of this file already imported the knowledge miner,
-  // which self-registers; assert it is present before any test reset()s.
-  assert.ok(registry.get('knowledge'), 'knowledge miner present after import');
-  assert.equal(registry.get('knowledge'), knowledgeMiner);
+test('knowledge miner is a registry built-in (the Faculty Module contract)', () => {
+  // built-in modules are statically wired into the registry — no side-effect
+  // import needed; the miner surfaced is the module's own miner object.
+  assert.ok(registry.minerOf('knowledge'), 'knowledge miner present');
+  assert.equal(registry.minerOf('knowledge'), knowledgeMiner);
 });
 
-test('registry: register / all / get / reset round-trip', () => {
-  registry.reset();
-  assert.deepEqual(registry.all(), []);
-  const m = { faculty: 'demo', aggregate: () => [], propose: () => 0 };
-  registry.register(m);
-  assert.equal(registry.all().length, 1);
-  assert.equal(registry.get('demo'), m);
-  assert.equal(registry.get('missing'), undefined);
-  registry.reset();
-  assert.deepEqual(registry.all(), []);
+test('registry: all five built-in miners, legacy distill order, unknown → undefined', () => {
+  const faculties = registry.miners().map((m) => m.faculty);
+  assert.deepEqual(faculties, ['knowledge', 'actions', 'guardrails', 'instructions', 'memory']);
+  assert.equal(registry.minerOf('missing'), undefined);
+  // every miner speaks the contract shape
+  for (const m of registry.miners()) {
+    assert.equal(typeof m.aggregate, 'function', `${m.faculty}.aggregate`);
+    assert.equal(typeof m.propose, 'function', `${m.faculty}.propose`);
+  }
 });
 
 test('knowledge miner registered: aggregate matches direct aggregate (no drift)', () => {
-  registry.reset();
-  registry.register(knowledgeMiner);
-  const km = registry.get('knowledge');
+  const km = registry.minerOf('knowledge');
   assert.ok(km, 'knowledge miner registered');
   const c = { cmd: 'npm test', failed: false };
   const sessions = [

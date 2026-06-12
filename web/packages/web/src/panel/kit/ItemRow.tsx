@@ -32,12 +32,12 @@ export function ItemRow({
       </svg>
       <span className="min-w-0 truncate text-ink-300">{title}</span>
       {status === "pending" && (
-        <span className="shrink-0 rounded-full bg-[color-mix(in_oklab,var(--color-status-pending)_16%,transparent)] px-1.5 text-[10px] leading-4 text-status-pending">
+        <span className="shrink-0 rounded-full bg-[color-mix(in_oklab,var(--color-status-pending)_16%,transparent)] px-1.5 text-meta leading-4 text-status-pending">
           pending
         </span>
       )}
       {status === "archived" && (
-        <span className="shrink-0 rounded-full bg-hover px-1.5 text-[10px] leading-4 text-ink-500">archived</span>
+        <span className="shrink-0 rounded-full bg-hover px-1.5 text-meta leading-4 text-ink-500">archived</span>
       )}
       {rel && <span className="ml-auto shrink-0 text-meta text-ink-600">{rel}</span>}
     </>

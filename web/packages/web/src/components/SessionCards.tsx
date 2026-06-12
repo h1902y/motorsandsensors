@@ -1,16 +1,16 @@
 import { useState, type ReactNode } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { zuzuuApi, describeZuzuuError } from "../lib/zuzuu-api";
 import { mergeSessionWithFallback, refreshSessionGit } from "../lib/session-git-actions";
 import { startUtilityRun } from "../lib/agent-launch";
-import { buildHostRows } from "../faculties/host-launch";
 import type { EndCard } from "../lib/session-cards";
 import { Button, Spinner, confirm } from "./ui";
 
 /**
- * The Phase ④ session-surface cards: start (host picker), recovery (leftover
- * session branch) and end-of-session (agent exit outcome). All render the same
- * centered card shell over the terminal area — chat-feel, not shell-feel.
+ * The session-surface center cards: setup (no zuzuu home), recovery
+ * (leftover session branch) and end-of-session (agent exit outcome) — the
+ * same centered card shell over the terminal area. Starting sessions lives
+ * in the bottom SessionComposer, not here.
  */
 function Card({ children, onDismiss }: { children: ReactNode; onDismiss?: () => void }) {
   return (
@@ -29,45 +29,6 @@ function Card({ children, onDismiss }: { children: ReactNode; onDismiss?: () => 
       )}
       {children}
     </div>
-  );
-}
-
-/** "Start a session" — host buttons (detected enabled, others greyed). Hosts only, no plain terminal. */
-export function StartSessionCard({
-  onHost,
-  onDismiss,
-}: {
-  /** row command from buildHostRows (e.g. "claude", "zuzuu code") */
-  onHost: (rowCommand: string) => void;
-  /** present when the card overlays existing terminals (the + button path) */
-  onDismiss?: () => void;
-}) {
-  const hostsQ = useQuery({ queryKey: ["zuzuu", "hosts"], queryFn: zuzuuApi.hosts, refetchInterval: 8000 });
-  const rows = buildHostRows(hostsQ.data?.hosts ?? []);
-  return (
-    <Card onDismiss={onDismiss}>
-      <div className="text-base font-medium text-ink-100">Start a session</div>
-      <p className="mt-1 text-ui leading-relaxed text-ink-400">
-        Pick a host — zuzuu wraps it, observes the session, and checkpoints your work.
-      </p>
-      <div className="mt-4 flex flex-col gap-1.5">
-        {rows.map((row) => (
-          <button
-            key={row.command}
-            disabled={!row.detected}
-            onClick={() => onHost(row.command)}
-            className={`wc-focus flex items-center rounded-[var(--radius-sm)] border px-3 py-2 text-left text-ui transition-colors ${
-              row.detected
-                ? "border-border text-ink-100 hover:border-accent-dim hover:bg-hover"
-                : "cursor-default border-border/60 text-ink-600"
-            }`}
-          >
-            {row.label}
-            {!row.detected && <span className="ml-auto pl-4 text-meta text-ink-600">not installed</span>}
-          </button>
-        ))}
-      </div>
-    </Card>
   );
 }
 

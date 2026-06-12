@@ -8,7 +8,8 @@
 // All git mutation lives in session-git.mjs (fail-soft, never throws); this is
 // the thin print layer (xxxData pattern — pure data fns + --json everywhere).
 
-import { sessionStatus, closeSession, continueSession, discardSession } from '../session-git.mjs';
+import { sessionStatus, closeSession, continueSession, discardSession } from '../sessions/session-git.mjs';
+import { sessionInspect } from './sessions.mjs';
 
 /** Pure: structured session-git state (the leftover detector included). */
 export function sessionStatusData(cwd = process.cwd()) {
@@ -98,6 +99,11 @@ export function session(args = {}) {
     process.exit(1);
   }
 
-  console.error(`unknown: zuzuu session ${sub}\nusage: zuzuu session [status|merge [--title t]|continue|discard --yes]`);
+  if (sub === 'inspect') {
+    sessionInspect(args);
+    return;
+  }
+
+  console.error(`unknown: zuzuu session ${sub}\nusage: zuzuu session [status|merge [--title t]|continue|discard --yes|inspect <id>]`);
   process.exit(1);
 }
