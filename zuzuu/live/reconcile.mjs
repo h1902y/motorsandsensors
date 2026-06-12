@@ -1,5 +1,5 @@
 // Reconcile lost sessions. A killed terminal sends no SessionEnd, so an `active`
-// live record just stops getting heartbeats. We detect that lazily (on `mns
+// live record just stops getting heartbeats. We detect that lazily (on `zuzuu
 // doctor`/`status`), and — because the transcript is still on disk — do a FULL,
 // correct capture of the abandoned session before closing it. Nothing is lost.
 

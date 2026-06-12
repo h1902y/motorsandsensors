@@ -16,15 +16,15 @@ import * as registry from '../../zuzuu/faculty/registry.mjs';
 import '../../zuzuu/knowledge/adapter.mjs';
 
 function withHome(fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-kadapter-'));
-  const mnsDir = join(dir, '.mns');
-  const reg = join(mnsDir, 'knowledge', 'registry');
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-kadapter-'));
+  const agentDir = join(dir, 'agent');
+  const reg = join(agentDir, 'knowledge', 'registry');
   mkdirSync(reg, { recursive: true });
   writeFileSync(join(reg, 'types.json'), JSON.stringify(SEED_TYPES));
   writeFileSync(join(reg, 'attributes.json'), JSON.stringify(SEED_ATTRIBUTES));
   writeFileSync(join(reg, 'relations.json'), JSON.stringify(SEED_RELATIONS));
   try {
-    return fn(mnsDir, dir);
+    return fn(agentDir, dir);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -40,27 +40,27 @@ test('adapter: registered under name "knowledge"', () => {
 });
 
 test('adapter.apply: writes the item to knowledge/items/ and indexes it', () => {
-  withHome((mnsDir) => {
-    const p = createProposal(mnsDir, { candidate: { type: 'fact', body: 'CI runs Node 22 and 24' }, source: 'test' });
+  withHome((agentDir) => {
+    const p = createProposal(agentDir, { candidate: { type: 'fact', body: 'CI runs Node 22 and 24' }, source: 'test' });
     const a = registry.get('knowledge');
-    const r = a.apply(mnsDir, p);
+    const r = a.apply(agentDir, p);
     assert.ok(r.ok);
     assert.match(r.action, /^created /);
     assert.ok(Array.isArray(r.itemIds) && r.itemIds.length === 1);
     // item file written
-    const item = readItem(mnsDir, r.itemIds[0]);
+    const item = readItem(agentDir, r.itemIds[0]);
     assert.ok(item, 'item file exists');
     assert.equal(item.type, 'fact');
     // indexed (searchable)
-    const hits = search(mnsDir, 'Node');
+    const hits = search(agentDir, 'Node');
     assert.ok(hits.some((h) => h.id === r.itemIds[0]), 'item present in index');
   });
 });
 
 test('adapter.ingest: runs ER and returns payload + dedupeKey', () => {
-  withHome((mnsDir) => {
+  withHome((agentDir) => {
     const a = registry.get('knowledge');
-    const out = a.ingest(mnsDir, { candidate: { type: 'fact', body: 'Releases publish via OIDC trusted publishing' }, source: 'test' });
+    const out = a.ingest(agentDir, { candidate: { type: 'fact', body: 'Releases publish via OIDC trusted publishing' }, source: 'test' });
     assert.ok(out.payload, 'payload present');
     assert.ok(out.analysis && out.analysis.er, 'ER analysis present');
     assert.equal(out.analysis.er.verdict, 'new');
@@ -69,20 +69,20 @@ test('adapter.ingest: runs ER and returns payload + dedupeKey', () => {
 });
 
 test('adapter.validate: rejects an item with an unknown registry type', () => {
-  withHome((mnsDir) => {
+  withHome((agentDir) => {
     const a = registry.get('knowledge');
-    const ok = a.validate(mnsDir, { id: 'x', type: 'fact', body: 'fine', attributes: {}, relations: [] });
+    const ok = a.validate(agentDir, { id: 'x', type: 'fact', body: 'fine', attributes: {}, relations: [] });
     assert.equal(ok.ok, true);
-    const bad = a.validate(mnsDir, { id: 'y', type: 'nonsense-type', body: 'bad', attributes: {}, relations: [] });
+    const bad = a.validate(agentDir, { id: 'y', type: 'nonsense-type', body: 'bad', attributes: {}, relations: [] });
     assert.equal(bad.ok, false);
     assert.ok(bad.errors.some((e) => /nonsense-type/.test(e)));
   });
 });
 
 test('adapter.render: returns a non-empty card mentioning the item id', () => {
-  withHome((mnsDir) => {
-    const p = createProposal(mnsDir, { candidate: { type: 'fact', body: 'Deploys are gated on the efficiency benchmark' }, source: 'test' });
-    const fresh = getProposal(mnsDir, p.id);
+  withHome((agentDir) => {
+    const p = createProposal(agentDir, { candidate: { type: 'fact', body: 'Deploys are gated on the efficiency benchmark' }, source: 'test' });
+    const fresh = getProposal(agentDir, p.id);
     const a = registry.get('knowledge');
     const out = a.render(fresh);
     assert.ok(out.card && out.card.length > 0, 'card non-empty');

@@ -15,7 +15,7 @@ const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 
 const SID = 'sess-test';
 
 function withTemp(fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-live-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-live-'));
   try {
     return fn(dir);
   } finally {

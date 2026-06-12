@@ -1,4 +1,4 @@
-// mns/faculty/provenance.mjs
+// zuzuu/faculty/provenance.mjs
 // Lightweight provenance helpers for the faculty spine.
 // A provenance entry is { session, trace, ref } (all optional fields).
 

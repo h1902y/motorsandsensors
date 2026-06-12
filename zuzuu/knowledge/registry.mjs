@@ -4,7 +4,7 @@
 // are never silently auto-registered — repeated use files a registry *proposal*
 // (human-gated, like everything in this system).
 //
-// Files (tracked, seeded by `mns init`): agent/knowledge/registry/
+// Files (tracked, seeded by `zuzuu init`): agent/knowledge/registry/
 //   types.json       [{name, description}]
 //   attributes.json  [{key, value, description}]   value: "string"|"number"|"date"|"url"|{"enum":[...]}
 //   relations.json   [{name, inverse, description}]
@@ -38,13 +38,13 @@ export const SEED_RELATIONS = [
 
 const REG_FILES = { types: 'types.json', attributes: 'attributes.json', relations: 'relations.json' };
 
-export function registryDir(mnsDir) {
-  return join(mnsDir, 'knowledge', 'registry');
+export function registryDir(agentDir) {
+  return join(agentDir, 'knowledge', 'registry');
 }
 
 /** Load the registry from agent/knowledge/registry/. Missing files → empty sets. */
-export function loadRegistry(mnsDir) {
-  const dir = registryDir(mnsDir);
+export function loadRegistry(agentDir) {
+  const dir = registryDir(agentDir);
   const read = (f) => {
     const p = join(dir, f);
     if (!existsSync(p)) return [];

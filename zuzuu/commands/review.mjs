@@ -1,8 +1,8 @@
-// `mns review` — the human gate, as a daily ritual. Walks pending proposals
+// `zuzuu review` — the human gate, as a daily ritual. Walks pending proposals
 // one-by-one: shows the candidate, its evidence, and the ER verdict (with the
 // matched item when enrich/duplicate) → y approve · n reject · e edit · s skip ·
 // q quit. Works piped (answers on stdin) — that's also how it's tested.
-// Non-interactive surface: `mns proposals list|show|approve|reject`.
+// Non-interactive surface: `zuzuu proposals list|show|approve|reject`.
 
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
@@ -45,7 +45,7 @@ function buildSessionMtimes() {
 const REVIEW_ORDER = ['actions', 'knowledge', 'guardrails', 'instructions', 'memory'];
 
 /** Ordered list of adapters that have pending proposals to review. */
-function pendingByFaculty(mnsDir) {
+function pendingByFaculty(agentDir) {
   const adapters = registry.all();
   const seen = new Set();
   const ordered = [];
@@ -59,7 +59,7 @@ function pendingByFaculty(mnsDir) {
   const scorer = getScorer();
   const out = [];
   for (const a of ordered) {
-    let proposals = facultyPending(mnsDir, a);
+    let proposals = facultyPending(agentDir, a);
     if (!proposals.length) continue;
     // Rank proposals highest-score-first (display only — never changes approval/mint).
     const ranked = rank(proposals, scorer, { now, sessionMtimes });
@@ -70,14 +70,14 @@ function pendingByFaculty(mnsDir) {
 }
 
 /** Pending proposals for one adapter (dir-shaped adapters override listProposals). */
-function facultyPending(mnsDir, a) {
-  if (typeof a.listProposals === 'function') return a.listProposals(mnsDir);
+function facultyPending(agentDir, a) {
+  if (typeof a.listProposals === 'function') return a.listProposals(agentDir);
   // JSON-record faculties: read via the spine (records carry both the spine shape
   // and the legacy candidate/er keys the knowledge card renders from).
-  return spineListProposals(mnsDir, a.name);
+  return spineListProposals(agentDir, a.name);
 }
 
-function card(mnsDir, p, i, total, scoreResult) {
+function card(agentDir, p, i, total, scoreResult) {
   const lines = [];
   lines.push(`\n━━ proposal ${i + 1}/${total} ── ${p.id} ── ${p.kind} ── source: ${p.source ?? '-'} ━━`);
   if (p.kind === 'registry') {
@@ -92,7 +92,7 @@ function card(mnsDir, p, i, total, scoreResult) {
     const er = p.er ?? {};
     lines.push(`  er: ${er.verdict}${er.match ? ` → ${er.match}` : ''}  (${(er.confidence ?? 0).toFixed(2)} · ${er.reason ?? ''})`);
     if (er.match) {
-      const m = readItem(mnsDir, er.match);
+      const m = readItem(agentDir, er.match);
       if (m) lines.push(`  existing: ${m.body.slice(0, 80).replace(/\n/g, ' ')}`);
     }
   }
@@ -121,10 +121,10 @@ export function ceremonyBlock(genId, approvedIds, byFaculty) {
 }
 
 export async function review() {
-  const mnsDir = paths().dir;
-  const inbox = processInbox(mnsDir);
+  const agentDir = paths().dir;
+  const inbox = processInbox(agentDir);
   if (inbox.processed) console.log(`(processed ${inbox.processed} inbox candidate(s) → proposals)`);
-  const groups = pendingByFaculty(mnsDir);
+  const groups = pendingByFaculty(agentDir);
   if (!groups.length) {
     console.log('nothing to review — knowledge and actions are current');
     return;
@@ -177,7 +177,7 @@ export async function review() {
       try { scoreResult = scorer(p, { now, sessionMtimes }); } catch { /* fail-open */ }
       // Card: knowledge keeps its rich card (ER + existing-item lookup); other
       // faculties render through the adapter contract.
-      if (adapter.name === 'knowledge') console.log(card(mnsDir, p, i, proposals.length, scoreResult));
+      if (adapter.name === 'knowledge') console.log(card(agentDir, p, i, proposals.length, scoreResult));
       else {
         const r = adapter.render(p);
         const [head, ...rest] = r.card.split('\n');
@@ -192,25 +192,25 @@ export async function review() {
       while (!acted) {
         const a = (await ask(prompt)).trim().toLowerCase();
         if (a === 'y') {
-          const r = gate.approve(mnsDir, adapter.name, p.id);
+          const r = gate.approve(agentDir, adapter.name, p.id);
           if (isActions) console.log(r.ok ? '  ✓ activated' : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`);
           else { console.log(r.ok ? `  ✓ ${r.action}` : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`); for (const w of r.warnings ?? []) console.log(`  ⚠ ${w}`); }
           if (r.ok) { approvedIds.push(p.id); approvedByFaculty[adapter.name] = (approvedByFaculty[adapter.name] ?? 0) + 1; }
           approved++; totalLeft--; acted = true;
         } else if (a === 'n') {
           const reason = isActions ? '' : (await ask('  reason (optional) > ')).trim();
-          gate.reject(mnsDir, adapter.name, p.id, reason);
+          gate.reject(agentDir, adapter.name, p.id, reason);
           console.log('  ✗ rejected');
           rejected++; totalLeft--; acted = true;
         } else if (a === 'e' && !isActions) {
           const editor = process.env.EDITOR || 'vi';
-          spawnSync(editor, [join(proposalsDir(mnsDir), `${p.id}.json`)], { stdio: 'inherit' });
-          const fresh = getProposal(mnsDir, p.id);
+          spawnSync(editor, [join(proposalsDir(agentDir), `${p.id}.json`)], { stdio: 'inherit' });
+          const fresh = getProposal(agentDir, p.id);
           if (fresh) {
             proposals[i] = fresh;
             let freshScore = null;
             try { freshScore = scorer(fresh, { now, sessionMtimes }); } catch { /* fail-open */ }
-            console.log(card(mnsDir, fresh, i, proposals.length, freshScore));
+            console.log(card(agentDir, fresh, i, proposals.length, freshScore));
           }
         } else if (a === 's') {
           skipped++; totalLeft--; acted = true;
@@ -218,7 +218,7 @@ export async function review() {
           rl.close();
           console.log(`\nreview: ${approved} approved · ${rejected} rejected · ${skipped} skipped · ${totalLeft} left`);
           if (approvedIds.length > 0) {
-            const gen = mintGeneration(mnsDir, { forkedFrom: activeGeneration(mnsDir), mintedFrom: approvedIds });
+            const gen = mintGeneration(agentDir, { forkedFrom: activeGeneration(agentDir), mintedFrom: approvedIds });
             console.log(ceremonyBlock(gen.id, approvedIds, approvedByFaculty));
           }
           return;
@@ -229,7 +229,7 @@ export async function review() {
   rl.close();
   console.log(`\nreview complete: ${approved} approved · ${rejected} rejected · ${skipped} skipped`);
   if (approvedIds.length > 0) {
-    const gen = mintGeneration(mnsDir, { forkedFrom: activeGeneration(mnsDir), mintedFrom: approvedIds });
+    const gen = mintGeneration(agentDir, { forkedFrom: activeGeneration(agentDir), mintedFrom: approvedIds });
     console.log(ceremonyBlock(gen.id, approvedIds, approvedByFaculty));
   }
 }
@@ -238,23 +238,23 @@ export async function review() {
  * Resolve which faculty owns a given proposal id (used when --faculty is omitted).
  * Defaults to 'knowledge' (the historical path) when no other faculty claims it.
  */
-function facultyOf(mnsDir, id, only) {
+function facultyOf(agentDir, id, only) {
   if (only) return only;
-  for (const { adapter, proposals } of pendingByFaculty(mnsDir)) {
+  for (const { adapter, proposals } of pendingByFaculty(agentDir)) {
     if (proposals.some((p) => p.id === id)) return adapter.name;
   }
   return 'knowledge';
 }
 
-/** Non-interactive: mns proposals list|show <id>|approve <id>|reject <id> [--reason r] [--faculty f] */
+/** Non-interactive: zuzuu proposals list|show <id>|approve <id>|reject <id> [--reason r] [--faculty f] */
 export function proposals(args) {
-  const mnsDir = paths().dir;
+  const agentDir = paths().dir;
   const sub = args._[0] || 'list';
   const only = args.faculty; // optional filter; default = all
   if (sub === 'list') {
-    const inbox = processInbox(mnsDir);
+    const inbox = processInbox(agentDir);
     if (inbox.processed) console.log(`(processed ${inbox.processed} inbox candidate(s))`);
-    const groups = pendingByFaculty(mnsDir).filter((g) => !only || g.adapter.name === only);
+    const groups = pendingByFaculty(agentDir).filter((g) => !only || g.adapter.name === only);
     const any = groups.some((g) => g.proposals.length);
     if (!any) return console.log('no pending proposals');
     for (const { adapter, proposals } of groups) {
@@ -274,23 +274,23 @@ export function proposals(args) {
   }
   const id = args._[1];
   if (sub === 'show') {
-    const faculty = facultyOf(mnsDir, id, only);
+    const faculty = facultyOf(agentDir, id, only);
     const a = registry.get(faculty);
-    const p = (a && typeof a.getProposal === 'function') ? a.getProposal(mnsDir, id) : getProposal(mnsDir, id);
+    const p = (a && typeof a.getProposal === 'function') ? a.getProposal(agentDir, id) : getProposal(agentDir, id);
     if (!p) return console.error('not found');
     console.log(JSON.stringify(p, null, 2));
     return;
   }
   if (sub === 'approve') {
-    const faculty = facultyOf(mnsDir, id, only);
-    const r = gate.approve(mnsDir, faculty, id);
+    const faculty = facultyOf(agentDir, id, only);
+    const r = gate.approve(agentDir, faculty, id);
     console.log(r.ok ? `✓ ${r.action}` : `✗ ${(r.errors ?? [r.action]).join('; ')}`);
     for (const w of r.warnings ?? []) console.log(`⚠ ${w}`);
     process.exit(r.ok ? 0 : 1);
   }
   if (sub === 'reject') {
-    const faculty = facultyOf(mnsDir, id, only);
-    const r = gate.reject(mnsDir, faculty, id, args.reason || '');
+    const faculty = facultyOf(agentDir, id, only);
+    const r = gate.reject(agentDir, faculty, id, args.reason || '');
     console.log(r.ok ? '✓ rejected' : '✗ not found');
     process.exit(r.ok ? 0 : 1);
   }

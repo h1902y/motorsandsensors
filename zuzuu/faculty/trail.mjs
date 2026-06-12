@@ -1,6 +1,6 @@
-// mns/faculty/trail.mjs
+// zuzuu/faculty/trail.mjs
 // Generalised faculty observability trail (WS2-T1).
-// Extends the pattern from mns/actions/trail.mjs to any faculty:
+// Extends the pattern from zuzuu/actions/trail.mjs to any faculty:
 // each faculty gets its own agent/.live/<faculty>.jsonl file.
 //
 // Fail-soft: a logging failure must never affect the caller.
@@ -11,13 +11,13 @@ import { liveDir } from '../store.mjs';
 
 /**
  * Append a trail entry for a faculty. Never throws.
- * @param {string} mnsDir  - path to the faculty home (agent/)
+ * @param {string} agentDir  - path to the faculty home (agent/)
  * @param {string} faculty - e.g. 'knowledge', 'actions', 'guardrails'
  * @param {object} entry   - arbitrary fields; `at` is stamped automatically
  */
-export function recordTrail(mnsDir, faculty, entry = {}) {
+export function recordTrail(agentDir, faculty, entry = {}) {
   try {
-    const dir = liveDir(mnsDir);
+    const dir = liveDir(agentDir);
     mkdirSync(dir, { recursive: true });
     const rec = { at: new Date().toISOString(), ...entry };
     appendFileSync(join(dir, `${faculty}.jsonl`), JSON.stringify(rec) + '\n');

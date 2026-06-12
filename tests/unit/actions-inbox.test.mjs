@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { listProposedActions, activateAction, rejectAction } from '../../zuzuu/actions/inbox.mjs';
 
 function withInbox(slug, fn, { manifest, run } = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-inbox-'));
-  const mns = join(root, '.mns');
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-inbox-'));
+  const mns = join(root, 'agent');
   const dir = join(mns, 'actions', 'inbox', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'action.json'), manifest ?? JSON.stringify({ slug, promptSnippet: 'proposed thing' }));

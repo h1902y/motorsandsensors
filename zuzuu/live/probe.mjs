@@ -1,4 +1,4 @@
-// mns/live/probe.mjs — Phase-0 observation tool (the real-wire-data rule).
+// zuzuu/live/probe.mjs — Phase-0 observation tool (the real-wire-data rule).
 //
 // Records EXACTLY what a host hands a hook so we can wire the real mapping
 // instead of trusting docs. Installed as a throwaway hook command per candidate

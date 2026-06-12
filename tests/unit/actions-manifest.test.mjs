@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { loadManifest, allActions, listActions, inboxDir } from '../../zuzuu/actions/manifest.mjs';
 
 function withActions(fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-act-'));
-  const mns = join(root, '.mns');
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-act-'));
+  const mns = join(root, 'agent');
   const A = join(mns, 'actions');
   mkdirSync(A, { recursive: true });
   writeFileSync(join(A, 'README.md'), '# actions'); // must be ignored
@@ -52,21 +52,21 @@ test('allActions lists scripts and runbooks, ignores README', () => {
 });
 
 test('allActions on a home with no actions dir returns []', () => {
-  const root = mkdtempSync(join(tmpdir(), 'mns-empty-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-empty-'));
   try {
-    assert.deepEqual(allActions(join(root, '.mns')), []);
+    assert.deepEqual(allActions(join(root, 'agent')), []);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
 test('script dir without action.json falls back to slug', () => {
-  const root = mkdtempSync(join(tmpdir(), 'mns-noman-'));
-  const A = join(root, '.mns', 'actions', 'bare');
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-noman-'));
+  const A = join(root, 'agent', 'actions', 'bare');
   mkdirSync(A, { recursive: true });
   writeFileSync(join(A, 'run.mjs'), 'export async function main(){ return {}; }'); // no action.json
   try {
-    const list = allActions(join(root, '.mns'));
+    const list = allActions(join(root, 'agent'));
     assert.equal(list.length, 1);
     assert.equal(list[0].kind, 'script');
     assert.equal(list[0].title, 'bare');

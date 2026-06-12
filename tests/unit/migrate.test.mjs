@@ -14,11 +14,11 @@ import { readProposal } from '../../zuzuu/faculty/proposal.mjs';
 // helpers
 // ---------------------------------------------------------------------------
 function withHome(fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-migrate-'));
-  const mnsDir = join(root, '.mns');
-  mkdirSync(join(mnsDir, 'knowledge', 'proposals', 'archive'), { recursive: true });
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-migrate-'));
+  const agentDir = join(root, 'agent');
+  mkdirSync(join(agentDir, 'knowledge', 'proposals', 'archive'), { recursive: true });
   try {
-    return fn(mnsDir);
+    return fn(agentDir);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -36,11 +36,11 @@ const LEGACY = {
 // 1. Legacy proposal in proposals/ is migrated
 // ---------------------------------------------------------------------------
 test('migrateProposals: legacy candidate/er → payload/analysis.er, faculty set', () => {
-  withHome((mnsDir) => {
-    const proposalsPath = join(mnsDir, 'knowledge', 'proposals');
+  withHome((agentDir) => {
+    const proposalsPath = join(agentDir, 'knowledge', 'proposals');
     writeFileSync(join(proposalsPath, 'x-1.json'), JSON.stringify(LEGACY, null, 2) + '\n');
 
-    const result = migrateProposals(mnsDir);
+    const result = migrateProposals(agentDir);
 
     assert.equal(result.scanned, 1, 'scanned 1 file');
     assert.equal(result.migrated, 1, 'migrated 1 file');
@@ -68,16 +68,16 @@ test('migrateProposals: legacy candidate/er → payload/analysis.er, faculty set
 // 2. Idempotent — running again leaves the file unchanged, migrated=0
 // ---------------------------------------------------------------------------
 test('migrateProposals is idempotent on already-migrated records', () => {
-  withHome((mnsDir) => {
-    const proposalsPath = join(mnsDir, 'knowledge', 'proposals');
+  withHome((agentDir) => {
+    const proposalsPath = join(agentDir, 'knowledge', 'proposals');
     writeFileSync(join(proposalsPath, 'x-1.json'), JSON.stringify(LEGACY, null, 2) + '\n');
 
     // first run
-    migrateProposals(mnsDir);
+    migrateProposals(agentDir);
     const afterFirst = readFileSync(join(proposalsPath, 'x-1.json'), 'utf8');
 
     // second run
-    const result2 = migrateProposals(mnsDir);
+    const result2 = migrateProposals(agentDir);
     const afterSecond = readFileSync(join(proposalsPath, 'x-1.json'), 'utf8');
 
     assert.equal(result2.migrated, 0, 'migrated=0 on second run');
@@ -90,12 +90,12 @@ test('migrateProposals is idempotent on already-migrated records', () => {
 // 3. Legacy record in proposals/archive/ is also migrated
 // ---------------------------------------------------------------------------
 test('migrateProposals migrates records in proposals/archive/', () => {
-  withHome((mnsDir) => {
-    const archivePath = join(mnsDir, 'knowledge', 'proposals', 'archive');
+  withHome((agentDir) => {
+    const archivePath = join(agentDir, 'knowledge', 'proposals', 'archive');
     const legacyArchived = { ...LEGACY, status: 'rejected', resolved_at: '2026-01-01T00:00:00.000Z', reason: 'dup' };
     writeFileSync(join(archivePath, 'x-1.json'), JSON.stringify(legacyArchived, null, 2) + '\n');
 
-    const result = migrateProposals(mnsDir);
+    const result = migrateProposals(agentDir);
 
     assert.equal(result.migrated, 1, 'archive record migrated');
 
@@ -116,14 +116,14 @@ test('migrateProposals migrates records in proposals/archive/', () => {
 // 4. Garbage/bad JSON is skipped without throwing
 // ---------------------------------------------------------------------------
 test('migrateProposals skips unreadable/garbage JSON files without throwing', () => {
-  withHome((mnsDir) => {
-    const proposalsPath = join(mnsDir, 'knowledge', 'proposals');
+  withHome((agentDir) => {
+    const proposalsPath = join(agentDir, 'knowledge', 'proposals');
     writeFileSync(join(proposalsPath, 'corrupt.json'), '{ this is NOT valid json ,,, }');
     writeFileSync(join(proposalsPath, 'x-1.json'), JSON.stringify(LEGACY, null, 2) + '\n');
 
     let result;
     assert.doesNotThrow(() => {
-      result = migrateProposals(mnsDir);
+      result = migrateProposals(agentDir);
     });
 
     assert.equal(result.scanned, 2, 'scanned 2 (including corrupt)');
@@ -136,13 +136,13 @@ test('migrateProposals skips unreadable/garbage JSON files without throwing', ()
 // 5. readProposal returns a coherent record after migration
 // ---------------------------------------------------------------------------
 test('readProposal returns a coherent record after migration', () => {
-  withHome((mnsDir) => {
-    const proposalsPath = join(mnsDir, 'knowledge', 'proposals');
+  withHome((agentDir) => {
+    const proposalsPath = join(agentDir, 'knowledge', 'proposals');
     writeFileSync(join(proposalsPath, 'x-1.json'), JSON.stringify(LEGACY, null, 2) + '\n');
 
-    migrateProposals(mnsDir);
+    migrateProposals(agentDir);
 
-    const rec = readProposal(mnsDir, 'knowledge', 'x-1');
+    const rec = readProposal(agentDir, 'knowledge', 'x-1');
     assert.ok(rec, 'record readable');
     assert.equal(rec.id, 'x-1');
     assert.equal(rec.faculty, 'knowledge');

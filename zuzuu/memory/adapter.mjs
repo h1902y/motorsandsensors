@@ -1,7 +1,7 @@
-// mns/memory/adapter.mjs
+// zuzuu/memory/adapter.mjs
 // The Memory faculty adapter (WS2-T4). Wraps episode proposals behind the
 // faculty-spine adapter contract — { name, ingest, validate, apply, render } —
-// so `mns review` can surface and approve memory entries uniformly.
+// so `zuzuu review` can surface and approve memory entries uniformly.
 //
 // A memory proposal payload is an episode record matching the WS1 Memory schema:
 //   { id, date, title, provenance, body }
@@ -25,12 +25,12 @@ const MEM_ID_RE = /^mem-/;
 // helpers
 // ---------------------------------------------------------------------------
 
-function entriesDir(mnsDir) {
-  return join(mnsDir, 'memory', 'entries');
+function entriesDir(agentDir) {
+  return join(agentDir, 'memory', 'entries');
 }
 
-function entryPath(mnsDir, id) {
-  return join(entriesDir(mnsDir), `${id}.md`);
+function entryPath(agentDir, id) {
+  return join(entriesDir(agentDir), `${id}.md`);
 }
 
 /** Render YAML frontmatter block from the payload fields. */
@@ -60,7 +60,7 @@ function renderFrontmatter(payload) {
 /**
  * Ingest a raw episode. Pass-through: the payload IS the episode.
  */
-function ingest(_mnsDir, raw) {
+function ingest(_agentDir, raw) {
   const payload = raw?.payload ?? raw ?? {};
   return { payload, analysis: {}, dedupeKey: payload.id };
 }
@@ -69,7 +69,7 @@ function ingest(_mnsDir, raw) {
  * Validate an episode payload.
  * @returns {{ok:boolean, errors:string[], warnings:string[]}}
  */
-function validate(_mnsDir, payload) {
+function validate(_agentDir, payload) {
   const errors = [];
   if (!payload?.id || typeof payload.id !== 'string') {
     errors.push('id is required');
@@ -86,17 +86,17 @@ function validate(_mnsDir, payload) {
  * Apply an approved episode proposal: write the entry Markdown file.
  * @returns {{ok:boolean, action:string, itemIds:string[]}}
  */
-function apply(mnsDir, proposal) {
+function apply(agentDir, proposal) {
   const payload = proposal?.payload ?? {};
   const id = payload.id;
 
-  mkdirSync(entriesDir(mnsDir), { recursive: true });
+  mkdirSync(entriesDir(agentDir), { recursive: true });
 
   const frontmatter = renderFrontmatter(payload);
   const body = payload.body ?? '';
   const content = frontmatter + '\n' + body + (body.endsWith('\n') ? '' : '\n');
 
-  writeFileSync(entryPath(mnsDir, id), content);
+  writeFileSync(entryPath(agentDir, id), content);
 
   return { ok: true, action: `wrote memory ${id}`, itemIds: [id] };
 }

@@ -1,6 +1,6 @@
-// mns/commands/act-author.mjs
-// `mns act new <slug>` — scaffold a script action (idempotent, no-clobber).
-// `mns act schema <slug> [--mcp|--openai|--anthropic]` — convert the manifest.
+// zuzuu/commands/act-author.mjs
+// `zuzuu act new <slug>` — scaffold a script action (idempotent, no-clobber).
+// `zuzuu act schema <slug> [--mcp|--openai|--anthropic]` — convert the manifest.
 
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -47,25 +47,25 @@ function scaffoldInto(baseDir, slug) {
 }
 
 /** Scaffold a live action (agent/actions/<slug>/). Humans author here directly. */
-export function scaffoldAction(mnsDir, slug) {
-  return scaffoldInto(actionsDir(mnsDir), slug);
+export function scaffoldAction(agentDir, slug) {
+  return scaffoldInto(actionsDir(agentDir), slug);
 }
 
 /** Scaffold a PROPOSED action (agent/actions/inbox/<slug>/) — agents propose here. */
-export function proposeAction(mnsDir, slug) {
-  return scaffoldInto(inboxDir(mnsDir), slug);
+export function proposeAction(agentDir, slug) {
+  return scaffoldInto(inboxDir(agentDir), slug);
 }
 
-export function newAction(mnsDir, slug) {
+export function newAction(agentDir, slug) {
   if (!slug) { console.error('usage: zuzuu act new <slug>'); process.exit(1); }
-  const { created } = scaffoldAction(mnsDir, slug);
+  const { created } = scaffoldAction(agentDir, slug);
   if (created.length) console.log(`scaffolded action '${slug}' → ${created.join(', ')} in agent/actions/${slug}/`);
   else console.log(`action '${slug}' already complete — nothing to do`);
 }
 
-export function schema(mnsDir, slug, args = {}) {
+export function schema(agentDir, slug, args = {}) {
   if (!slug) { console.error('usage: zuzuu act schema <slug> [--mcp|--openai|--anthropic]'); process.exit(1); }
-  const man = loadManifest(mnsDir, slug);
+  const man = loadManifest(agentDir, slug);
   if (!man) { console.error(`no action '${slug}' (missing action.json)`); process.exit(1); }
   const def = args.openai ? toOpenAITool(man) : args.anthropic ? toAnthropicTool(man) : toMcpTool(man);
   console.log(JSON.stringify(def, null, 2));

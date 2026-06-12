@@ -8,10 +8,10 @@ import { computeDigest } from '../../zuzuu/digest.mjs';
 import { writeItem } from '../../zuzuu/knowledge/items.mjs';
 import { createProposal } from '../../zuzuu/knowledge/proposals.mjs';
 
-// Build a throwaway .mns home; return its path (the mnsDir).
+// Build a throwaway .mns home; return its path (the agentDir).
 function withHome(fn, seed = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-digest-'));
-  const mns = join(root, '.mns');
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-digest-'));
+  const mns = join(root, 'agent');
   mkdirSync(join(mns, 'knowledge', 'items'), { recursive: true });
   mkdirSync(join(mns, 'knowledge', 'proposals'), { recursive: true });
   mkdirSync(join(mns, 'instructions'), { recursive: true });

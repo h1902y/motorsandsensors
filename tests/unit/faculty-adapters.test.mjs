@@ -23,19 +23,19 @@ import { applyScaffold, LAYOUT } from '../../zuzuu/scaffold.mjs';
 // ---------------------------------------------------------------------------
 
 function withHome(fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-fadapters-'));
-  const mnsDir = join(dir, '.mns');
-  mkdirSync(mnsDir, { recursive: true });
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-fadapters-'));
+  const agentDir = join(dir, 'agent');
+  mkdirSync(agentDir, { recursive: true });
   try {
-    return fn(mnsDir, dir);
+    return fn(agentDir, dir);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 }
 
 // Ensure a faculty's proposals dir exists (adapters may rely on it for apply)
-function ensureProposalsDir(mnsDir, faculty) {
-  mkdirSync(join(mnsDir, faculty, 'proposals'), { recursive: true });
+function ensureProposalsDir(agentDir, faculty) {
+  mkdirSync(join(agentDir, faculty, 'proposals'), { recursive: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -93,18 +93,18 @@ test('guardrails adapter.validate: rejects empty reason', () => {
 });
 
 test('guardrails gate.approve: appends rule to rules.json', () => {
-  withHome((mnsDir) => {
-    ensureProposalsDir(mnsDir, 'guardrails');
+  withHome((agentDir) => {
+    ensureProposalsDir(agentDir, 'guardrails');
     const rule = { id: 'block-curl', action: 'deny', tool: 'Bash', pattern: 'curl\\s+.*secret', reason: 'exfil risk' };
     const p = makeProposal({ faculty: 'guardrails', kind: 'rule', source: 'test', payload: rule });
-    writeProposal(mnsDir, p);
+    writeProposal(agentDir, p);
 
-    const r = gate.approve(mnsDir, 'guardrails', p.id);
+    const r = gate.approve(agentDir, 'guardrails', p.id);
     assert.ok(r.ok, JSON.stringify(r));
     assert.match(r.action, /block-curl/);
 
     // rules.json now contains the rule
-    const rulesPath = join(mnsDir, 'guardrails', 'rules.json');
+    const rulesPath = join(agentDir, 'guardrails', 'rules.json');
     assert.ok(existsSync(rulesPath), 'rules.json created');
     const data = JSON.parse(readFileSync(rulesPath, 'utf8'));
     assert.ok(Array.isArray(data.rules), 'rules is array');
@@ -113,23 +113,23 @@ test('guardrails gate.approve: appends rule to rules.json', () => {
 });
 
 test('guardrails gate.approve: replaces existing rule with same id', () => {
-  withHome((mnsDir) => {
-    ensureProposalsDir(mnsDir, 'guardrails');
+  withHome((agentDir) => {
+    ensureProposalsDir(agentDir, 'guardrails');
     // Seed an existing rules.json with the same id
-    mkdirSync(join(mnsDir, 'guardrails'), { recursive: true });
-    writeFileSync(join(mnsDir, 'guardrails', 'rules.json'), JSON.stringify({
+    mkdirSync(join(agentDir, 'guardrails'), { recursive: true });
+    writeFileSync(join(agentDir, 'guardrails', 'rules.json'), JSON.stringify({
       version: 1,
       rules: [{ id: 'my-rule', action: 'ask', tool: 'Bash', pattern: 'old', reason: 'old reason' }],
     }));
 
     const rule = { id: 'my-rule', action: 'deny', tool: 'Bash', pattern: 'new', reason: 'updated reason' };
     const p = makeProposal({ faculty: 'guardrails', kind: 'rule', source: 'test', payload: rule });
-    writeProposal(mnsDir, p);
+    writeProposal(agentDir, p);
 
-    const r = gate.approve(mnsDir, 'guardrails', p.id);
+    const r = gate.approve(agentDir, 'guardrails', p.id);
     assert.ok(r.ok, JSON.stringify(r));
 
-    const data = JSON.parse(readFileSync(join(mnsDir, 'guardrails', 'rules.json'), 'utf8'));
+    const data = JSON.parse(readFileSync(join(agentDir, 'guardrails', 'rules.json'), 'utf8'));
     assert.equal(data.rules.filter((x) => x.id === 'my-rule').length, 1, 'no duplicate rule');
     assert.equal(data.rules.find((x) => x.id === 'my-rule').action, 'deny', 'updated');
   });
@@ -179,19 +179,19 @@ test('instructions adapter.validate: rejects missing text', () => {
 });
 
 test('instructions gate.approve: appends text to project.md', () => {
-  withHome((mnsDir) => {
-    ensureProposalsDir(mnsDir, 'instructions');
+  withHome((agentDir) => {
+    ensureProposalsDir(agentDir, 'instructions');
     const p = makeProposal({
       faculty: 'instructions', kind: 'amendment', source: 'test',
       payload: { text: 'prefer immutable data structures' },
     });
-    writeProposal(mnsDir, p);
+    writeProposal(agentDir, p);
 
-    const r = gate.approve(mnsDir, 'instructions', p.id);
+    const r = gate.approve(agentDir, 'instructions', p.id);
     assert.ok(r.ok, JSON.stringify(r));
     assert.match(r.action, /amended instructions/);
 
-    const projectMd = join(mnsDir, 'instructions', 'project.md');
+    const projectMd = join(agentDir, 'instructions', 'project.md');
     assert.ok(existsSync(projectMd), 'project.md created');
     const content = readFileSync(projectMd, 'utf8');
     assert.ok(content.includes('prefer immutable data structures'), 'text appended');
@@ -199,26 +199,26 @@ test('instructions gate.approve: appends text to project.md', () => {
 });
 
 test('instructions gate.approve: re-applying the same text does not duplicate', () => {
-  withHome((mnsDir) => {
-    mkdirSync(join(mnsDir, 'instructions', 'proposals'), { recursive: true });
+  withHome((agentDir) => {
+    mkdirSync(join(agentDir, 'instructions', 'proposals'), { recursive: true });
 
     // Approve once
     const p1 = makeProposal({
       faculty: 'instructions', kind: 'amendment', source: 'test',
       payload: { text: 'use strict mode' },
     });
-    writeProposal(mnsDir, p1);
-    gate.approve(mnsDir, 'instructions', p1.id);
+    writeProposal(agentDir, p1);
+    gate.approve(agentDir, 'instructions', p1.id);
 
     // Approve again (different proposal id but same text)
     const p2 = makeProposal({
       faculty: 'instructions', kind: 'amendment', source: 'test2',
       payload: { text: 'use strict mode' },
     });
-    writeProposal(mnsDir, p2);
-    gate.approve(mnsDir, 'instructions', p2.id);
+    writeProposal(agentDir, p2);
+    gate.approve(agentDir, 'instructions', p2.id);
 
-    const content = readFileSync(join(mnsDir, 'instructions', 'project.md'), 'utf8');
+    const content = readFileSync(join(agentDir, 'instructions', 'project.md'), 'utf8');
     const occurrences = (content.match(/use strict mode/g) || []).length;
     assert.equal(occurrences, 1, 'text not duplicated');
   });
@@ -275,8 +275,8 @@ test('memory adapter.validate: rejects missing title', () => {
 });
 
 test('memory gate.approve: writes entry file with frontmatter', () => {
-  withHome((mnsDir) => {
-    ensureProposalsDir(mnsDir, 'memory');
+  withHome((agentDir) => {
+    ensureProposalsDir(agentDir, 'memory');
     const episode = {
       id: 'mem-2026-06-11-ci-fix',
       date: '2026-06-11',
@@ -285,13 +285,13 @@ test('memory gate.approve: writes entry file with frontmatter', () => {
       body: '## Attempted\nUpgraded node.\n## Resulted\nCI green.\n## Remember next time\nPin node version.',
     };
     const p = makeProposal({ faculty: 'memory', kind: 'episode', source: 'test', payload: episode });
-    writeProposal(mnsDir, p);
+    writeProposal(agentDir, p);
 
-    const r = gate.approve(mnsDir, 'memory', p.id);
+    const r = gate.approve(agentDir, 'memory', p.id);
     assert.ok(r.ok, JSON.stringify(r));
     assert.match(r.action, /mem-2026-06-11-ci-fix/);
 
-    const entryPath = join(mnsDir, 'memory', 'entries', 'mem-2026-06-11-ci-fix.md');
+    const entryPath = join(agentDir, 'memory', 'entries', 'mem-2026-06-11-ci-fix.md');
     assert.ok(existsSync(entryPath), 'entry file written');
     const content = readFileSync(entryPath, 'utf8');
     assert.ok(content.includes('status: curated'), 'frontmatter has curated status');
@@ -336,7 +336,7 @@ test('scaffold LAYOUT.dirs includes inbox and proposals for guardrails/instructi
 });
 
 test('applyScaffold creates new inbox/proposals dirs for all three new faculties', () => {
-  withHome((_mnsDir, cwd) => {
+  withHome((_agentDir, cwd) => {
     applyScaffold(cwd);
     for (const d of [
       'agent/guardrails/inbox', 'agent/guardrails/proposals',

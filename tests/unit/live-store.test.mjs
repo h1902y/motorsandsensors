@@ -6,8 +6,8 @@ import { join } from 'node:path';
 import { openLive, touchLive, closeLive, listLive } from '../../zuzuu/live/live-store.mjs';
 
 function withHome(fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-live-'));
-  mkdirSync(join(root, '.mns'), { recursive: true });
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-live-'));
+  mkdirSync(join(root, 'agent'), { recursive: true });
   try { return fn(root); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 

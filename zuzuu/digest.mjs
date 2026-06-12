@@ -1,4 +1,4 @@
-// mns/digest.mjs
+// zuzuu/digest.mjs
 // The grounding digest — a pure, deterministic, zero-network, no-model brief of
 // the faculty home, injected at session start. Returns { text, sections }.
 // I/O-free: callers (the CLI + the SessionStart hook) handle output. Every
@@ -14,8 +14,8 @@ import { allActions } from './actions/manifest.mjs';
 const PLACEHOLDER_MARK = '<!-- Fill in:';
 
 /** Read instructions/project.md; classify empty vs steering text. */
-function readInstructions(mnsDir) {
-  const path = join(mnsDir, 'instructions', 'project.md');
+function readInstructions(agentDir) {
+  const path = join(agentDir, 'instructions', 'project.md');
   let raw = '';
   try {
     raw = readFileSync(path, 'utf8');
@@ -31,9 +31,9 @@ const INTERVIEW = [
   'agent/instructions/project.md from their answers, and get their approval.',
 ].join(' ');
 
-function knowledgeSection(mnsDir, limit) {
+function knowledgeSection(agentDir, limit) {
   try {
-    const { items } = allItems(mnsDir);
+    const { items } = allItems(agentDir);
     const ranked = [...items]
       .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
       .slice(0, limit);
@@ -43,28 +43,28 @@ function knowledgeSection(mnsDir, limit) {
   }
 }
 
-function proposalsSection(mnsDir) {
+function proposalsSection(agentDir) {
   try {
     // count only pending — defensive if listProposals ever returns archived too
-    const pending = listProposals(mnsDir).filter((p) => p.status === 'pending');
+    const pending = listProposals(agentDir).filter((p) => p.status === 'pending');
     return { pending: pending.length };
   } catch {
     return { pending: 0 };
   }
 }
 
-function actionsSection(mnsDir, limit) {
+function actionsSection(agentDir, limit) {
   try {
-    const list = allActions(mnsDir);
+    const list = allActions(agentDir);
     return { count: list.length, shown: list.slice(0, limit).map((a) => ({ slug: a.slug, kind: a.kind, promptSnippet: a.promptSnippet })) };
   } catch {
     return { count: 0, shown: [] };
   }
 }
 
-function guardrailsSection(mnsDir) {
+function guardrailsSection(agentDir) {
   try {
-    const loaded = loadRules(join(mnsDir, 'guardrails', 'rules.json'));
+    const loaded = loadRules(join(agentDir, 'guardrails', 'rules.json'));
     return { ok: loaded.ok, count: loaded.ok ? loaded.rules.length : 0 };
   } catch {
     return { ok: false, count: 0 };
@@ -73,22 +73,22 @@ function guardrailsSection(mnsDir) {
 
 /**
  * Compute the digest for a faculty home.
- * @param {string} mnsDir  path to the agent/ directory
+ * @param {string} agentDir  path to the agent/ directory
  * @param {{ knowledgeLimit?: number, budget?: number }} options
  * @returns {{ text: string, sections: object }}
  */
-export function computeDigest(mnsDir, { knowledgeLimit = 5, budget = 1500 } = {}) {
+export function computeDigest(agentDir, { knowledgeLimit = 5, budget = 1500 } = {}) {
   const charBudget = budget * 4;
   const sections = {};
   const lines = ['# zuzuu faculty digest', ''];
 
-  const instr = readInstructions(mnsDir);
+  const instr = readInstructions(agentDir);
   sections.instructions = instr;
   lines.push('## Instructions');
   lines.push(instr.empty ? INTERVIEW : instr.text);
   lines.push('');
 
-  const knowledge = knowledgeSection(mnsDir, knowledgeLimit);
+  const knowledge = knowledgeSection(agentDir, knowledgeLimit);
   lines.push('## Knowledge');
   if (!knowledge.count) {
     lines.push('(no items yet — propose facts to knowledge/inbox/)');
@@ -110,7 +110,7 @@ export function computeDigest(mnsDir, { knowledgeLimit = 5, budget = 1500 } = {}
   }
   lines.push('');
 
-  const actions = actionsSection(mnsDir, knowledgeLimit);
+  const actions = actionsSection(agentDir, knowledgeLimit);
   sections.actions = actions;
   if (actions.count) {
     lines.push('## Actions');
@@ -131,7 +131,7 @@ export function computeDigest(mnsDir, { knowledgeLimit = 5, budget = 1500 } = {}
     sections.actions = { ...actions, renderedCount: 0 };
   }
 
-  const proposals = proposalsSection(mnsDir);
+  const proposals = proposalsSection(agentDir);
   sections.proposals = proposals;
   if (proposals.pending > 0) {
     lines.push('## Proposals');
@@ -139,7 +139,7 @@ export function computeDigest(mnsDir, { knowledgeLimit = 5, budget = 1500 } = {}
     lines.push('');
   }
 
-  const guardrails = guardrailsSection(mnsDir);
+  const guardrails = guardrailsSection(agentDir);
   sections.guardrails = guardrails;
   lines.push('## Guardrails');
   lines.push(guardrails.count ? `${guardrails.count} rule(s) — the enforced gate is on; refusals are policy.` : 'no rules configured.');

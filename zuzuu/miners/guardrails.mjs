@@ -1,4 +1,4 @@
-// mns/miners/guardrails.mjs
+// zuzuu/miners/guardrails.mjs
 // Guardrails miner (WS5-T3) — detect repeated destructive-command failures
 // across sessions and propose ask-only guardrail rules.
 //
@@ -12,7 +12,7 @@
 //      sessions.  A single session — no matter how many failures — produces
 //      NOTHING.
 //
-// Shape: { faculty:'guardrails', aggregate(sessions, opts), propose(mnsDir, aggregated) }
+// Shape: { faculty:'guardrails', aggregate(sessions, opts), propose(agentDir, aggregated) }
 // Self-registers on import.
 
 import { join } from 'node:path';
@@ -49,8 +49,8 @@ function guardId(cmd) {
 }
 
 /** Load rules.json; returns { version, rules:[] } if absent/unreadable. */
-function loadRules(mnsDir) {
-  const path = join(mnsDir, 'guardrails', 'rules.json');
+function loadRules(agentDir) {
+  const path = join(agentDir, 'guardrails', 'rules.json');
   if (!existsSync(path)) return { version: 1, rules: [] };
   try {
     return JSON.parse(readFileSync(path, 'utf8'));
@@ -128,19 +128,19 @@ export function aggregate(sessions, { minFailures = 3, minSessions = 2 } = {}) {
  *   - skips if a guardrails proposal with the same payload.id already exists
  *   - skips if rules.json already has a rule with that id
  *
- * The proposals flow through `mns review` → guardrails adapter on approval.
+ * The proposals flow through `zuzuu review` → guardrails adapter on approval.
  *
- * @param {string} mnsDir
+ * @param {string} agentDir
  * @param {ReturnType<typeof aggregate>} aggregated
  * @returns {number} count of new proposals written
  */
-export function propose(mnsDir, aggregated) {
+export function propose(agentDir, aggregated) {
   // Load existing proposals (ids already pending).
-  const existing = listProposals(mnsDir, 'guardrails');
+  const existing = listProposals(agentDir, 'guardrails');
   const existingIds = new Set(existing.map((p) => p.payload?.id).filter(Boolean));
 
   // Load existing rules (ids already applied).
-  const rulesData = loadRules(mnsDir);
+  const rulesData = loadRules(agentDir);
   const rulesIds = new Set((rulesData.rules ?? []).map((r) => r.id).filter(Boolean));
 
   let count = 0;
@@ -159,7 +159,7 @@ export function propose(mnsDir, aggregated) {
       evidence,
     });
 
-    writeProposal(mnsDir, proposal);
+    writeProposal(agentDir, proposal);
     count++;
   }
 

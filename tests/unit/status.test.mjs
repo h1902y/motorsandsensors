@@ -1,6 +1,6 @@
 // tests/unit/status.test.mjs (WS-C)
 // The faculties graduation line in `mns status` — driven through the pure
-// facultiesLine(mnsDir) helper (no console scraping).
+// facultiesLine(agentDir) helper (no console scraping).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,7 +11,7 @@ import { facultiesLine } from '../../zuzuu/commands/status.mjs';
 import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
 
 function freshHome() {
-  const root = mkdtempSync(join(tmpdir(), 'mns-status-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-status-'));
   const mns = join(root, 'agent');
   mkdirSync(join(mns, 'knowledge', 'items'), { recursive: true });
   mkdirSync(join(mns, 'knowledge', 'proposals'), { recursive: true });

@@ -1,4 +1,4 @@
-// mns/eval/score.mjs
+// zuzuu/eval/score.mjs
 // Mechanical scorer — weighted sum of normalized signals → { score, confidence, rationale, signals }.
 // Pure; deterministic; no FS, no Date.now(), no Math.random().
 

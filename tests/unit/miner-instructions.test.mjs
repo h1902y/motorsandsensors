@@ -73,7 +73,7 @@ test('aggregate: correction in only one session → no candidate (cross-session 
 // .mns/instructions/proposals/; idempotent re-run → 0.
 
 test('propose: writes instructions proposal JSON (kind:block) to mns/instructions/proposals/', () => {
-  const mnsDir = mkdtempSync(join(tmpdir(), 'mns-instr-miner-'));
+  const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-instr-miner-'));
   const text = 'always run tests before committing';
   const sessions = [
     makeSession('sA', [{ text }]),
@@ -82,11 +82,11 @@ test('propose: writes instructions proposal JSON (kind:block) to mns/instruction
   const cands = aggregate(sessions);
   assert.equal(cands.length, 1);
 
-  const n = propose(mnsDir, cands);
+  const n = propose(agentDir, cands);
   assert.equal(n, 1, 'propose returns 1');
 
   // Check the proposal file exists in instructions/proposals/
-  const propDir = join(mnsDir, 'instructions', 'proposals');
+  const propDir = join(agentDir, 'instructions', 'proposals');
   assert.ok(existsSync(propDir), 'proposals dir created');
 
   const files = readdirSync(propDir).filter((f) => f.endsWith('.json'));
@@ -100,20 +100,20 @@ test('propose: writes instructions proposal JSON (kind:block) to mns/instruction
 });
 
 test('propose: idempotent — second call returns 0', () => {
-  const mnsDir = mkdtempSync(join(tmpdir(), 'mns-instr-idempotent-'));
+  const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-instr-idempotent-'));
   const text = 'always run tests before committing';
   const sessions = [
     makeSession('sA', [{ text }]),
     makeSession('sB', [{ text }]),
   ];
   const cands = aggregate(sessions);
-  propose(mnsDir, cands);           // first run
-  const n2 = propose(mnsDir, cands);
+  propose(agentDir, cands);           // first run
+  const n2 = propose(agentDir, cands);
   assert.equal(n2, 0, 'second propose returns 0');
 });
 
 test('propose: idempotent — skips if text already present in project.md', () => {
-  const mnsDir = mkdtempSync(join(tmpdir(), 'mns-instr-projmd-'));
+  const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-instr-projmd-'));
   const text = 'always run tests before committing';
   const sessions = [
     makeSession('sA', [{ text }]),
@@ -122,11 +122,11 @@ test('propose: idempotent — skips if text already present in project.md', () =
   const cands = aggregate(sessions);
 
   // Pre-populate project.md with the text already in it.
-  const instrDir = join(mnsDir, 'instructions');
+  const instrDir = join(agentDir, 'instructions');
   mkdirSync(instrDir, { recursive: true });
   writeFileSync(join(instrDir, 'project.md'), text + '\n');
 
-  const n = propose(mnsDir, cands);
+  const n = propose(agentDir, cands);
   assert.equal(n, 0, 'skips when text is already in project.md');
 });
 

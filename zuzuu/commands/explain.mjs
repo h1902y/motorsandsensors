@@ -1,4 +1,4 @@
-// mns/commands/explain.mjs — `mns explain [topic]` (WS-B).
+// zuzuu/commands/explain.mjs — `zuzuu explain [topic]` (WS-B).
 //
 // The product, explained from the CLI: the five faculties, the graduation loop,
 // and how to get in the loop (inbox · review · generation). Pure text builder
@@ -113,7 +113,7 @@ export function explainText(topic) {
   return overview() + '\n\nunknown topic "' + topic + '" — ' + VALID_TOPICS;
 }
 
-/** Printer: `mns explain [topic]`. */
+/** Printer: `zuzuu explain [topic]`. */
 export function explain(args, log = console.log) {
   log(explainText(args?._?.[0]));
 }

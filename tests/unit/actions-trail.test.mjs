@@ -6,9 +6,9 @@ import { join } from 'node:path';
 import { recordOutcome } from '../../zuzuu/actions/trail.mjs';
 
 function withHome(fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-trail-'));
-  mkdirSync(join(root, '.mns'), { recursive: true });
-  try { return fn(join(root, '.mns')); } finally { rmSync(root, { recursive: true, force: true }); }
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-trail-'));
+  mkdirSync(join(root, 'agent'), { recursive: true });
+  try { return fn(join(root, 'agent')); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
 test('recordOutcome appends a JSONL line with slug + ok + error', () => {
@@ -27,6 +27,6 @@ test('recordOutcome appends a JSONL line with slug + ok + error', () => {
   });
 });
 
-test('recordOutcome is fail-soft: a bad mnsDir never throws', () => {
+test('recordOutcome is fail-soft: a bad agentDir never throws', () => {
   assert.doesNotThrow(() => recordOutcome('/nonexistent/ /bad', { slug: 'x', ok: true }));
 });

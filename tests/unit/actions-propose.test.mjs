@@ -6,9 +6,9 @@ import { join } from 'node:path';
 import { proposeAction } from '../../zuzuu/commands/act-author.mjs';
 
 function withHome(fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-prop-'));
-  mkdirSync(join(root, '.mns', 'actions', 'inbox'), { recursive: true });
-  try { return fn(join(root, '.mns')); } finally { rmSync(root, { recursive: true, force: true }); }
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-prop-'));
+  mkdirSync(join(root, 'agent', 'actions', 'inbox'), { recursive: true });
+  try { return fn(join(root, 'agent')); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
 test('proposeAction scaffolds into actions/inbox/<slug>/, not the active dir', () => {

@@ -1,4 +1,4 @@
-// mns/faculty/registry.mjs
+// zuzuu/faculty/registry.mjs
 // Faculty adapter registry — a module-level Map keyed by adapter.name.
 // Adapters register themselves on import; consumers query by name or list all.
 //

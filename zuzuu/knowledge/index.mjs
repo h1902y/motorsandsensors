@@ -16,11 +16,11 @@ import { createRequire } from 'node:module';
 import { allItems } from './items.mjs';
 
 const require = createRequire(import.meta.url);
-export const indexPath = (mnsDir) => join(mnsDir, 'knowledge', '.index.db');
+export const indexPath = (agentDir) => join(agentDir, 'knowledge', '.index.db');
 
-function open(mnsDir, { readOnly = false } = {}) {
+function open(agentDir, { readOnly = false } = {}) {
   const { DatabaseSync } = require('node:sqlite');
-  const path = indexPath(mnsDir);
+  const path = indexPath(agentDir);
   mkdirSync(dirname(path), { recursive: true });
   const db = new DatabaseSync(path, readOnly && existsSync(path) ? { readOnly: true } : {});
   return db;
@@ -40,8 +40,8 @@ function ensureSchema(db) {
 }
 
 /** Upsert one item into the index (keeps any existing vector). */
-export function upsertItem(mnsDir, item) {
-  const db = open(mnsDir);
+export function upsertItem(agentDir, item) {
+  const db = open(agentDir);
   try {
     ensureSchema(db);
     db.prepare('INSERT OR REPLACE INTO items(id,type,text,created_at,status) VALUES(?,?,?,?,?)').run(
@@ -58,9 +58,9 @@ export function upsertItem(mnsDir, item) {
 }
 
 /** Full rebuild from the item files. Deterministic. Returns counts. */
-export function reindex(mnsDir) {
-  const { items, errors } = allItems(mnsDir);
-  const db = open(mnsDir);
+export function reindex(agentDir) {
+  const { items, errors } = allItems(agentDir);
+  const db = open(agentDir);
   try {
     ensureSchema(db);
     db.exec('DELETE FROM items; DELETE FROM attrs; DELETE FROM rels;'); // vecs kept (re-embedding is separate)
@@ -84,9 +84,9 @@ export function reindex(mnsDir) {
  * Lexical + relational search (Notes-style scoring: id hit +10, attribute hit +5,
  * body occurrences ×2 capped at 8). Filters: type, attribute k=v.
  */
-export function search(mnsDir, query, { type = null, attr = null, limit = 10 } = {}) {
-  if (!existsSync(indexPath(mnsDir))) return [];
-  const db = open(mnsDir, { readOnly: true });
+export function search(agentDir, query, { type = null, attr = null, limit = 10 } = {}) {
+  if (!existsSync(indexPath(agentDir))) return [];
+  const db = open(agentDir, { readOnly: true });
   try {
     ensureSchema(db);
     let rows = db.prepare('SELECT id, type, text, status FROM items').all();
@@ -127,9 +127,9 @@ export function search(mnsDir, query, { type = null, attr = null, limit = 10 } =
  * type), via a recursive CTE — both directions (relations are conceptually
  * bidirectional; inverses live in the registry).
  */
-export function neighbors(mnsDir, id, { relType = null, depth = 1 } = {}) {
-  if (!existsSync(indexPath(mnsDir))) return [];
-  const db = open(mnsDir, { readOnly: true });
+export function neighbors(agentDir, id, { relType = null, depth = 1 } = {}) {
+  if (!existsSync(indexPath(agentDir))) return [];
+  const db = open(agentDir, { readOnly: true });
   try {
     ensureSchema(db);
     const typeCond = relType ? 'AND r.type = ?' : '';
@@ -155,8 +155,8 @@ export function neighbors(mnsDir, id, { relType = null, depth = 1 } = {}) {
 }
 
 /** Store / fetch embedding vectors (Float32 LE blobs). */
-export function putVector(mnsDir, itemId, model, floats) {
-  const db = open(mnsDir);
+export function putVector(agentDir, itemId, model, floats) {
+  const db = open(agentDir);
   try {
     ensureSchema(db);
     const buf = Buffer.from(new Float32Array(floats).buffer);
@@ -166,9 +166,9 @@ export function putVector(mnsDir, itemId, model, floats) {
   }
 }
 
-export function allVectors(mnsDir) {
-  if (!existsSync(indexPath(mnsDir))) return [];
-  const db = open(mnsDir, { readOnly: true });
+export function allVectors(agentDir) {
+  if (!existsSync(indexPath(agentDir))) return [];
+  const db = open(agentDir, { readOnly: true });
   try {
     ensureSchema(db);
     return db.prepare('SELECT item, model, vec FROM vecs').all().map((r) => ({
@@ -182,9 +182,9 @@ export function allVectors(mnsDir) {
 }
 
 /** Items in the index but lacking a vector (embedding backlog). */
-export function unembedded(mnsDir) {
-  if (!existsSync(indexPath(mnsDir))) return [];
-  const db = open(mnsDir, { readOnly: true });
+export function unembedded(agentDir) {
+  if (!existsSync(indexPath(agentDir))) return [];
+  const db = open(agentDir, { readOnly: true });
   try {
     ensureSchema(db);
     return db.prepare('SELECT id, type, text FROM items WHERE id NOT IN (SELECT item FROM vecs)').all();

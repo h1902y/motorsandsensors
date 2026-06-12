@@ -6,13 +6,13 @@ import { join } from 'node:path';
 import { runAction } from '../../zuzuu/actions/dispatch.mjs';
 
 function withAction(slug, manifest, runBody, fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-disp-'));
-  const dir = join(root, '.mns', 'actions', slug);
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-disp-'));
+  const dir = join(root, 'agent', 'actions', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'action.json'), JSON.stringify({ slug, ...manifest }));
   writeFileSync(join(dir, 'run.mjs'), runBody);
   try {
-    return fn(join(root, '.mns'));
+    return fn(join(root, 'agent'));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -51,7 +51,7 @@ test('default_args fill in when caller omits them', async () => {
 test('a marker-looking line on stderr does not spoof the result', async () => {
   await withAction('spoof',
     { inputs: { type: 'object' }, outputs: { type: 'object', properties: { real: { type: 'boolean' } } } },
-    `export async function main(){ console.error('__MNS_ACT_RESULT__' + JSON.stringify({ ok:true, value:{ real:false } })); return { real: true }; }`,
+    `export async function main(){ console.error('__ZUZUU_ACT_RESULT__' + JSON.stringify({ ok:true, value:{ real:false } })); return { real: true }; }`,
     async (mns) => {
       const r = await runAction(mns, 'spoof', {});
       assert.equal(r.ok, true);
@@ -62,7 +62,7 @@ test('a marker-looking line on stderr does not spoof the result', async () => {
 test('a marker substring mid-log-line is ignored (anchored at line start)', async () => {
   await withAction('embed',
     { inputs: { type: 'object' }, outputs: { type: 'object', properties: { done: { type: 'boolean' } } } },
-    `export async function main(){ console.log('note: __MNS_ACT_RESULT__ appears here'); return { done: true }; }`,
+    `export async function main(){ console.log('note: __ZUZUU_ACT_RESULT__ appears here'); return { done: true }; }`,
     async (mns) => {
       const r = await runAction(mns, 'embed', {});
       assert.equal(r.ok, true);
@@ -143,18 +143,18 @@ test('prepareArguments folds legacy args before validation', async () => {
   );
 });
 
-test('depth cap: MNS_ACT_DEPTH at the limit refuses', async () => {
+test('depth cap: ZUZUU_ACT_DEPTH at the limit refuses', async () => {
   await withAction('deep', { inputs: { type: 'object' }, outputs: { type: 'object' } },
     `export async function main(){ return {}; }`,
     async (mns) => {
-      const prev = process.env.MNS_ACT_DEPTH;
-      process.env.MNS_ACT_DEPTH = '8';
+      const prev = process.env.ZUZUU_ACT_DEPTH;
+      process.env.ZUZUU_ACT_DEPTH = '8';
       try {
         const r = runAction(mns, 'deep', {});
         assert.equal(r.ok, false);
         assert.equal(r.error, 'depth_exceeded');
       } finally {
-        if (prev === undefined) delete process.env.MNS_ACT_DEPTH; else process.env.MNS_ACT_DEPTH = prev;
+        if (prev === undefined) delete process.env.ZUZUU_ACT_DEPTH; else process.env.ZUZUU_ACT_DEPTH = prev;
       }
     });
 });

@@ -1,6 +1,6 @@
-// mns/faculty/proposal.mjs
+// zuzuu/faculty/proposal.mjs
 // Unified Proposal record for the faculty spine (WS2-T1).
-// Mirrors mns/knowledge/proposals.mjs's id scheme (<slug>-<shortHash(slug+source)>)
+// Mirrors zuzuu/knowledge/proposals.mjs's id scheme (<slug>-<shortHash(slug+source)>)
 // and extends it to be faculty-agnostic.
 //
 // Dual-read: transparently normalises legacy {candidate, er} → {payload, analysis}
@@ -43,7 +43,7 @@ function normalise(raw, faculty) {
 
 /**
  * Deterministic proposal id: `<slug>-<shortHash(slug + source)>`.
- * Replicates the scheme in mns/knowledge/proposals.mjs exactly.
+ * Replicates the scheme in zuzuu/knowledge/proposals.mjs exactly.
  */
 export function proposalId(slug, source) {
   return `${slug}-${shortHash(slug + source)}`;
@@ -74,8 +74,8 @@ export function makeProposal({ faculty, kind, source, payload, analysis = {}, ev
  * Write a proposal record to `agent/<faculty>/proposals/<id>.json`.
  * Creates directories as needed. Returns the written path.
  */
-export function writeProposal(mnsDir, proposal) {
-  const dir = proposalsDir(mnsDir, proposal.faculty);
+export function writeProposal(agentDir, proposal) {
+  const dir = proposalsDir(agentDir, proposal.faculty);
   mkdirSync(dir, { recursive: true });
   const path = join(dir, `${proposal.id}.json`);
   writeFileSync(path, JSON.stringify(proposal, null, 2) + '\n');
@@ -86,8 +86,8 @@ export function writeProposal(mnsDir, proposal) {
  * Read and normalise a single proposal by faculty + id.
  * Returns null if the file does not exist (never throws).
  */
-export function readProposal(mnsDir, faculty, id) {
-  const path = join(proposalsDir(mnsDir, faculty), `${id}.json`);
+export function readProposal(agentDir, faculty, id) {
+  const path = join(proposalsDir(agentDir, faculty), `${id}.json`);
   if (!existsSync(path)) return null;
   try {
     return normalise(JSON.parse(readFileSync(path, 'utf8')), faculty);
@@ -100,8 +100,8 @@ export function readProposal(mnsDir, faculty, id) {
  * List all pending proposals for a faculty (files in proposals/ not in archive/).
  * Normalises each record. Skips unreadable files (fail-soft).
  */
-export function listProposals(mnsDir, faculty) {
-  const dir = proposalsDir(mnsDir, faculty);
+export function listProposals(agentDir, faculty) {
+  const dir = proposalsDir(agentDir, faculty);
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
     .filter((f) => f.endsWith('.json'))
@@ -123,9 +123,9 @@ export function listProposals(mnsDir, faculty) {
  * @param {string} [applied] - what was done on approval
  * @returns the resolved record
  */
-export function archiveProposal(mnsDir, faculty, id, { status, reason = '', applied = '' } = {}) {
-  const pending = join(proposalsDir(mnsDir, faculty), `${id}.json`);
-  const archDir = archiveDir(mnsDir, faculty);
+export function archiveProposal(agentDir, faculty, id, { status, reason = '', applied = '' } = {}) {
+  const pending = join(proposalsDir(agentDir, faculty), `${id}.json`);
+  const archDir = archiveDir(agentDir, faculty);
   mkdirSync(archDir, { recursive: true });
 
   // read & normalise the pending record (or whatever we can find)

@@ -1,8 +1,8 @@
-// mns/commands/inbox.mjs — `mns inbox` (WS-C).
+// zuzuu/commands/inbox.mjs — `zuzuu inbox` (WS-C).
 //
 // One glance at what is pending YOUR approval, per faculty. Counts pending
 // proposals across all five faculties, shows a one-line title for each, and
-// points at `mns review`. Fail-soft per faculty — a broken adapter or unreadable
+// points at `zuzuu review`. Fail-soft per faculty — a broken adapter or unreadable
 // proposal never sinks the whole view.
 
 import { paths } from '../store.mjs';
@@ -29,11 +29,11 @@ function titleOf(faculty, p) {
 }
 
 /** Pure: flat list of pending proposals across faculties (id, faculty, title) — the zuzuu-web /inbox source. */
-export function inboxData(mnsDir) {
+export function inboxData(agentDir) {
   const pending = [];
   for (const faculty of FACULTIES) {
     let proposals = [];
-    try { proposals = listProposals(mnsDir, faculty); } catch { proposals = []; }
+    try { proposals = listProposals(agentDir, faculty); } catch { proposals = []; }
     for (const p of proposals) pending.push({ id: p.id, faculty, title: titleOf(faculty, p) });
   }
   return { pending, total: pending.length };
@@ -43,12 +43,12 @@ export function inboxData(mnsDir) {
  * Pure-ish: gather pending counts per faculty for a home.
  * @returns {{ rows: Array<{faculty, count, first}>, total: number }}
  */
-export function inboxRows(mnsDir) {
+export function inboxRows(agentDir) {
   const rows = [];
   let total = 0;
   for (const faculty of FACULTIES) {
     let proposals = [];
-    try { proposals = listProposals(mnsDir, faculty); } catch { proposals = []; }
+    try { proposals = listProposals(agentDir, faculty); } catch { proposals = []; }
     if (!proposals.length) continue;
     total += proposals.length;
     rows.push({ faculty, count: proposals.length, first: titleOf(faculty, proposals[0]) });
@@ -56,11 +56,11 @@ export function inboxRows(mnsDir) {
   return { rows, total };
 }
 
-/** `mns inbox` — print what is pending review. */
+/** `zuzuu inbox` — print what is pending review. */
 export function inbox(args = {}, log = console.log) {
-  const mnsDir = args.mnsDir || paths().dir;
-  if (args.json) { log(JSON.stringify(inboxData(mnsDir))); return; }
-  const { rows, total } = inboxRows(mnsDir);
+  const agentDir = args.agentDir || paths().dir;
+  if (args.json) { log(JSON.stringify(inboxData(agentDir))); return; }
+  const { rows, total } = inboxRows(agentDir);
   if (!total) {
     log("inbox: nothing pending — you're all caught up.");
     return;

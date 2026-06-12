@@ -27,7 +27,7 @@
 import { join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
 
-export const itemsDir = (mnsDir) => join(mnsDir, 'knowledge', 'items');
+export const itemsDir = (agentDir) => join(agentDir, 'knowledge', 'items');
 
 export function slugify(text, max = 60) {
   return String(text)
@@ -123,23 +123,23 @@ export function serializeItem(item) {
 }
 
 /** Write an item to its canonical file. Returns the path. */
-export function writeItem(mnsDir, item) {
-  const dir = itemsDir(mnsDir);
+export function writeItem(agentDir, item) {
+  const dir = itemsDir(agentDir);
   mkdirSync(dir, { recursive: true });
   const path = join(dir, `${item.id}.md`);
   writeFileSync(path, serializeItem(item));
   return path;
 }
 
-export function readItem(mnsDir, id) {
-  const path = join(itemsDir(mnsDir), `${id}.md`);
+export function readItem(agentDir, id) {
+  const path = join(itemsDir(agentDir), `${id}.md`);
   if (!existsSync(path)) return null;
   return parseItem(readFileSync(path, 'utf8'));
 }
 
 /** All items (parse errors collected, not thrown — audit surfaces them). */
-export function allItems(mnsDir) {
-  const dir = itemsDir(mnsDir);
+export function allItems(agentDir) {
+  const dir = itemsDir(agentDir);
   if (!existsSync(dir)) return { items: [], errors: [] };
   const items = [];
   const errors = [];

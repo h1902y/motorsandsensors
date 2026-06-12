@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { LAYOUT, IGNORE_LINES, planScaffold, applyScaffold, ensureGitignore, homeExists } from '../../zuzuu/scaffold.mjs';
 
 function withTemp(fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-scaffold-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-scaffold-'));
   try {
     return fn(dir);
   } finally {

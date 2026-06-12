@@ -7,7 +7,7 @@ import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../
 import { LAYOUT } from '../../zuzuu/scaffold.mjs';
 
 function withRulesFile(content, fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-guard-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-guard-'));
   const path = join(dir, 'rules.json');
   writeFileSync(path, typeof content === 'string' ? content : JSON.stringify(content));
   try {

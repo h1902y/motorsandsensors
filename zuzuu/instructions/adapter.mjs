@@ -1,7 +1,7 @@
-// mns/instructions/adapter.mjs
+// zuzuu/instructions/adapter.mjs
 // The Instructions faculty adapter (WS2-T4). Wraps steering-amendment proposals
 // behind the faculty-spine adapter contract — { name, ingest, validate, apply,
-// render } — so `mns review` can surface and approve them uniformly.
+// render } — so `zuzuu review` can surface and approve them uniformly.
 //
 // An instructions proposal payload is a steering amendment:
 //   { text }  — a line or paragraph to append to project.md
@@ -21,8 +21,8 @@ const name = 'instructions';
 // helpers
 // ---------------------------------------------------------------------------
 
-function projectMdPath(mnsDir) {
-  return join(mnsDir, 'instructions', 'project.md');
+function projectMdPath(agentDir) {
+  return join(agentDir, 'instructions', 'project.md');
 }
 
 // ---------------------------------------------------------------------------
@@ -32,7 +32,7 @@ function projectMdPath(mnsDir) {
 /**
  * Ingest a raw amendment object. Pass-through: the payload IS the amendment.
  */
-function ingest(_mnsDir, raw) {
+function ingest(_agentDir, raw) {
   const payload = raw?.payload ?? raw ?? {};
   return { payload, analysis: {} };
 }
@@ -41,7 +41,7 @@ function ingest(_mnsDir, raw) {
  * Validate an amendment payload.
  * @returns {{ok:boolean, errors:string[], warnings:string[]}}
  */
-function validate(_mnsDir, payload) {
+function validate(_agentDir, payload) {
   const errors = [];
   if (!payload?.text || !String(payload.text).trim()) {
     errors.push('text is required (non-empty steering amendment)');
@@ -54,13 +54,13 @@ function validate(_mnsDir, payload) {
  * identical lines — won't duplicate a line already present).
  * @returns {{ok:boolean, action:string, itemIds:string[]}}
  */
-function apply(mnsDir, proposal) {
+function apply(agentDir, proposal) {
   const text = proposal?.payload?.text ?? '';
 
   // Ensure the instructions dir exists
-  mkdirSync(join(mnsDir, 'instructions'), { recursive: true });
+  mkdirSync(join(agentDir, 'instructions'), { recursive: true });
 
-  const path = projectMdPath(mnsDir);
+  const path = projectMdPath(agentDir);
   const existing = existsSync(path) ? readFileSync(path, 'utf8') : '';
 
   // Idempotence: skip if the exact text is already present

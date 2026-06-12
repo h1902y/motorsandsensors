@@ -1,4 +1,4 @@
-// `mns capture` — post-hoc: parse a host transcript into a git-native trace + record.
+// `zuzuu capture` — post-hoc: parse a host transcript into a git-native trace + record.
 
 import { ADAPTERS, byName, detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
 import { captureTrace } from '../capture-core.mjs';

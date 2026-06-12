@@ -1,4 +1,4 @@
-// mns/eval/rank.mjs
+// zuzuu/eval/rank.mjs
 // Rank proposals by mechanical score, high→low.
 // Pure — no FS, no side-effects. Input array is never mutated.
 

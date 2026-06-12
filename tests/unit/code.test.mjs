@@ -21,7 +21,7 @@ function fakeDeps(over = {}) {
   return { calls, deps };
 }
 function withDir(fn, withHome = false) {
-  const d = mkdtempSync(join(tmpdir(), 'mns-code-'));
+  const d = mkdtempSync(join(tmpdir(), 'zuzuu-code-'));
   if (withHome) mkdirSync(home(d), { recursive: true });
   try { return fn(d); } finally { rmSync(d, { recursive: true, force: true }); }
 }

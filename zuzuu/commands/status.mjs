@@ -1,4 +1,4 @@
-// `mns status` — detected hosts + recorded sessions (the git-native index).
+// `zuzuu status` — detected hosts + recorded sessions (the git-native index).
 
 import { existsSync } from 'node:fs';
 import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
@@ -11,37 +11,37 @@ import { detectDrift } from './doctor.mjs';
 const fmtDur = (ms) => (ms < 60_000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 60_000).toFixed(1)}m`);
 
 /** Pure: structured status for a faculty home (the zuzuu-web /status source). Fail-soft per field. */
-export function statusData(mnsDir) {
+export function statusData(agentDir) {
   let active = null, drift = { dirty: false, items: [] };
   const pending = {};
-  try { active = activeGenerationFn(mnsDir); } catch { active = null; }
+  try { active = activeGenerationFn(agentDir); } catch { active = null; }
   for (const f of FACULTIES) {
-    try { pending[f] = listProposals(mnsDir, f).length; } catch { pending[f] = 0; }
+    try { pending[f] = listProposals(agentDir, f).length; } catch { pending[f] = 0; }
   }
   try {
-    const d = detectDrift(mnsDir);
+    const d = detectDrift(agentDir);
     const items = Array.isArray(d?.drifted) ? d.drifted : [];
     drift = { dirty: items.length > 0, items };
   } catch { /* fail-soft */ }
-  return { home: existsSync(mnsDir), activeGeneration: active, pending, drift };
+  return { home: existsSync(agentDir), activeGeneration: active, pending, drift };
 }
 
 /**
- * Pure: the faculties graduation line for `mns status`. Fail-soft — any error in
+ * Pure: the faculties graduation line for `zuzuu status`. Fail-soft — any error in
  * a sub-read degrades to a safe default rather than throwing.
- * @param {string} mnsDir
+ * @param {string} agentDir
  * @returns {string}
  */
-export function facultiesLine(mnsDir) {
+export function facultiesLine(agentDir) {
   let gen = null, pending = 0, drifted = false;
-  try { gen = activeGenerationFn(mnsDir); } catch { /* fail-soft */ }
+  try { gen = activeGenerationFn(agentDir); } catch { /* fail-soft */ }
   try {
     for (const f of FACULTIES) {
-      try { pending += listProposals(mnsDir, f).length; } catch { /* per-faculty fail-soft */ }
+      try { pending += listProposals(agentDir, f).length; } catch { /* per-faculty fail-soft */ }
     }
   } catch { /* fail-soft */ }
   try {
-    const d = detectDrift(mnsDir);
+    const d = detectDrift(agentDir);
     drifted = Array.isArray(d?.drifted) && d.drifted.length > 0;
   } catch { /* fail-soft */ }
   let line = `faculties: ${gen || 'no generation yet'} · ${pending} pending review`;

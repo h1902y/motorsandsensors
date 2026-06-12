@@ -1,9 +1,9 @@
-// `mns eval [--faculty f]` — non-interactive proposal ranking table.
+// `zuzuu eval [--faculty f]` — non-interactive proposal ranking table.
 // Loads proposals across all faculties (or one with --faculty), ranks them
 // highest-score first, and prints a table:
 //   <score> [<conf>]  <faculty>/<id>  — <rationale>
 //
-// Also exports `evalLine` — a small pure helper used by `mns review` to render
+// Also exports `evalLine` — a small pure helper used by `zuzuu review` to render
 // a one-line eval annotation per proposal card.
 
 import { paths, readIndex } from '../store.mjs';
@@ -18,7 +18,7 @@ import '../instructions/adapter.mjs'; // self-registers the 'instructions' adapt
 import '../memory/adapter.mjs';       // self-registers the 'memory' adapter
 
 /**
- * Format one eval annotation line for a proposal card in `mns review`.
+ * Format one eval annotation line for a proposal card in `zuzuu review`.
  * Pure: no FS, no Date.now(). Accepts a scoreResult from mechanicalScore/rank.
  *
  * @param {{ score: number, confidence: string, rationale: string }} scoreResult
@@ -52,19 +52,19 @@ function buildSessionMtimes(cwd) {
 }
 
 /** Collect proposals for a given adapter (mirrors review.mjs's facultyPending). */
-function collectProposals(mnsDir, adapter) {
-  if (typeof adapter.listProposals === 'function') return adapter.listProposals(mnsDir);
-  return spineListProposals(mnsDir, adapter.name);
+function collectProposals(agentDir, adapter) {
+  if (typeof adapter.listProposals === 'function') return adapter.listProposals(agentDir);
+  return spineListProposals(agentDir, adapter.name);
 }
 
 /**
- * Core of `mns eval` — exported so tests can inject a custom log fn.
+ * Core of `zuzuu eval` — exported so tests can inject a custom log fn.
  *
  * @param {object}   args            Parsed CLI args.
  * @param {Function} [log=console.log]  Output sink (injectable for tests).
  */
 export function evalCmd(args, log = console.log) {
-  const mnsDir = paths().dir;
+  const agentDir = paths().dir;
   const onlyFaculty = args?.faculty ?? null;
   const adapters = registry.all();
   const sessionMtimes = buildSessionMtimes();
@@ -75,7 +75,7 @@ export function evalCmd(args, log = console.log) {
   const allEntries = [];
   for (const adapter of adapters) {
     if (onlyFaculty && adapter.name !== onlyFaculty) continue;
-    const proposals = collectProposals(mnsDir, adapter);
+    const proposals = collectProposals(agentDir, adapter);
     for (const proposal of proposals) {
       allEntries.push({ proposal, faculty: adapter.name });
     }

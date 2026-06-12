@@ -8,7 +8,7 @@ import { makeSession } from '../../zuzuu/session.mjs';
 
 // Hermetic: operate in a temp dir outside the repo (not a git repo → git info null).
 function withTempRepo(fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-store-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-store-'));
   try {
     return fn(dir);
   } finally {

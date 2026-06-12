@@ -17,7 +17,7 @@ function gate(cwd, payload) {
 }
 
 function withProject(fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-gate-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-gate-'));
   try {
     spawnSync(process.execPath, [BIN, 'init'], { cwd: dir, encoding: 'utf8' });
     return fn(dir);
@@ -54,7 +54,7 @@ test('fail-open: garbage stdin, and projects with no rules file, never block', (
     assert.equal(noRules.stdout, '');
     assert.equal(noRules.status, 0);
   });
-  const dir = mkdtempSync(join(tmpdir(), 'mns-gate-raw-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-gate-raw-'));
   try {
     const r = spawnSync(process.execPath, [BIN, 'hook', 'PreToolUse'], { cwd: dir, input: 'not json at all', encoding: 'utf8' });
     assert.equal(r.status, 0);

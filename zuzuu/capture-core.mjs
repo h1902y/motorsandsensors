@@ -1,5 +1,5 @@
 // Shared capture: transcript -> OTLP trace blob + git-native session record.
-// Used by `mns capture` (post-hoc, status `captured`) and the live lifecycle
+// Used by `zuzuu capture` (post-hoc, status `captured`) and the live lifecycle
 // (`hook`/`reconcile`, statuses active/completed/abandoned). One proven path —
 // Design B: the hook never builds spans, it re-runs THIS.
 

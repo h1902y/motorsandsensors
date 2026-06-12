@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// zuzuu — the agent-faculty CLI (formerly mns / motors & sensors). Verb-first, entire.io-style; zero deps, no build.
+// zuzuu — the agent-faculty CLI (formerly zuzuu / motors & sensors). Verb-first, entire.io-style; zero deps, no build.
 //
 //   zuzuu status                 detected hosts + recorded sessions
 //   zuzuu capture [--host h]      capture a session → git-native trace + index entry

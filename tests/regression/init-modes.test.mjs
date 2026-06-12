@@ -16,7 +16,7 @@ function run(cwd) {
 }
 
 function withTemp(fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-init-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-init-'));
   try {
     return fn(dir);
   } finally {

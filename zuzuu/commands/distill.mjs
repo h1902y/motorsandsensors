@@ -1,4 +1,4 @@
-// `mns distill` — mine real sessions into proposals (source A).
+// `zuzuu distill` — mine real sessions into proposals (source A).
 //
 // Default: knowledge only (back-compat, via distillSessions). With
 // `--all-faculties`: mine each transcript ONCE into a superset, then run every
@@ -22,7 +22,7 @@ export function distill(args) {
     console.error('no sessions found to distill (no detected-host transcripts for this project)');
     process.exit(2);
   }
-  const mnsDir = paths().dir;
+  const agentDir = paths().dir;
 
   if (args['all-faculties'] || args.allFaculties) {
     const sessions = pairs.map(mineHostSession).filter(Boolean);
@@ -31,7 +31,7 @@ export function distill(args) {
     let total = 0;
     for (const miner of registry.all()) {
       const cand = miner.aggregate(sessions, {});
-      const n = miner.propose(mnsDir, cand);
+      const n = miner.propose(agentDir, cand);
       total += n;
       console.log(`  ${miner.faculty.padEnd(12)} ${n} proposal(s)`);
     }
@@ -39,7 +39,7 @@ export function distill(args) {
     return;
   }
 
-  const r = distillSessions(mnsDir, pairs);
+  const r = distillSessions(agentDir, pairs);
   console.log(`distilled ${r.sessionsMined} session(s) → ${r.proposals.length} proposal(s)${r.registryProposals.length ? ` (+${r.registryProposals.length} registry)` : ''}`);
   for (const p of r.proposals) console.log(`  ${p.er.verdict.padEnd(9)} ${p.id}`);
   if (r.proposals.length) console.log('next: zuzuu review');

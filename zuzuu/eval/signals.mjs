@@ -1,4 +1,4 @@
-// mns/eval/signals.mjs
+// zuzuu/eval/signals.mjs
 // Extract a normalized signal vector from a proposal record.
 // Pure — no FS, no Date.now(), no Math.random(). Inject `now` and `sessionMtimes`.
 

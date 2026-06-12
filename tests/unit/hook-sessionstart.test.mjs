@@ -48,7 +48,7 @@ test('handleHook delivers the digest file on an OPEN event for a non-Claude host
 });
 
 test('writeLiveDigest on an absent home does not throw (fail-open)', () => {
-  const root = mkdtempSync(join(tmpdir(), 'mns-nodigest-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-nodigest-'));
   try {
     assert.doesNotThrow(() => writeLiveDigest(root));
   } finally {
@@ -57,7 +57,7 @@ test('writeLiveDigest on an absent home does not throw (fail-open)', () => {
 });
 
 test('sessionStartContext on an absent home degrades gracefully (no throw, well-formed)', () => {
-  const root = mkdtempSync(join(tmpdir(), 'mns-nohome-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-nohome-'));
   try {
     // No .mns/ here, yet computeDigest is fail-soft per faculty and still
     // renders headers (interview directive + empty knowledge + guardrails) →

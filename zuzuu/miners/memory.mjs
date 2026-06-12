@@ -1,4 +1,4 @@
-// mns/miners/memory.mjs
+// zuzuu/miners/memory.mjs
 // Memory miner STUB (WS5-T4) — registered no-op; deferred this pass.
 //
 // WHAT IT WOULD MINE (when implemented):
@@ -7,7 +7,7 @@
 //   agent/memory/entries/<id>.md. Each entry captures: what was attempted,
 //   key decisions made, outcome, and a set of durable learnings. The miner
 //   would emit `memory` proposals of kind 'episode' into
-//   agent/memory/proposals/ for human review via `mns review`. Deferred until
+//   agent/memory/proposals/ for human review via `zuzuu review`. Deferred until
 //   the Memory substrate (off-edge Postgres/Neon or local Markdown) is
 //   established and the session lifecycle state machine is stable enough to
 //   reliably produce `completed` runs with rich enough trace data to distill.

@@ -1,15 +1,15 @@
-// mns/commands/generation.mjs — `mns generation` CLI (WS3-T1).
+// zuzuu/commands/generation.mjs — `zuzuu generation` CLI (WS3-T1).
 //
-//   mns generation list             generations (id · mintedAt · mintedFrom count · ● active)
-//   mns generation mint             manually mint a generation from the current faculty state
-//   mns generation rollback <id>    restore a past generation by content (flip active + restore)
+//   zuzuu generation list             generations (id · mintedAt · mintedFrom count · ● active)
+//   zuzuu generation mint             manually mint a generation from the current faculty state
+//   zuzuu generation rollback <id>    restore a past generation by content (flip active + restore)
 
 import { paths, repoRoot } from '../store.mjs';
 import {
   listGenerations, readGeneration, activeGeneration, mintGeneration, rollback, diffGenerations,
 } from '../faculty/generation.mjs';
 
-function mnsDir() {
+function agentDir() {
   return paths(repoRoot(process.cwd())).dir;
 }
 
@@ -86,7 +86,7 @@ function doRollback(dir, id) {
 }
 
 export function generation(args) {
-  const dir = mnsDir();
+  const dir = agentDir();
   const sub = args._[0];
   if (!sub || sub === 'list') {
     if (args.json) { console.log(JSON.stringify(generationListData(dir))); return; }

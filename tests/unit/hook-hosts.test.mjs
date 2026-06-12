@@ -29,7 +29,7 @@ test('real codex PreToolUse payload carries tool_name + tool_input for the gate'
 });
 
 function withRules(rules, fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-gate-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-gate-'));
   mkdirSync(join(root, 'agent', 'guardrails'), { recursive: true });
   writeFileSync(join(root, 'agent', 'guardrails', 'rules.json'), JSON.stringify({ version: 1, rules }));
   try { return fn(root); } finally { rmSync(root, { recursive: true, force: true }); }

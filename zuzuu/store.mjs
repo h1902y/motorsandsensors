@@ -31,7 +31,7 @@ export function homeDir(root = repoRoot()) {
 }
 
 /** Internal liveness dir (git-ignored, dot-prefixed) under the home. */
-export const liveDir = (mnsDir) => join(mnsDir, '.live');
+export const liveDir = (agentDir) => join(agentDir, '.live');
 
 export function paths(cwd = process.cwd()) {
   const root = repoRoot(cwd);

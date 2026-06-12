@@ -1,7 +1,7 @@
 // Miner registry (WS5-T1) — the faculty-mining plugin table.
 //
 // Each miner is `{ faculty, aggregate(sessions, opts) -> candidates,
-// propose(mnsDir, candidates) -> count }`. The `--all-faculties` distill driver
+// propose(agentDir, candidates) -> count }`. The `--all-faculties` distill driver
 // mines every transcript once into a shared `sessions` array, then runs each
 // registered miner's aggregate + propose. Miners self-register on import.
 

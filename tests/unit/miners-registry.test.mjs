@@ -33,7 +33,7 @@ test('mineTranscript: 2-gram sequences over adjacent Bash commands', () => {
 });
 
 function writeTranscript(lines) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-mine-'));
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-mine-'));
   const f = join(dir, 'session.jsonl');
   writeFileSync(f, lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
   return f;
@@ -105,7 +105,7 @@ test('knowledge miner registered: aggregate matches direct aggregate (no drift)'
 });
 
 test('knowledge miner propose: files proposals + returns count', () => {
-  const mnsDir = mkdtempSync(join(tmpdir(), 'mns-home-'));
+  const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-home-'));
   const c = { cmd: 'npm test', failed: false };
   const sessions = [
     { sessionId: 's1', commands: [c, c], files: [], failures: [] },
@@ -113,6 +113,6 @@ test('knowledge miner propose: files proposals + returns count', () => {
   ];
   const cands = aggregate(sessions, {});
   assert.ok(cands.length >= 1);
-  const n = knowledgePropose(mnsDir, cands);
+  const n = knowledgePropose(agentDir, cands);
   assert.equal(n, cands.length);
 });

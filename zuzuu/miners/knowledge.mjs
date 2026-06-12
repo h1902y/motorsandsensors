@@ -8,9 +8,9 @@ import { createProposal } from '../knowledge/proposals.mjs';
 import { register } from './registry.mjs';
 
 /** File one knowledge proposal per aggregated candidate; return the count. */
-export function propose(mnsDir, aggregated) {
+export function propose(agentDir, aggregated) {
   for (const c of aggregated) {
-    createProposal(mnsDir, { candidate: c.candidate, source: 'distill', evidence: c.evidence });
+    createProposal(agentDir, { candidate: c.candidate, source: 'distill', evidence: c.evidence });
   }
   return aggregated.length;
 }

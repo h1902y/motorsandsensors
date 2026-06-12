@@ -10,7 +10,7 @@ import { join } from 'node:path';
 import { inbox } from '../../zuzuu/commands/inbox.mjs';
 
 function homeWithKnowledgeProposals(n) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-inbox-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-inbox-'));
   const mns = join(root, 'agent');
   mkdirSync(join(mns, 'knowledge', 'proposals'), { recursive: true });
   for (let i = 0; i < n; i++) {
@@ -32,7 +32,7 @@ function homeWithKnowledgeProposals(n) {
 }
 
 function emptyHome() {
-  const root = mkdtempSync(join(tmpdir(), 'mns-inbox-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-inbox-'));
   const mns = join(root, 'agent');
   mkdirSync(join(mns, 'knowledge', 'proposals'), { recursive: true });
   return { root, mns };
@@ -42,7 +42,7 @@ test('inbox lists pending knowledge proposals + the review hint', () => {
   const { root, mns } = homeWithKnowledgeProposals(2);
   try {
     const lines = [];
-    inbox({ _: [], mnsDir: mns }, (s) => lines.push(s));
+    inbox({ _: [], agentDir: mns }, (s) => lines.push(s));
     const out = lines.join('\n');
     assert.match(out, /knowledge: 2 pending/);
     assert.match(out, /zuzuu review/);
@@ -55,7 +55,7 @@ test('empty home → all caught up', () => {
   const { root, mns } = emptyHome();
   try {
     const lines = [];
-    inbox({ _: [], mnsDir: mns }, (s) => lines.push(s));
+    inbox({ _: [], agentDir: mns }, (s) => lines.push(s));
     const out = lines.join('\n');
     assert.match(out, /all caught up/i);
     assert.doesNotMatch(out, /zuzuu review/);

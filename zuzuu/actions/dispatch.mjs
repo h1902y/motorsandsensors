@@ -1,7 +1,7 @@
-// mns/actions/dispatch.mjs
+// zuzuu/actions/dispatch.mjs
 // runAction spawns the runner harness (a fresh node process — isolation + the
 // _labs marker pattern), extracts the single result marker from stdout, and
-// returns { ok, value|error, detail?, logs }. mns act is itself spawned by the
+// returns { ok, value|error, detail?, logs }. zuzuu act is itself spawned by the
 // host's Bash, so this is observe-not-drive: a CLI the agent calls, never a loop.
 
 import { spawnSync } from 'node:child_process';
@@ -46,14 +46,14 @@ function parseOutput(stdout) {
  *         invalid_output | script_error | no_result | timeout | spawn_error | killed
  */
 // Synchronous (spawnSync). Returns the result object directly.
-export function runAction(mnsDir, slug, callerArgs = {}, { timeoutMs = ACTION_TIMEOUT_MS } = {}) {
-  const depth = Number(process.env.MNS_ACT_DEPTH || 0);
+export function runAction(agentDir, slug, callerArgs = {}, { timeoutMs = ACTION_TIMEOUT_MS } = {}) {
+  const depth = Number(process.env.ZUZUU_ACT_DEPTH || 0);
   if (depth >= MAX_DEPTH) return { ok: false, error: 'depth_exceeded', detail: `depth ${depth} ≥ ${MAX_DEPTH}`, logs: '' };
 
-  const manifest = loadManifest(mnsDir, slug);
+  const manifest = loadManifest(agentDir, slug);
   if (!manifest) return { ok: false, error: 'not_found', detail: `no action '${slug}' (missing action.json)`, logs: '' };
 
-  const runPath = join(actionsDir(mnsDir), slug, 'run.mjs');
+  const runPath = join(actionsDir(agentDir), slug, 'run.mjs');
   if (!existsSync(runPath)) return { ok: false, error: 'not_runnable', detail: `'${slug}' has no run.mjs`, logs: '' };
 
   const payload = JSON.stringify({
@@ -65,9 +65,9 @@ export function runAction(mnsDir, slug, callerArgs = {}, { timeoutMs = ACTION_TI
   });
 
   const res = spawnSync(process.execPath, [runnerPath, payload], {
-    cwd: mnsDir,
+    cwd: agentDir,
     encoding: 'utf8',
-    env: { ...process.env, MNS_ACT_DEPTH: String(depth + 1) },
+    env: { ...process.env, ZUZUU_ACT_DEPTH: String(depth + 1) },
     maxBuffer: 64 * 1024 * 1024,
     timeout: timeoutMs,
     killSignal: 'SIGTERM',

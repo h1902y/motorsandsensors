@@ -1,4 +1,4 @@
-// mns/actions/manifest.mjs
+// zuzuu/actions/manifest.mjs
 // Reads the Actions faculty off disk: one action per dir under agent/actions/.
 // Two kinds — `script` (has run.mjs + action.json) and `runbook` (SKILL.md prose).
 // Pure-ish: filesystem reads only, no logging, no process control.
@@ -13,13 +13,13 @@ export function isSafeSlug(slug) {
   return typeof slug === 'string' && SAFE_SLUG.test(slug);
 }
 
-export const actionsDir = (mnsDir) => join(mnsDir, 'actions');
-export const inboxDir = (mnsDir) => join(actionsDir(mnsDir), 'inbox');
-const actionDir = (mnsDir, slug) => join(actionsDir(mnsDir), slug);
+export const actionsDir = (agentDir) => join(agentDir, 'actions');
+export const inboxDir = (agentDir) => join(actionsDir(agentDir), 'inbox');
+const actionDir = (agentDir, slug) => join(actionsDir(agentDir), slug);
 
 /** Read action.json for a slug → object, or null if absent/unparseable. */
-export function loadManifest(mnsDir, slug) {
-  const path = join(actionDir(mnsDir, slug), 'action.json');
+export function loadManifest(agentDir, slug) {
+  const path = join(actionDir(agentDir, slug), 'action.json');
   try {
     return JSON.parse(readFileSync(path, 'utf8'));
   } catch {
@@ -67,6 +67,6 @@ export function listActions(baseDir) {
 }
 
 /** Active actions under agent/actions/ (the inbox subdir is excluded). */
-export function allActions(mnsDir) {
-  return listActions(actionsDir(mnsDir)).filter((a) => a.slug !== 'inbox');
+export function allActions(agentDir) {
+  return listActions(actionsDir(agentDir)).filter((a) => a.slug !== 'inbox');
 }

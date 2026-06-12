@@ -1,6 +1,6 @@
-// `mns enable` / `mns disable` — install/remove background lifecycle hooks in the
+// `zuzuu enable` / `zuzuu disable` — install/remove background lifecycle hooks in the
 // project's Claude Code settings, entire.io-style: enable once, then capture is
-// invisible. The hook command is wrapped so it ALWAYS exits 0 — if node or mns is
+// invisible. The hook command is wrapped so it ALWAYS exits 0 — if node or zuzuu is
 // missing it degrades silently and never breaks your agent.
 
 import { join, dirname } from 'node:path';
@@ -11,7 +11,7 @@ import { addHooks, removeHooks, isInstalled, LIFECYCLE_EVENTS, GATE_EVENTS, addH
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
 
-// `|| true` → exit 0 even if node/mns is absent (graceful degradation).
+// `|| true` → exit 0 even if node/zuzuu is absent (graceful degradation).
 const commandFor = (event) => `node "${BIN}" hook ${event} || true`;
 
 // Gemini settings.json + Codex hooks.json share Claude's hook shape; only the
@@ -56,8 +56,8 @@ const opencodePluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugins', 
 const opencodePlugin = () => `// installed by \`zuzuu enable --host opencode\` — live capture + guardrails gate (graceful: never breaks OpenCode).
 import { spawn, spawnSync } from "node:child_process";
 const NODE = ${JSON.stringify(NODE)};
-const MNS = ${JSON.stringify(BIN)};
-const fire = (event, id) => { try { spawn(NODE, [MNS, "hook", event, "--host", "opencode", "--session", id], { stdio: "ignore", detached: true }).unref(); } catch {} };
+const ZUZUU = ${JSON.stringify(BIN)};
+const fire = (event, id) => { try { spawn(NODE, [ZUZUU, "hook", event, "--host", "opencode", "--session", id], { stdio: "ignore", detached: true }).unref(); } catch {} };
 export const Zuzuu = async () => ({
   event: async ({ event }) => {
     try {
@@ -74,7 +74,7 @@ export const Zuzuu = async () => ({
     let deny = null;
     try {
       const payload = JSON.stringify({ tool_name: input?.tool, tool_input: output?.args, session_id: input?.sessionID });
-      const res = spawnSync(NODE, [MNS, "hook", "PreToolUse", "--host", "opencode"], { input: payload, encoding: "utf8", timeout: 5000 });
+      const res = spawnSync(NODE, [ZUZUU, "hook", "PreToolUse", "--host", "opencode"], { input: payload, encoding: "utf8", timeout: 5000 });
       const out = (res && res.stdout) || "";
       let decision = null;
       for (const line of out.split("\\n")) { const t = line.trim(); if (t.startsWith("{")) { try { decision = JSON.parse(t); } catch {} } }
@@ -90,24 +90,24 @@ const piExtPath = (cwd) => join(repoRoot(cwd), '.pi', 'extensions', 'zuzuu.ts');
 const piExtension = () => `// installed by \`zuzuu enable --host pi\` — live capture + guardrails gate (graceful: never breaks pi).
 import { spawn, spawnSync } from "node:child_process";
 const NODE = ${JSON.stringify(NODE)};
-const MNS = ${JSON.stringify(BIN)};
+const ZUZUU = ${JSON.stringify(BIN)};
 export default function (pi) {
   const fire = (event, ctx) => {
     try {
       const file = ctx?.sessionManager?.getSessionFile?.();
       if (!file) return;
-      spawn(NODE, [MNS, "hook", event, "--host", "pi", "--session", file], { stdio: "ignore", detached: true }).unref();
+      spawn(NODE, [ZUZUU, "hook", event, "--host", "pi", "--session", file], { stdio: "ignore", detached: true }).unref();
     } catch {}
   };
   pi.on("session_start", async (_e, ctx) => fire("session_start", ctx));
   pi.on("turn_end", async (_e, ctx) => fire("turn_end", ctx));
   pi.on("session_shutdown", async (_e, ctx) => fire("session_shutdown", ctx));
-  // gate: tool_call → run the shared mns gate; block on deny. Fail-open.
+  // gate: tool_call → run the shared zuzuu gate; block on deny. Fail-open.
   pi.on("tool_call", async (event, ctx) => {
     try {
       const file = ctx?.sessionManager?.getSessionFile?.();
       const payload = JSON.stringify({ tool_name: event?.toolName, tool_input: event?.input, session_id: file });
-      const res = spawnSync(NODE, [MNS, "hook", "PreToolUse", "--host", "pi"], { input: payload, encoding: "utf8", timeout: 5000 });
+      const res = spawnSync(NODE, [ZUZUU, "hook", "PreToolUse", "--host", "pi"], { input: payload, encoding: "utf8", timeout: 5000 });
       const out = (res && res.stdout) || "";
       let decision = null;
       for (const line of out.split("\\n")) { const t = line.trim(); if (t.startsWith("{")) { try { decision = JSON.parse(t); } catch {} } }
@@ -131,7 +131,7 @@ export function enable(args = {}) {
     return;
   }
   if ((args.host || 'claude-code') === 'opencode') {
-    const say = args.quiet ? () => {} : console.log; // `mns code` wires quietly + prints its own summary
+    const say = args.quiet ? () => {} : console.log; // `zuzuu code` wires quietly + prints its own summary
     const path = opencodePluginPath();
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, opencodePlugin());

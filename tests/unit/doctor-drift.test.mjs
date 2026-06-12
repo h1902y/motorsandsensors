@@ -15,19 +15,19 @@ import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
 import { detectDrift } from '../../zuzuu/commands/doctor.mjs';
 
 function withMns(fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-drift-'));
-  const mnsDir = join(root, '.mns');
-  mkdirSync(mnsDir, { recursive: true });
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-drift-'));
+  const agentDir = join(root, 'agent');
+  mkdirSync(agentDir, { recursive: true });
   try {
-    return fn({ root, mnsDir });
+    return fn({ root, agentDir });
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 }
 
 /** Populate a minimal faculty layout (knowledge items) so mintGeneration has content. */
-function seedKnowledge(mnsDir, items) {
-  const dir = join(mnsDir, 'knowledge', 'items');
+function seedKnowledge(agentDir, items) {
+  const dir = join(agentDir, 'knowledge', 'items');
   mkdirSync(dir, { recursive: true });
   for (const [name, content] of Object.entries(items)) {
     writeFileSync(join(dir, name), content);
@@ -35,18 +35,18 @@ function seedKnowledge(mnsDir, items) {
 }
 
 test('detectDrift: no active generation → noneActive', () => {
-  withMns(({ mnsDir }) => {
-    const result = detectDrift(mnsDir);
+  withMns(({ agentDir }) => {
+    const result = detectDrift(agentDir);
     assert.equal(result.noneActive, true, 'should report noneActive when no generation is pinned');
     assert.equal(result.drifted, undefined);
   });
 });
 
 test('detectDrift: active generation with no edits → empty drifted array', () => {
-  withMns(({ mnsDir }) => {
-    seedKnowledge(mnsDir, { 'fact-a.md': 'content of fact A', 'fact-b.md': 'content of fact B' });
-    mintGeneration(mnsDir);
-    const result = detectDrift(mnsDir);
+  withMns(({ agentDir }) => {
+    seedKnowledge(agentDir, { 'fact-a.md': 'content of fact A', 'fact-b.md': 'content of fact B' });
+    mintGeneration(agentDir);
+    const result = detectDrift(agentDir);
     assert.equal(result.noneActive, undefined, 'should not be noneActive');
     assert.ok(Array.isArray(result.drifted), 'drifted must be an array');
     assert.equal(result.drifted.length, 0, 'no drift when nothing changed');
@@ -54,12 +54,12 @@ test('detectDrift: active generation with no edits → empty drifted array', () 
 });
 
 test('detectDrift: mutated knowledge item appears in drifted', () => {
-  withMns(({ mnsDir }) => {
-    seedKnowledge(mnsDir, { 'fact-a.md': 'original content', 'fact-b.md': 'stable content' });
-    mintGeneration(mnsDir);
+  withMns(({ agentDir }) => {
+    seedKnowledge(agentDir, { 'fact-a.md': 'original content', 'fact-b.md': 'stable content' });
+    mintGeneration(agentDir);
     // Mutate one item after minting
-    writeFileSync(join(mnsDir, 'knowledge', 'items', 'fact-a.md'), 'CHANGED content');
-    const result = detectDrift(mnsDir);
+    writeFileSync(join(agentDir, 'knowledge', 'items', 'fact-a.md'), 'CHANGED content');
+    const result = detectDrift(agentDir);
     assert.ok(Array.isArray(result.drifted), 'drifted must be an array');
     assert.equal(result.drifted.length, 1, 'exactly one item drifted');
     const d = result.drifted[0];
@@ -73,12 +73,12 @@ test('detectDrift: mutated knowledge item appears in drifted', () => {
 });
 
 test('detectDrift: new item added after mint appears in drifted', () => {
-  withMns(({ mnsDir }) => {
-    seedKnowledge(mnsDir, { 'fact-a.md': 'content A' });
-    mintGeneration(mnsDir);
+  withMns(({ agentDir }) => {
+    seedKnowledge(agentDir, { 'fact-a.md': 'content A' });
+    mintGeneration(agentDir);
     // Add a new item after minting
-    writeFileSync(join(mnsDir, 'knowledge', 'items', 'fact-new.md'), 'brand new');
-    const result = detectDrift(mnsDir);
+    writeFileSync(join(agentDir, 'knowledge', 'items', 'fact-new.md'), 'brand new');
+    const result = detectDrift(agentDir);
     assert.ok(Array.isArray(result.drifted));
     const added = result.drifted.find((d) => d.id === 'fact-new');
     assert.ok(added, 'added item should appear in drifted');
@@ -87,12 +87,12 @@ test('detectDrift: new item added after mint appears in drifted', () => {
 });
 
 test('detectDrift: item removed after mint appears in drifted', () => {
-  withMns(({ mnsDir }) => {
-    seedKnowledge(mnsDir, { 'fact-a.md': 'content A', 'fact-b.md': 'content B' });
-    mintGeneration(mnsDir);
+  withMns(({ agentDir }) => {
+    seedKnowledge(agentDir, { 'fact-a.md': 'content A', 'fact-b.md': 'content B' });
+    mintGeneration(agentDir);
     // Remove an item that was pinned
-    rmSync(join(mnsDir, 'knowledge', 'items', 'fact-b.md'));
-    const result = detectDrift(mnsDir);
+    rmSync(join(agentDir, 'knowledge', 'items', 'fact-b.md'));
+    const result = detectDrift(agentDir);
     const removed = result.drifted.find((d) => d.id === 'fact-b');
     assert.ok(removed, 'removed item should appear in drifted');
     assert.equal(removed.reason, 'removed');

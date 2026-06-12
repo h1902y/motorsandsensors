@@ -8,9 +8,9 @@ import { fileURLToPath } from 'node:url';
 import { scaffoldAction } from '../../zuzuu/commands/act-author.mjs';
 
 function withHome(fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-new-'));
-  mkdirSync(join(root, '.mns', 'actions'), { recursive: true });
-  try { return fn(join(root, '.mns')); } finally { rmSync(root, { recursive: true, force: true }); }
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-new-'));
+  mkdirSync(join(root, 'agent', 'actions'), { recursive: true });
+  try { return fn(join(root, 'agent')); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
 test('scaffoldAction creates manifest + run.mjs; manifest is valid JSON with the slug', () => {
@@ -45,14 +45,14 @@ test('scaffoldAction throws on an unsafe slug (containment at the lib layer)', (
 });
 
 test('mns act new rejects a path-traversal slug (containment)', () => {
-  const root = mkdtempSync(join(tmpdir(), 'mns-trav-'));
-  mkdirSync(join(root, '.mns', 'actions'), { recursive: true });
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-trav-'));
+  mkdirSync(join(root, 'agent', 'actions'), { recursive: true });
   const bin = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
   try {
     const r = spawnSync(process.execPath, [bin, 'act', 'new', '../../escaped'], { cwd: root, encoding: 'utf8' });
     assert.equal(r.status, 1);
     assert.match((r.stderr || '') + (r.stdout || ''), /invalid slug/);
-    assert.ok(!existsSync(join(root, 'escaped')), 'nothing written outside .mns');
+    assert.ok(!existsSync(join(root, 'escaped')), 'nothing written outside agent');
     assert.ok(!existsSync(join(root, '..', 'escaped')), 'nothing written above root');
   } finally {
     rmSync(root, { recursive: true, force: true });

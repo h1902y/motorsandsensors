@@ -1,4 +1,4 @@
-// `mns distill` — source A: mechanical miners over real sessions.
+// `zuzuu distill` — source A: mechanical miners over real sessions.
 //
 // Reads HOST transcripts directly (not our OTLP traces — those carry byte
 // sizes only, by privacy design; mining is an internal on-machine read and
@@ -205,11 +205,11 @@ export function mineHostSession({ host, ref, sessionId }) {
 }
 
 /** Run the full distill: mine sessions (all hosts) → candidates → ER → proposals. */
-export function distillSessions(mnsDir, pairs) {
+export function distillSessions(agentDir, pairs) {
   const mined = pairs.map(mineHostSession).filter(Boolean);
   const candidates = aggregate(mined);
-  const proposals = candidates.map((c) => createProposal(mnsDir, { candidate: c.candidate, source: 'distill', evidence: c.evidence }));
-  const registryProposals = fileRegistryProposals(mnsDir);
+  const proposals = candidates.map((c) => createProposal(agentDir, { candidate: c.candidate, source: 'distill', evidence: c.evidence }));
+  const registryProposals = fileRegistryProposals(agentDir);
   return { sessionsMined: mined.length, proposals, registryProposals };
 }
 

@@ -92,7 +92,7 @@ test('aggregate: exactly at threshold → one candidate', () => {
 // Test 4: propose writes inbox/<slug>/{action.json,SKILL.md}; idempotent.
 
 test('propose: scaffolds actions/inbox/<slug>/ with action.json + SKILL.md', () => {
-  const mnsDir = mkdtempSync(join(tmpdir(), 'mns-actions-miner-'));
+  const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-actions-miner-'));
   const pair = seq('npm ci', 'npm test');
   const sessions = [
     makeSession('sA', [pair, pair]),
@@ -101,11 +101,11 @@ test('propose: scaffolds actions/inbox/<slug>/ with action.json + SKILL.md', () 
   const cands = aggregate(sessions);
   assert.equal(cands.length, 1);
 
-  const n = propose(mnsDir, cands);
+  const n = propose(agentDir, cands);
   assert.equal(n, 1, 'propose returns 1');
 
   const slug = cands[0].payload.slug;
-  const inboxSlug = join(mnsDir, 'actions', 'inbox', slug);
+  const inboxSlug = join(agentDir, 'actions', 'inbox', slug);
   assert.ok(existsSync(inboxSlug), `inbox dir exists: ${inboxSlug}`);
 
   const actionJson = join(inboxSlug, 'action.json');
@@ -127,16 +127,16 @@ test('propose: scaffolds actions/inbox/<slug>/ with action.json + SKILL.md', () 
 // Test 5: idempotent — re-running propose does NOT create duplicates.
 
 test('propose: idempotent — second call does not duplicate or throw', () => {
-  const mnsDir = mkdtempSync(join(tmpdir(), 'mns-actions-idempotent-'));
+  const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-actions-idempotent-'));
   const pair = seq('npm ci', 'npm test');
   const sessions = [
     makeSession('sA', [pair, pair]),
     makeSession('sB', [pair]),
   ];
   const cands = aggregate(sessions);
-  propose(mnsDir, cands);         // first run
-  assert.doesNotThrow(() => propose(mnsDir, cands)); // second run — must not throw
-  const n2 = propose(mnsDir, cands);
+  propose(agentDir, cands);         // first run
+  assert.doesNotThrow(() => propose(agentDir, cands)); // second run — must not throw
+  const n2 = propose(agentDir, cands);
   assert.equal(n2, 0, 'second propose returns 0 (already exists)');
 });
 

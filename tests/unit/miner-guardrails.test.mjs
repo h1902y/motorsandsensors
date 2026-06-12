@@ -186,7 +186,7 @@ test('aggregate: 2 occurrences across 2 sessions (below minFailures=3) → no pr
 // Test 7: propose writes a guardrails proposal JSON and is idempotent
 
 test('propose: writes guardrails proposal JSON to mns/guardrails/proposals/', () => {
-  const mnsDir = mkdtempSync(join(tmpdir(), 'mns-guard-miner-'));
+  const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-guard-miner-'));
   const cmd = 'rm -rf /data';
   const sessions = [
     makeSession('sA', [df(cmd), df(cmd)]),
@@ -195,11 +195,11 @@ test('propose: writes guardrails proposal JSON to mns/guardrails/proposals/', ()
   const cands = aggregate(sessions);
   assert.equal(cands.length, 1);
 
-  const n = propose(mnsDir, cands);
+  const n = propose(agentDir, cands);
   assert.equal(n, 1, 'propose returns 1');
 
   // Check proposal file exists
-  const propDir = join(mnsDir, 'guardrails', 'proposals');
+  const propDir = join(agentDir, 'guardrails', 'proposals');
   assert.ok(existsSync(propDir), 'proposals dir created');
 
   const files = readdirSync(propDir).filter((f) => f.endsWith('.json'));
@@ -218,15 +218,15 @@ test('propose: writes guardrails proposal JSON to mns/guardrails/proposals/', ()
 // Test 8: propose is idempotent — re-run returns 0
 
 test('propose: idempotent — second call returns 0', () => {
-  const mnsDir = mkdtempSync(join(tmpdir(), 'mns-guard-idempotent-'));
+  const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-guard-idempotent-'));
   const cmd = 'rm -rf /data';
   const sessions = [
     makeSession('sA', [df(cmd), df(cmd)]),
     makeSession('sB', [df(cmd)]),
   ];
   const cands = aggregate(sessions);
-  propose(mnsDir, cands);           // first run
-  const n2 = propose(mnsDir, cands);
+  propose(agentDir, cands);           // first run
+  const n2 = propose(agentDir, cands);
   assert.equal(n2, 0, 'second propose returns 0');
 });
 
@@ -234,7 +234,7 @@ test('propose: idempotent — second call returns 0', () => {
 // Test 9: propose skips id already present in rules.json
 
 test('propose: skips if the rule id already exists in rules.json', () => {
-  const mnsDir = mkdtempSync(join(tmpdir(), 'mns-guard-rules-skip-'));
+  const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-guard-rules-skip-'));
   const cmd = 'rm -rf /data';
   const sessions = [
     makeSession('sA', [df(cmd), df(cmd)]),
@@ -244,7 +244,7 @@ test('propose: skips if the rule id already exists in rules.json', () => {
   assert.equal(cands.length, 1);
 
   // Pre-populate rules.json with the same rule id
-  const guardrailsDir = join(mnsDir, 'guardrails');
+  const guardrailsDir = join(agentDir, 'guardrails');
   mkdirSync(guardrailsDir, { recursive: true });
   const existingRule = {
     id: cands[0].payload.id,
@@ -258,7 +258,7 @@ test('propose: skips if the rule id already exists in rules.json', () => {
     JSON.stringify({ version: 1, rules: [existingRule] }, null, 2)
   );
 
-  const n = propose(mnsDir, cands);
+  const n = propose(agentDir, cands);
   assert.equal(n, 0, 'skipped because rule id already in rules.json');
 });
 

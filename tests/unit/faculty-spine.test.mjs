@@ -17,10 +17,10 @@ import { register, get as getAdapter, all as allAdapters } from '../../zuzuu/fac
 // helpers
 // ---------------------------------------------------------------------------
 function withHome(fn) {
-  const root = mkdtempSync(join(tmpdir(), 'mns-faculty-'));
-  mkdirSync(join(root, '.mns'), { recursive: true });
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-faculty-'));
+  mkdirSync(join(root, 'agent'), { recursive: true });
   try {
-    return fn(join(root, '.mns'));
+    return fn(join(root, 'agent'));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -34,11 +34,11 @@ test('FACULTIES lists all five faculty names', () => {
 });
 
 test('contract path helpers return expected sub-paths', () => {
-  const mns = '/tmp/.mns';
-  assert.equal(facultyDir(mns, 'knowledge'), '/tmp/.mns/knowledge');
-  assert.equal(inboxDir(mns, 'knowledge'), '/tmp/.mns/knowledge/inbox');
-  assert.equal(proposalsDir(mns, 'knowledge'), '/tmp/.mns/knowledge/proposals');
-  assert.equal(archiveDir(mns, 'knowledge'), '/tmp/.mns/knowledge/proposals/archive');
+  const mns = '/tmp/agent';
+  assert.equal(facultyDir(mns, 'knowledge'), '/tmp/agent/knowledge');
+  assert.equal(inboxDir(mns, 'knowledge'), '/tmp/agent/knowledge/inbox');
+  assert.equal(proposalsDir(mns, 'knowledge'), '/tmp/agent/knowledge/proposals');
+  assert.equal(archiveDir(mns, 'knowledge'), '/tmp/agent/knowledge/proposals/archive');
 });
 
 // ---------------------------------------------------------------------------
@@ -278,7 +278,7 @@ test('recordTrail appends a JSONL line with at + entry fields', () => {
   });
 });
 
-test('recordTrail is fail-soft: a bad mnsDir never throws', () => {
+test('recordTrail is fail-soft: a bad agentDir never throws', () => {
   assert.doesNotThrow(() => recordTrail('/nonexistent/ /bad', 'knowledge', { action: 'x' }));
 });
 

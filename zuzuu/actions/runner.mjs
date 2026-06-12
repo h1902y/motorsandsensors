@@ -1,10 +1,10 @@
-// mns/actions/runner.mjs
+// zuzuu/actions/runner.mjs
 // The child harness spawned by dispatch.runAction. NOT imported by anything —
 // it's executed: `node runner.mjs <payloadJson>`. It runs the action in its own
 // process (isolating process.exit/throw), then prints exactly one result marker.
 //
 // payload = { runPath, inputs, outputs, default_args, args }
-// stdout: the action's own logs, then a final line `__MNS_ACT_RESULT__<json>`.
+// stdout: the action's own logs, then a final line `__ZUZUU_ACT_RESULT__<json>`.
 
 import { pathToFileURL } from 'node:url';
 import { validateInputs, validateOutputs } from './schema.mjs';

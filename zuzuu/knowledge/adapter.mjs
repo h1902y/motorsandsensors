@@ -1,4 +1,4 @@
-// mns/knowledge/adapter.mjs
+// zuzuu/knowledge/adapter.mjs
 // The Knowledge faculty adapter (WS2-T2). Wraps the EXISTING Knowledge pipeline
 // (proposals/ER/registry/items/index) behind the faculty-spine adapter contract
 // — { name, ingest, validate, apply, render } — without changing any behaviour.
@@ -6,7 +6,7 @@
 //   ingest   — run ER on a candidate, mirroring createProposal's analysis step
 //   validate — registry-based validation of an item
 //   apply    — IS the extracted approve apply body (applyKnowledgeProposal)
-//   render   — the human card the `mns review` gate shows for a knowledge proposal
+//   render   — the human card the `zuzuu review` gate shows for a knowledge proposal
 //
 // Registers itself on import.
 
@@ -21,11 +21,11 @@ const name = 'knowledge';
 /**
  * Ingest a raw candidate: run ER against existing items and return the
  * normalised payload + analysis. Mirrors what createProposal computes today.
- * @param {string} mnsDir
+ * @param {string} agentDir
  * @param {{candidate:object, source?:string, evidence?:object}} raw
  */
-function ingest(mnsDir, raw) {
-  const { items } = allItems(mnsDir);
+function ingest(agentDir, raw) {
+  const { items } = allItems(agentDir);
   const candidate = { ...raw.candidate };
   candidate.id = candidate.id || slugify(candidate.body);
   const er = erResolve(candidate, items);
@@ -36,8 +36,8 @@ function ingest(mnsDir, raw) {
  * Validate an item against the Knowledge registry.
  * @returns {{ok:boolean, errors:string[], warnings:string[]}}
  */
-function validate(mnsDir, payload) {
-  const reg = loadRegistry(mnsDir);
+function validate(agentDir, payload) {
+  const reg = loadRegistry(agentDir);
   const v = validateItem(reg, payload);
   const warnings = [
     ...v.unknownKeys.attributes.map((k) => `unregistered attribute '${k}'`),
@@ -50,7 +50,7 @@ function validate(mnsDir, payload) {
  * Apply an approved proposal — delegates to the extracted approve apply body.
  * @returns {{ok:boolean, action:string, itemIds:string[], warnings:string[]}}
  */
-function apply(mnsDir, proposal) {
+function apply(agentDir, proposal) {
   // Bridge spine-shaped records (payload/analysis.er) onto applyKnowledgeProposal's
   // legacy shape (candidate/er). Records that still carry candidate/er pass through.
   const legacy = {
@@ -58,7 +58,7 @@ function apply(mnsDir, proposal) {
     candidate: proposal.candidate ?? proposal.payload,
     er: proposal.er ?? proposal.analysis?.er,
   };
-  const r = applyKnowledgeProposal(mnsDir, legacy);
+  const r = applyKnowledgeProposal(agentDir, legacy);
   return {
     ok: r.ok,
     action: r.action,
@@ -69,8 +69,8 @@ function apply(mnsDir, proposal) {
 
 /**
  * Render a proposal for the human gate. `card` mirrors the multi-line summary
- * `mns review` shows for knowledge proposals (id, type, attrs/relations, ER
- * verdict); `line` is the one-line list form (`mns proposals list`).
+ * `zuzuu review` shows for knowledge proposals (id, type, attrs/relations, ER
+ * verdict); `line` is the one-line list form (`zuzuu proposals list`).
  * @returns {{line:string, card:string}}
  */
 function render(proposal) {

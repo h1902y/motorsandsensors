@@ -1,5 +1,5 @@
-// `mns code` — launch OpenCode as the bundled default host, pre-wired with the
-// faculty home + the mns plugin (capture + gate + digest). We CONFIGURE + LAUNCH
+// `zuzuu code` — launch OpenCode as the bundled default host, pre-wired with the
+// faculty home + the zuzuu plugin (capture + gate + digest). We CONFIGURE + LAUNCH
 // the real `opencode` binary; we never fork it and never drive it headlessly
 // (the observe model; interactive-first). Stage 2 of the product sequence.
 //
@@ -38,7 +38,7 @@ function realPrompt(q) {
 }
 
 /**
- * `mns code [dir] [--model M] [--yes] [-- …opencode args]`
+ * `zuzuu code [dir] [--model M] [--yes] [-- …opencode args]`
  * @returns process exit code (number) — bin calls process.exit(code(args)).
  */
 export function code(args = {}, deps = {}) {
@@ -70,7 +70,7 @@ export function code(args = {}, deps = {}) {
     }
   }
 
-  // 4. ensure the mns plugin (capture + gate + digest) — FAIL-OPEN: never block the launch
+  // 4. ensure the zuzuu plugin (capture + gate + digest) — FAIL-OPEN: never block the launch
   let wired = true;
   try { d.runEnable(dir); } catch (e) { wired = false; d.log(`zuzuu code: could not wire the zuzuu plugin (${e?.message || e}) — launching unwired.`); }
 

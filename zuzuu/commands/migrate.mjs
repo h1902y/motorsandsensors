@@ -5,8 +5,8 @@
 // to the unified spine shape {payload, analysis, faculty}.  The spine already
 // dual-reads both formats; this migrator exists so on-disk records are clean.
 //
-// Pure core:   migrateProposals(mnsDir) → { scanned, migrated, skipped }
-// CLI surface: migrate(args) — resolves mnsDir, runs core, prints summary.
+// Pure core:   migrateProposals(agentDir) → { scanned, migrated, skipped }
+// CLI surface: migrate(args) — resolves agentDir, runs core, prints summary.
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -98,9 +98,9 @@ function migrateDir(dir) {
  * Scan both pending and archived Knowledge proposals.
  * Returns { scanned, migrated, skipped }.
  */
-export function migrateProposals(mnsDir) {
-  const pending = migrateDir(proposalsDir(mnsDir, 'knowledge'));
-  const archived = migrateDir(archiveDir(mnsDir, 'knowledge'));
+export function migrateProposals(agentDir) {
+  const pending = migrateDir(proposalsDir(agentDir, 'knowledge'));
+  const archived = migrateDir(archiveDir(agentDir, 'knowledge'));
 
   return {
     scanned: pending.scanned + archived.scanned,
@@ -114,8 +114,8 @@ export function migrateProposals(mnsDir) {
 // ---------------------------------------------------------------------------
 
 export function migrate() {
-  const mnsDir = paths().dir;
-  const { scanned, migrated, skipped } = migrateProposals(mnsDir);
+  const agentDir = paths().dir;
+  const { scanned, migrated, skipped } = migrateProposals(agentDir);
   console.log(`migrate: scanned ${scanned} proposal(s) — migrated ${migrated}, skipped ${skipped}`);
   if (migrated > 0) {
     console.log('  legacy candidate/er keys rewritten to payload/analysis.er + faculty:knowledge');

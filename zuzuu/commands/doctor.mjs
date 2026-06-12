@@ -1,4 +1,4 @@
-// `mns doctor` — environment health + session sanity. Exits non-zero only on
+// `zuzuu doctor` — environment health + session sanity. Exits non-zero only on
 // real problems (warnings don't fail). Phase 2 will also reconcile lost sessions.
 
 import { mkdirSync, accessSync, constants } from 'node:fs';
@@ -26,15 +26,15 @@ import { activeGeneration, readGeneration, snapshotFaculties } from '../faculty/
  * Each drifted entry: { id, faculty, reason: 'hash_changed'|'added'|'removed',
  *                        pinned?: string, current?: string }
  */
-export function detectDrift(mnsDir) {
+export function detectDrift(agentDir) {
   try {
-    const genId = activeGeneration(mnsDir);
+    const genId = activeGeneration(agentDir);
     if (!genId) return { noneActive: true };
 
-    const lockfile = readGeneration(mnsDir, genId);
+    const lockfile = readGeneration(agentDir, genId);
     if (!lockfile) return { noneActive: true };
 
-    const current = snapshotFaculties(mnsDir);
+    const current = snapshotFaculties(agentDir);
     const pinned = lockfile.faculties || {};
     const drifted = [];
 
@@ -133,7 +133,7 @@ export async function doctor() {
     bad(`agent/ not writable (${dir})`);
   }
 
-  // faculty home (served by `mns init`)
+  // faculty home (served by `zuzuu init`)
   const root = paths().root;
   if (!homeExists(root)) {
     warn('no faculty home — run `zuzuu init` to scaffold knowledge/memory/actions/instructions');
@@ -166,8 +166,8 @@ export async function doctor() {
 
   // generation drift check (WS3-T3)
   try {
-    const { dir: mnsDir } = paths();
-    const drift = detectDrift(mnsDir);
+    const { dir: agentDir } = paths();
+    const drift = detectDrift(agentDir);
     if (drift.noneActive) {
       info('generation: no generation pinned yet — run `zuzuu generation mint`');
     } else if (drift.error) {

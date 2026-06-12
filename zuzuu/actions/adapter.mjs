@@ -1,8 +1,8 @@
-// mns/actions/adapter.mjs
+// zuzuu/actions/adapter.mjs
 // The Actions faculty adapter (WS2-T3). Wraps the EXISTING Actions inbox gate
 // (proposed dirs under agent/actions/inbox/<slug>/) behind the faculty-spine
 // adapter contract — { name, ingest, validate, apply, render } — so the generic
-// `mns review` gate can drive Actions the same way it drives Knowledge.
+// `zuzuu review` gate can drive Actions the same way it drives Knowledge.
 //
 // Actions payloads are DIRECTORIES (run.mjs/SKILL.md + action.json), not JSON.
 // Strategy (lowest-risk): the inbox stays a dir; this adapter emits/reads a
@@ -45,21 +45,21 @@ function recordFor(a) {
  * Pending action proposals (dirs in agent/actions/inbox/), surfaced as
  * spine-shaped records so the gate can render/approve/reject them uniformly.
  */
-function listProposals(mnsDir) {
-  return listActions(inboxDir(mnsDir)).map(recordFor);
+function listProposals(agentDir) {
+  return listActions(inboxDir(agentDir)).map(recordFor);
 }
 
 /** Resolve a single proposed action by slug → spine-shaped record, or null. */
-function getProposal(mnsDir, slug) {
+function getProposal(agentDir, slug) {
   if (!isSafeSlug(slug)) return null;
-  return listProposals(mnsDir).find((p) => p.id === slug) ?? null;
+  return listProposals(agentDir).find((p) => p.id === slug) ?? null;
 }
 
 /**
  * Ingest is a pass-through for Actions: proposing scaffolds a dir
- * (mns act propose / act-author). Kept for adapter-contract symmetry.
+ * (zuzuu act propose / act-author). Kept for adapter-contract symmetry.
  */
-function ingest(_mnsDir, raw) {
+function ingest(_agentDir, raw) {
   return { payload: raw?.payload ?? raw ?? {}, analysis: {} };
 }
 
@@ -68,10 +68,10 @@ function ingest(_mnsDir, raw) {
  * the manifest slug matches the dir. Missing manifest → accept (slug fallback).
  * @returns {{ok:boolean, errors:string[], warnings:string[]}}
  */
-function validate(mnsDir, payload) {
+function validate(agentDir, payload) {
   const slug = payload?.slug;
   if (!isSafeSlug(slug)) return { ok: false, errors: [`invalid slug '${slug}'`], warnings: [] };
-  const manPath = join(inboxDir(mnsDir), slug, 'action.json');
+  const manPath = join(inboxDir(agentDir), slug, 'action.json');
   if (!existsSync(manPath)) return { ok: true, errors: [], warnings: [] };
   let man;
   try { man = JSON.parse(readFileSync(manPath, 'utf8')); }
@@ -95,9 +95,9 @@ function validate(mnsDir, payload) {
  * Preserves the "already exists" guard from activateAction.
  * @returns {{ok:boolean, action:string, itemIds:string[], warnings:string[]}}
  */
-function apply(mnsDir, proposal) {
+function apply(agentDir, proposal) {
   const slug = proposal?.payload?.slug ?? proposal?.id;
-  const r = activateAction(mnsDir, slug);
+  const r = activateAction(agentDir, slug);
   if (!r.ok) return { ok: false, action: r.error, itemIds: [], warnings: [] };
   return { ok: true, action: `activated ${slug}`, itemIds: [slug], warnings: [] };
 }
@@ -106,8 +106,8 @@ function apply(mnsDir, proposal) {
  * Reject path: dir-shaped, so the gate calls this instead of the JSON archive.
  * Moves inbox/<slug> → actions/proposals/archive/<slug> (archive, not delete).
  */
-function rejectDir(mnsDir, slug, _reason = '') {
-  return rejectAction(mnsDir, slug);
+function rejectDir(agentDir, slug, _reason = '') {
+  return rejectAction(agentDir, slug);
 }
 
 /**

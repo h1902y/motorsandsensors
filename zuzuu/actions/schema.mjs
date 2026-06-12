@@ -1,4 +1,4 @@
-// mns/actions/schema.mjs
+// zuzuu/actions/schema.mjs
 // A hand-rolled JSON-Schema *subset* validator — zero-dep (no Ajv), matching the
 // project's node-builtins-only policy. Supports: object (properties, required),
 // array (items), string/number/integer/boolean scalars, enum, and basic length/

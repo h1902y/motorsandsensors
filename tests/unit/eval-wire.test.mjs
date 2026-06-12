@@ -35,7 +35,7 @@ test('evalLine appends low-signal warning when confidence is low', async () => {
 // Test: mns eval prints proposals highest-score-first.
 // ---------------------------------------------------------------------------
 test('mns eval prints proposals highest-score-first', () => {
-  const root = mkdtempSync(join(tmpdir(), 'mns-eval-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-eval-'));
   const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(mns, d), { recursive: true });
@@ -92,7 +92,7 @@ test('mns eval prints proposals highest-score-first', () => {
 // Test: mns eval --faculty filters to one faculty.
 // ---------------------------------------------------------------------------
 test('mns eval --faculty knowledge shows only knowledge proposals', () => {
-  const root = mkdtempSync(join(tmpdir(), 'mns-eval-fac-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-eval-fac-'));
   const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(mns, d), { recursive: true });
@@ -123,7 +123,7 @@ test('mns eval --faculty knowledge shows only knowledge proposals', () => {
 // Test: distill persists `score` on created proposals.
 // ---------------------------------------------------------------------------
 test('distill persists score on created proposal', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'mns-distill-score-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-distill-score-'));
   const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry']) {
     mkdirSync(join(mns, d), { recursive: true });
@@ -162,7 +162,7 @@ test('distill persists score on created proposal', async () => {
 // Test: review card includes eval: line (test via mns review output).
 // ---------------------------------------------------------------------------
 test('review displays eval: line for knowledge proposals', () => {
-  const root = mkdtempSync(join(tmpdir(), 'mns-rev-eval-'));
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-rev-eval-'));
   const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(mns, d), { recursive: true });

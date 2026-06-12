@@ -1,4 +1,4 @@
-// mns/miners/instructions.mjs
+// zuzuu/miners/instructions.mjs
 // Instructions miner (WS5-T4) — detect recurring corrective user turns across
 // sessions and propose steering-amendment blocks for the Instructions faculty.
 //
@@ -6,7 +6,7 @@
 //   correctionTurns: [{ text }]  — user turns following an assistant tool action
 //   that contain corrective lexicon (e.g. "always", "never", "don't", etc.)
 //
-// Shape: { faculty:'instructions', aggregate(sessions, opts), propose(mnsDir, aggregated) }
+// Shape: { faculty:'instructions', aggregate(sessions, opts), propose(agentDir, aggregated) }
 // Self-registers on import.
 
 import { join } from 'node:path';
@@ -104,17 +104,17 @@ export function aggregate(sessions, { minSessions = 2 } = {}) {
  *   - skips if an instructions proposal with the same derived id already exists
  *   - skips if the text is already present in project.md
  *
- * @param {string} mnsDir
+ * @param {string} agentDir
  * @param {ReturnType<typeof aggregate>} aggregated
  * @returns {number} count of new proposals written
  */
-export function propose(mnsDir, aggregated) {
+export function propose(agentDir, aggregated) {
   // Collect ids of existing pending proposals for this faculty.
-  const existing = listProposals(mnsDir, 'instructions');
+  const existing = listProposals(agentDir, 'instructions');
   const existingIds = new Set(existing.map((p) => p.payload?.id).filter(Boolean));
 
   // Read project.md to skip amendments already applied.
-  const projectMdPath = join(mnsDir, 'instructions', 'project.md');
+  const projectMdPath = join(agentDir, 'instructions', 'project.md');
   const projectMdContent = existsSync(projectMdPath)
     ? readFileSync(projectMdPath, 'utf8')
     : '';
@@ -137,7 +137,7 @@ export function propose(mnsDir, aggregated) {
       evidence,
     });
 
-    writeProposal(mnsDir, proposal);
+    writeProposal(agentDir, proposal);
     count++;
   }
 

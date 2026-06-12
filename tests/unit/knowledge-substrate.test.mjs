@@ -9,15 +9,15 @@ import { reindex, search, neighbors, upsertItem, putVector, allVectors } from '.
 import { cosine } from '../../zuzuu/knowledge/embed.mjs';
 
 function withHome(fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-know-'));
-  const mnsDir = join(dir, '.mns');
-  const reg = join(mnsDir, 'knowledge', 'registry');
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-know-'));
+  const agentDir = join(dir, 'agent');
+  const reg = join(agentDir, 'knowledge', 'registry');
   mkdirSync(reg, { recursive: true });
   writeFileSync(join(reg, 'types.json'), JSON.stringify(SEED_TYPES));
   writeFileSync(join(reg, 'attributes.json'), JSON.stringify(SEED_ATTRIBUTES));
   writeFileSync(join(reg, 'relations.json'), JSON.stringify(SEED_RELATIONS));
   try {
-    return fn(mnsDir);
+    return fn(agentDir);
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -51,8 +51,8 @@ test('slugify produces stable kebab ids', () => {
 });
 
 test('registry validation: types, attribute value kinds, unknown keys surfaced separately', () => {
-  withHome((mnsDir) => {
-    const reg = loadRegistry(mnsDir);
+  withHome((agentDir) => {
+    const reg = loadRegistry(agentDir);
     assert.ok(reg.ok);
     const good = validateItem(reg, ITEM);
     assert.ok(good.ok);
@@ -72,56 +72,56 @@ test('registry validation: types, attribute value kinds, unknown keys surfaced s
 });
 
 test('index: reindex is deterministic; lexical scoring ranks id > attr > body', () => {
-  withHome((mnsDir) => {
-    writeItem(mnsDir, ITEM);
-    writeItem(mnsDir, { id: 'ci-pipeline', type: 'fact', created_at: ITEM.created_at, status: 'active', attributes: {}, relations: [], provenance: [], body: 'CI runs the test matrix on Node 22 and 24.' });
-    const r1 = reindex(mnsDir);
+  withHome((agentDir) => {
+    writeItem(agentDir, ITEM);
+    writeItem(agentDir, { id: 'ci-pipeline', type: 'fact', created_at: ITEM.created_at, status: 'active', attributes: {}, relations: [], provenance: [], body: 'CI runs the test matrix on Node 22 and 24.' });
+    const r1 = reindex(agentDir);
     assert.equal(r1.indexed, 2);
     assert.equal(r1.parseErrors.length, 0);
-    const hits = search(mnsDir, 'test');
+    const hits = search(agentDir, 'test');
     assert.equal(hits[0].id, 'test-command', 'id match outranks body match');
     assert.ok(hits[0].score > hits[1].score);
     // type + attribute filters (relational search)
-    assert.equal(search(mnsDir, 'test', { type: 'fact' })[0].id, 'ci-pipeline');
-    assert.equal(search(mnsDir, '', { attr: ['command', 'npm test'] })[0].id, 'test-command');
+    assert.equal(search(agentDir, 'test', { type: 'fact' })[0].id, 'ci-pipeline');
+    assert.equal(search(agentDir, '', { attr: ['command', 'npm test'] })[0].id, 'test-command');
     // reindex twice → same results
-    reindex(mnsDir);
-    assert.deepEqual(search(mnsDir, 'test').map((h) => h.id), hits.map((h) => h.id));
+    reindex(agentDir);
+    assert.deepEqual(search(agentDir, 'test').map((h) => h.id), hits.map((h) => h.id));
   });
 });
 
 test('graph: neighbors walks both directions, honors relType and depth', () => {
-  withHome((mnsDir) => {
-    writeItem(mnsDir, ITEM); // test-command -relates-to-> ci-pipeline
-    writeItem(mnsDir, { id: 'ci-pipeline', type: 'fact', created_at: ITEM.created_at, status: 'active', attributes: {}, relations: [{ type: 'depends-on', target: 'node-22' }], provenance: [], body: 'ci' });
-    writeItem(mnsDir, { id: 'node-22', type: 'entity', created_at: ITEM.created_at, status: 'active', attributes: {}, relations: [], provenance: [], body: 'node 22' });
-    reindex(mnsDir);
-    const one = neighbors(mnsDir, 'test-command', { depth: 1 });
+  withHome((agentDir) => {
+    writeItem(agentDir, ITEM); // test-command -relates-to-> ci-pipeline
+    writeItem(agentDir, { id: 'ci-pipeline', type: 'fact', created_at: ITEM.created_at, status: 'active', attributes: {}, relations: [{ type: 'depends-on', target: 'node-22' }], provenance: [], body: 'ci' });
+    writeItem(agentDir, { id: 'node-22', type: 'entity', created_at: ITEM.created_at, status: 'active', attributes: {}, relations: [], provenance: [], body: 'node 22' });
+    reindex(agentDir);
+    const one = neighbors(agentDir, 'test-command', { depth: 1 });
     assert.deepEqual(one.map((n) => n.node), ['ci-pipeline']);
-    const two = neighbors(mnsDir, 'test-command', { depth: 2 }).map((n) => n.node).sort();
+    const two = neighbors(agentDir, 'test-command', { depth: 2 }).map((n) => n.node).sort();
     assert.deepEqual(two, ['ci-pipeline', 'node-22']);
     // reverse direction: node-22's neighborhood reaches back
-    const rev = neighbors(mnsDir, 'node-22', { depth: 2 }).map((n) => n.node).sort();
+    const rev = neighbors(agentDir, 'node-22', { depth: 2 }).map((n) => n.node).sort();
     assert.deepEqual(rev, ['ci-pipeline', 'test-command']);
     // relType filter
-    const dep = neighbors(mnsDir, 'ci-pipeline', { relType: 'depends-on', depth: 1 }).map((n) => n.node);
+    const dep = neighbors(agentDir, 'ci-pipeline', { relType: 'depends-on', depth: 1 }).map((n) => n.node);
     assert.deepEqual(dep, ['node-22']);
   });
 });
 
 test('vectors: put/get round-trip; cosine sane; reindex prunes orphans but keeps live vectors', () => {
-  withHome((mnsDir) => {
-    writeItem(mnsDir, ITEM);
-    reindex(mnsDir);
-    putVector(mnsDir, 'test-command', 'test-model', [1, 0, 0]);
-    const vecs = allVectors(mnsDir);
+  withHome((agentDir) => {
+    writeItem(agentDir, ITEM);
+    reindex(agentDir);
+    putVector(agentDir, 'test-command', 'test-model', [1, 0, 0]);
+    const vecs = allVectors(agentDir);
     assert.equal(vecs.length, 1);
     assert.equal(cosine(vecs[0].vec, new Float32Array([1, 0, 0])), 1);
     assert.ok(cosine([1, 0], [0, 1]) === 0);
-    reindex(mnsDir); // item still exists → vector survives
-    assert.equal(allVectors(mnsDir).length, 1);
-    rmSync(join(mnsDir, 'knowledge', 'items', 'test-command.md'));
-    reindex(mnsDir); // item gone → vector pruned
-    assert.equal(allVectors(mnsDir).length, 0);
+    reindex(agentDir); // item still exists → vector survives
+    assert.equal(allVectors(agentDir).length, 1);
+    rmSync(join(agentDir, 'knowledge', 'items', 'test-command.md'));
+    reindex(agentDir); // item gone → vector pruned
+    assert.equal(allVectors(agentDir).length, 0);
   });
 });

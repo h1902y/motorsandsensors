@@ -1,7 +1,7 @@
-// mns/guardrails/adapter.mjs
+// zuzuu/guardrails/adapter.mjs
 // The Guardrails faculty adapter (WS2-T4). Wraps the rules engine behind the
 // faculty-spine adapter contract — { name, ingest, validate, apply, render } —
-// so `mns review` can surface and approve/reject rule proposals the same way it
+// so `zuzuu review` can surface and approve/reject rule proposals the same way it
 // does Knowledge proposals.
 //
 // A guardrails proposal payload is a single rule record:
@@ -24,12 +24,12 @@ const VALID_ACTIONS = new Set(['deny', 'ask', 'allow']);
 // helpers
 // ---------------------------------------------------------------------------
 
-function rulesPath(mnsDir) {
-  return join(mnsDir, 'guardrails', 'rules.json');
+function rulesPath(agentDir) {
+  return join(agentDir, 'guardrails', 'rules.json');
 }
 
-function loadRulesFile(mnsDir) {
-  const path = rulesPath(mnsDir);
+function loadRulesFile(agentDir) {
+  const path = rulesPath(agentDir);
   if (!existsSync(path)) return { version: 1, rules: [] };
   try {
     return JSON.parse(readFileSync(path, 'utf8'));
@@ -44,11 +44,11 @@ function loadRulesFile(mnsDir) {
 
 /**
  * Ingest a raw rule object. Pass-through: rule fields are the payload.
- * @param {string} mnsDir
+ * @param {string} agentDir
  * @param {object} raw  — expected shape: { id, action, tool, pattern, reason }
  *                         or { payload: { ... } } from the spine
  */
-function ingest(_mnsDir, raw) {
+function ingest(_agentDir, raw) {
   const payload = raw?.payload ?? raw ?? {};
   return { payload, analysis: {}, dedupeKey: payload.id };
 }
@@ -57,7 +57,7 @@ function ingest(_mnsDir, raw) {
  * Validate a rule payload.
  * @returns {{ok:boolean, errors:string[], warnings:string[]}}
  */
-function validate(_mnsDir, payload) {
+function validate(_agentDir, payload) {
   const errors = [];
   if (!payload?.id || typeof payload.id !== 'string' || !payload.id.trim()) {
     errors.push('rule id is required (non-empty string slug)');
@@ -87,14 +87,14 @@ function validate(_mnsDir, payload) {
  * Apply an approved rule proposal: upsert into rules.json.
  * @returns {{ok:boolean, action:string, itemIds:string[]}}
  */
-function apply(mnsDir, proposal) {
+function apply(agentDir, proposal) {
   const rule = proposal?.payload ?? {};
   const id = rule.id;
 
   // Ensure the guardrails dir exists
-  mkdirSync(join(mnsDir, 'guardrails'), { recursive: true });
+  mkdirSync(join(agentDir, 'guardrails'), { recursive: true });
 
-  const data = loadRulesFile(mnsDir);
+  const data = loadRulesFile(agentDir);
   if (!Array.isArray(data.rules)) data.rules = [];
 
   const idx = data.rules.findIndex((r) => r.id === id);
@@ -112,7 +112,7 @@ function apply(mnsDir, proposal) {
     data.rules.push(entry);
   }
 
-  writeFileSync(rulesPath(mnsDir), JSON.stringify(data, null, 2) + '\n');
+  writeFileSync(rulesPath(agentDir), JSON.stringify(data, null, 2) + '\n');
   return { ok: true, action: `added rule ${id}`, itemIds: [id] };
 }
 

@@ -1,8 +1,8 @@
-// mns/miners/actions.mjs
+// zuzuu/miners/actions.mjs
 // Actions miner (WS5-T2) — detect recurring Bash 2-gram sequences across
 // sessions and scaffold runbook proposals into actions/inbox/<slug>/.
 //
-// Shape: { faculty:'actions', aggregate(sessions, opts), propose(mnsDir, aggregated) }
+// Shape: { faculty:'actions', aggregate(sessions, opts), propose(agentDir, aggregated) }
 // Self-registers on import.
 
 import { join } from 'node:path';
@@ -69,13 +69,13 @@ export function aggregate(sessions, { minSeqCount = 3, minSeqSessions = 2 } = {}
  * Write a runbook action proposal into actions/inbox/<slug>/ for each candidate.
  * Idempotent: skips if inbox/<slug>/ OR active actions/<slug>/ already exists.
  *
- * @param {string} mnsDir
+ * @param {string} agentDir
  * @param {ReturnType<typeof aggregate>} aggregated
  * @returns {number} count of new proposals written
  */
-export function propose(mnsDir, aggregated) {
-  const actDir = actionsDir(mnsDir);
-  const ibDir = inboxDir(mnsDir);
+export function propose(agentDir, aggregated) {
+  const actDir = actionsDir(agentDir);
+  const ibDir = inboxDir(agentDir);
   let count = 0;
   for (const c of aggregated) {
     const { slug, title, steps, promptSnippet } = c.payload;

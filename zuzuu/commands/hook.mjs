@@ -1,4 +1,4 @@
-// `mns hook <Event>` — the callback Claude Code invokes on lifecycle hooks.
+// `zuzuu hook <Event>` — the callback Claude Code invokes on lifecycle hooks.
 //
 // Design B: the hook is a lifecycle SIGNAL + re-capture TRIGGER, never a span
 // builder. Each relevant event re-parses the transcript through the proven
@@ -140,10 +140,10 @@ export function gateDecision({ host = 'claude-code', payload = {}, cwd = process
  */
 export function writeLiveDigest(cwd = process.cwd()) {
   try {
-    const mnsDir = paths(cwd).dir;
-    const { text } = computeDigest(mnsDir);
+    const agentDir = paths(cwd).dir;
+    const { text } = computeDigest(agentDir);
     if (!text || !text.trim()) return;
-    const liveDir = liveDirOf(mnsDir);
+    const liveDir = liveDirOf(agentDir);
     mkdirSync(liveDir, { recursive: true });
     writeFileSync(join(liveDir, 'digest.md'), text);
   } catch {
@@ -159,8 +159,8 @@ export function writeLiveDigest(cwd = process.cwd()) {
  */
 export function sessionStartContext(cwd = process.cwd()) {
   try {
-    const mnsDir = paths(cwd).dir;
-    const { text } = computeDigest(mnsDir);
+    const agentDir = paths(cwd).dir;
+    const { text } = computeDigest(agentDir);
     if (!text || !text.trim()) return null;
     return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } };
   } catch {
