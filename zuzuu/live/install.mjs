@@ -1,25 +1,19 @@
-// Pure add/remove of mns's hook block in a Claude Code settings.json object.
+// Pure add/remove of zuzuu's hook block in a Claude Code settings.json object.
 //
 // settings.json is JSON (not line-based), so we can't use supermemory's HTML
 // delimiter blocks. Instead we tag our entries by a stable command SIGNATURE and
 // add/remove only those — never clobbering the user's own hooks. Idempotent.
 
 export const SIGNATURE = 'zuzuu.mjs'; // appears in every zuzuu hook command path, quote-agnostic
-// Match our entries by the new OR the legacy bin name, so re-enable/disable on a
-// project wired before the rebrand cleans up its old `mns.mjs` hook commands too.
-const SIGNATURES = ['zuzuu.mjs', 'mns.mjs'];
-const tagged = (cmd) => SIGNATURES.some((s) => String(cmd).includes(s));
+const tagged = (cmd) => String(cmd).includes(SIGNATURE);
 // entire-style: agent can't read its own observability output (feedback loop) —
-// but ONLY that. The faculty home (agent/knowledge etc., served by `mns init`)
+// but ONLY that. The faculty home (agent/knowledge etc., served by `zuzuu init`)
 // must stay readable, so the deny is narrowed to .traces/ + .live/.
 const DENY_RULES = ['Read(./agent/.traces/**)', 'Read(./agent/.live/**)'];
-// pre-agent-home rules — scrubbed on add/remove (the old .mns/ layout, incl. the
-// blanket form that starved the agent of its own faculties).
-const LEGACY_DENY = ['Read(./.mns/**)', 'Read(./.mns/traces/**)', 'Read(./.mns/live/**)'];
 
 // Minimal hook set: lifecycle (Design B re-captures the transcript — no
 // PostToolUse needed) + the PreToolUse Guardrails GATE (the one place we *do*
-// sit on the hot path: it evaluates .mns/guardrails/rules.json per tool call,
+// sit on the hot path: it evaluates agent/guardrails/rules.json per tool call,
 // fails open, and stays silent unless a rule matches).
 export const LIFECYCLE_EVENTS = ['SessionStart', 'Stop', 'SessionEnd'];
 export const GATE_EVENTS = ['PreToolUse'];
@@ -39,7 +33,7 @@ export function addHookEntries(settings, commandFor, events) {
   return s;
 }
 
-/** Pure hook remove (only mns entries) for ANY host. */
+/** Pure hook remove (only zuzuu entries) for ANY host. */
 export function removeHookEntries(settings) {
   const s = clone(settings);
   if (s.hooks) {
@@ -53,7 +47,7 @@ export function removeHookEntries(settings) {
 }
 
 /**
- * Return a new settings object with mns lifecycle hooks + the deny rule added.
+ * Return a new settings object with zuzuu lifecycle hooks + the deny rule added.
  * @param {object} settings  existing settings.json contents
  * @param {(event:string)=>string} commandFor  builds the command string per event
  */
@@ -61,23 +55,22 @@ export function addHooks(settings, commandFor, events = ALL_EVENTS) {
   const s = addHookEntries(settings, commandFor, events);
   s.permissions ||= {};
   s.permissions.deny ||= [];
-  s.permissions.deny = s.permissions.deny.filter((r) => !LEGACY_DENY.includes(r)); // scrub the old .mns/ rules
   for (const rule of DENY_RULES) if (!s.permissions.deny.includes(rule)) s.permissions.deny.push(rule);
   return s;
 }
 
-/** Return a new settings object with only mns's entries removed (others kept). */
+/** Return a new settings object with only zuzuu's entries removed (others kept). */
 export function removeHooks(settings) {
   const s = removeHookEntries(settings);
   if (s.permissions?.deny) {
-    s.permissions.deny = s.permissions.deny.filter((r) => !DENY_RULES.includes(r) && !LEGACY_DENY.includes(r));
+    s.permissions.deny = s.permissions.deny.filter((r) => !DENY_RULES.includes(r));
     if (!s.permissions.deny.length) delete s.permissions.deny;
     if (s.permissions && !Object.keys(s.permissions).length) delete s.permissions;
   }
   return s;
 }
 
-/** True if mns hooks are present for all lifecycle + gate events. */
+/** True if zuzuu hooks are present for all lifecycle + gate events. */
 export function isInstalled(settings) {
   return ALL_EVENTS.every((ev) => hasOurs(settings?.hooks?.[ev]));
 }

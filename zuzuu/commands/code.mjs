@@ -55,7 +55,7 @@ export function code(args = {}, deps = {}) {
 
   // 1. resolve the project dir
   const dir = args._?.[0] ? resolve(String(args._[0])) : process.cwd();
-  if (!existsSync(dir)) { d.log(`mns code: no such directory: ${dir}`); return 1; }
+  if (!existsSync(dir)) { d.log(`zuzuu code: no such directory: ${dir}`); return 1; }
 
   // 2. ensure the faculty home (only when absent — keeps output clean; init is idempotent)
   if (!homeExists(repoRoot(dir))) d.runInit(dir);
@@ -72,10 +72,10 @@ export function code(args = {}, deps = {}) {
 
   // 4. ensure the mns plugin (capture + gate + digest) — FAIL-OPEN: never block the launch
   let wired = true;
-  try { d.runEnable(dir); } catch (e) { wired = false; d.log(`mns code: could not wire the mns plugin (${e?.message || e}) — launching unwired.`); }
+  try { d.runEnable(dir); } catch (e) { wired = false; d.log(`zuzuu code: could not wire the zuzuu plugin (${e?.message || e}) — launching unwired.`); }
 
   // a clean one-screen summary of what the newcomer just got (vs. the verbose enable output)
-  d.log('mns code → OpenCode, faculty-equipped');
+  d.log('zuzuu code → OpenCode, faculty-equipped');
   d.log(`  ✓ faculty home (agent/)   ${wired ? '✓ capture + guardrails gate   ✓ session grounding' : '⚠ plugin not wired (degraded)'}`);
   d.log(`  → launching OpenCode in ${dir} …`);
 

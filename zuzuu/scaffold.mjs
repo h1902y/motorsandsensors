@@ -207,7 +207,7 @@ export function ensureGitignore(cwd) {
   return missing;
 }
 
-/** Is there an mns home here already? (the git-detect question) */
+/** Is there a zuzuu home here already? (the git-detect question) */
 export function homeExists(cwd) {
-  return existsSync(join(cwd, 'agent')) || existsSync(join(cwd, '.mns'));
+  return existsSync(join(cwd, 'agent'));
 }

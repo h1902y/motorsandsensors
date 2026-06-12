@@ -1,4 +1,4 @@
-// The git-native agent/ store (the visible faculty home; legacy projects use .mns/).
+// The git-native agent/ store (the visible faculty home).
 //
 // Layout (entire.io-style split — linkage in git, blobs out of the diff):
 //   agent/sessions.json          tracked   — the session index (small, diff-friendly,
@@ -24,16 +24,10 @@ export function repoRoot(cwd = process.cwd()) {
   return git(['rev-parse', '--show-toplevel'], cwd) || cwd;
 }
 
-/** Resolve the faculty home: prefer the visible `agent/`, fall back to legacy
- *  `.mns/` (keeps old projects working), default to `agent/` for new projects.
- *  The single chokepoint for the whole CLI; the fallback means commands work at
- *  every intermediate migration state. */
+/** Resolve the faculty home: the visible `agent/`. The single chokepoint for the
+ *  whole CLI. */
 export function homeDir(root = repoRoot()) {
-  const agent = join(root, 'agent');
-  if (existsSync(agent)) return agent;
-  const legacy = join(root, '.mns');
-  if (existsSync(legacy)) return legacy;
-  return agent;
+  return join(root, 'agent');
 }
 
 /** Internal liveness dir (git-ignored, dot-prefixed) under the home. */

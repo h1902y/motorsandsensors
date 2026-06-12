@@ -16,7 +16,7 @@ function chooseRef(adapter, args) {
 export function capture(args) {
   const adapter = args.host ? byName(args.host) : detected()[0];
   if (!adapter) {
-    console.error(args.host ? `unknown host: ${args.host} (known: ${ADAPTERS.map((a) => a.name).join(', ')})` : 'no host detected — run `mns status`');
+    console.error(args.host ? `unknown host: ${args.host} (known: ${ADAPTERS.map((a) => a.name).join(', ')})` : 'no host detected — run `zuzuu status`');
     process.exit(1);
   }
 
@@ -28,5 +28,5 @@ export function capture(args) {
   console.log(`  git      : ${record.git.commit ? record.git.commit.slice(0, 8) : '(no repo)'} ${record.git.branch || ''}`);
   console.log(`  trace    : ${traceRef}  (git-ignored)`);
   console.log(`  indexed  : ${index}  (tracked)`);
-  console.log(`  inspect  : mns trace --last`);
+  console.log(`  inspect  : zuzuu trace --last`);
 }

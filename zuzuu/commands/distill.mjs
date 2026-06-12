@@ -35,12 +35,12 @@ export function distill(args) {
       total += n;
       console.log(`  ${miner.faculty.padEnd(12)} ${n} proposal(s)`);
     }
-    if (total) console.log('next: mns review');
+    if (total) console.log('next: zuzuu review');
     return;
   }
 
   const r = distillSessions(mnsDir, pairs);
   console.log(`distilled ${r.sessionsMined} session(s) → ${r.proposals.length} proposal(s)${r.registryProposals.length ? ` (+${r.registryProposals.length} registry)` : ''}`);
   for (const p of r.proposals) console.log(`  ${p.er.verdict.padEnd(9)} ${p.id}`);
-  if (r.proposals.length) console.log('next: mns review');
+  if (r.proposals.length) console.log('next: zuzuu review');
 }

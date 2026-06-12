@@ -16,15 +16,15 @@ const parsePair = (s) => {
 
 /** Empty-result copy for recall: distinguish "no items" from "no match". */
 export function recallEmptyMessage({ itemCount, query }) {
-  if (!itemCount) return '(no knowledge yet — add facts with `mns remember`)';
-  return `(no matches for "${query}" — try other terms, or \`mns knowledge reindex\`)`;
+  if (!itemCount) return '(no knowledge yet — add facts with `zuzuu remember`)';
+  return `(no matches for "${query}" — try other terms, or \`zuzuu knowledge reindex\`)`;
 }
 
 /** mns remember "text" [--type t] [--id slug] [--attr k=v]... [--rel type=target]... */
 export function remember(args) {
   const text = args._.join(' ').trim();
   if (!text) {
-    console.error('usage: mns remember "the fact, in prose" [--type fact|entity|command|decision] [--attr k=v] [--rel type=target]');
+    console.error('usage: zuzuu remember "the fact, in prose" [--type fact|entity|command|decision] [--attr k=v] [--rel type=target]');
     process.exit(1);
   }
   const mnsDir = paths().dir;
@@ -80,7 +80,7 @@ export async function recall(args) {
     const qv = await embed(e.model, query);
     const vecs = allVectors(mnsDir);
     if (!vecs.length) {
-      console.error('no embedded items yet — run `mns knowledge reindex` with ollama up');
+      console.error('no embedded items yet — run `zuzuu knowledge reindex` with ollama up');
       process.exit(2);
     }
     const ranked = vecs.map((v) => ({ item: v.item, sim: cosine(qv, v.vec) })).sort((a, b) => b.sim - a.sim).slice(0, Number(args.limit || 5));
@@ -147,6 +147,6 @@ export async function knowledge(args) {
     console.log(problems ? `${problems} problem(s)` : `audit clean — ${items.length} item(s)`);
     process.exit(problems ? 1 : 0);
   }
-  console.error('usage: mns knowledge reindex|audit');
+  console.error('usage: zuzuu knowledge reindex|audit');
   process.exit(1);
 }

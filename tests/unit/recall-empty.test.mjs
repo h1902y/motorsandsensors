@@ -4,7 +4,7 @@ import { recallEmptyMessage } from '../../zuzuu/commands/knowledge.mjs';
 
 test('no items at all → points at remember', () => {
   assert.match(recallEmptyMessage({ itemCount: 0, query: 'foo' }), /no knowledge yet/i);
-  assert.match(recallEmptyMessage({ itemCount: 0, query: 'foo' }), /mns remember/);
+  assert.match(recallEmptyMessage({ itemCount: 0, query: 'foo' }), /zuzuu remember/);
 });
 
 test('items exist but query missed → points at query/reindex', () => {

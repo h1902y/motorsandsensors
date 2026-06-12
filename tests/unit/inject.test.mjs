@@ -62,18 +62,6 @@ test('v8 block is the zuzuu marker + points to the digest + zuzuu commands', () 
   assert.match(out, /agent\/\.live\/digest\.md/, 'Ground bullet points to the digest file');
 });
 
-test('REBRAND COMPAT: a legacy v7 mns:faculties block upgrades in place to v8 zuzuu (no duplicate)', () => {
-  // hand-build the pre-rebrand v7 mns block (the marker name that exists in every prior project)
-  const legacy = '<!-- >>> mns:faculties:v7 >>> -->\n## mns — agent faculty home\nold body\n<!-- <<< mns:faculties <<< -->';
-  const doc = '# proj\n\n' + legacy + '\n\n## after\n';
-  const out = injectBlock(doc);
-  assert.ok(out.includes('zuzuu:faculties:v8'), 'upgraded to v8 zuzuu');
-  assert.ok(!out.includes('mns:faculties'), 'the old mns marker is gone (replaced, not duplicated)');
-  assert.equal((out.match(/>>> (?:mns|zuzuu):faculties/g) || []).length, 1, 'exactly ONE block');
-  assert.ok(out.startsWith('# proj'), 'user heading intact');
-  assert.ok(out.includes('## after'), 'trailing user content intact');
-});
-
 test('a v8 zuzuu block re-injects in place (idempotent)', () => {
   const once = injectBlock('# proj\n', facultiesBlock(8)) + '\n## after\n';
   const twice = injectBlock(once);

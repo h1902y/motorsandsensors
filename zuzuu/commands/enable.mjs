@@ -25,7 +25,7 @@ const HOST_HOOKS = {
   codex: {
     file: (cwd) => join(repoRoot(cwd), '.codex', 'hooks.json'),
     events: ['SessionStart', 'Stop', 'PreToolUse'],
-    note: 'INTERACTIVE only (codex exec fires no hooks); no clean end → `mns doctor` reconciles',
+    note: 'INTERACTIVE only (codex exec fires no hooks); no clean end → `zuzuu doctor` reconciles',
   },
 };
 const hostCommandFor = (host) => (event) => `node "${BIN}" hook ${event} --host ${host} || true`;
@@ -55,7 +55,7 @@ function writeSettings(path, obj) {
 const NODE = process.execPath;
 const opencodePluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugins', 'mns.js');
 const opencodeLegacyPluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugin', 'mns.js'); // pre-2026-06 singular
-const opencodePlugin = () => `// installed by \`mns enable --host opencode\` — live capture + guardrails gate (graceful: never breaks OpenCode).
+const opencodePlugin = () => `// installed by \`zuzuu enable --host opencode\` — live capture + guardrails gate (graceful: never breaks OpenCode).
 import { spawn, spawnSync } from "node:child_process";
 const NODE = ${JSON.stringify(NODE)};
 const MNS = ${JSON.stringify(BIN)};
@@ -80,7 +80,7 @@ export const Mns = async () => ({
       const out = (res && res.stdout) || "";
       let decision = null;
       for (const line of out.split("\\n")) { const t = line.trim(); if (t.startsWith("{")) { try { decision = JSON.parse(t); } catch {} } }
-      if (decision && decision.decision === "deny") deny = decision.reason || "blocked by mns guardrail";
+      if (decision && decision.decision === "deny") deny = decision.reason || "blocked by zuzuu guardrail";
     } catch { /* any gate/spawn error fails OPEN (deny stays null → tool proceeds) */ }
     // Throw OUTSIDE the try: only an intentional deny blocks; an engine error can never be mistaken for one.
     if (deny) throw new Error(deny);
@@ -89,7 +89,7 @@ export const Mns = async () => ({
 `;
 
 const piExtPath = (cwd) => join(repoRoot(cwd), '.pi', 'extensions', 'mns.ts');
-const piExtension = () => `// installed by \`mns enable --host pi\` — live capture + guardrails gate (graceful: never breaks pi).
+const piExtension = () => `// installed by \`zuzuu enable --host pi\` — live capture + guardrails gate (graceful: never breaks pi).
 import { spawn, spawnSync } from "node:child_process";
 const NODE = ${JSON.stringify(NODE)};
 const MNS = ${JSON.stringify(BIN)};
@@ -113,7 +113,7 @@ export default function (pi) {
       const out = (res && res.stdout) || "";
       let decision = null;
       for (const line of out.split("\\n")) { const t = line.trim(); if (t.startsWith("{")) { try { decision = JSON.parse(t); } catch {} } }
-      if (decision && decision.decision === "deny") return { block: true, reason: decision.reason || "blocked by mns guardrail" };
+      if (decision && decision.decision === "deny") return { block: true, reason: decision.reason || "blocked by zuzuu guardrail" };
     } catch {}
     return undefined; // allow / no-match / any error → proceed (fail-open)
   });
@@ -125,11 +125,11 @@ export function enable(args = {}) {
     const spec = HOST_HOOKS[args.host];
     const path = spec.file();
     writeSettings(path, addHookEntries(readSettings(path), hostCommandFor(args.host), spec.events));
-    console.log(`mns enabled — live capture + gate installed (${args.host})`);
+    console.log(`zuzuu enabled — live capture + gate installed (${args.host})`);
     console.log(`  config : ${path}`);
     console.log(`  hooks  : ${spec.events.join(', ')}`);
     console.log(`  note   : ${spec.note}`);
-    console.log(`  disable: mns disable --host ${args.host}`);
+    console.log(`  disable: zuzuu disable --host ${args.host}`);
     return;
   }
   if ((args.host || 'claude-code') === 'opencode') {
@@ -139,31 +139,31 @@ export function enable(args = {}) {
     writeFileSync(path, opencodePlugin());
     const legacy = opencodeLegacyPluginPath();
     if (existsSync(legacy)) rmSync(legacy, { force: true }); // migrate singular → plural
-    say('mns enabled for OpenCode — live capture + guardrails gate installed');
+    say('zuzuu enabled for OpenCode — live capture + guardrails gate installed');
     say(`  plugin : ${path}`);
     say('  events : session.created/idle/deleted (capture) · tool.execute.before (gate)');
-    say('  note   : no clean end signal — ended/killed sessions reconcile via `mns doctor`');
-    say('  scope  : new OpenCode sessions in this repo; disable: mns disable --host opencode');
+    say('  note   : no clean end signal — ended/killed sessions reconcile via `zuzuu doctor`');
+    say('  scope  : new OpenCode sessions in this repo; disable: zuzuu disable --host opencode');
     return;
   }
   if (args.host === 'pi') {
     const path = piExtPath();
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, piExtension());
-    console.log('mns enabled for pi — live capture + guardrails gate installed');
+    console.log('zuzuu enabled for pi — live capture + guardrails gate installed');
     console.log(`  extension : ${path}`);
     console.log('  events    : session_start/turn_end/session_shutdown (capture) · tool_call (gate)');
-    console.log('  note      : headless `pi -p` needs `--approve` to load project extensions; no clean end → `mns doctor` reconciles');
-    console.log('  disable   : mns disable --host pi');
+    console.log('  note      : headless `pi -p` needs `--approve` to load project extensions; no clean end → `zuzuu doctor` reconciles');
+    console.log('  disable   : zuzuu disable --host pi');
     return;
   }
   const path = settingsPath();
   writeSettings(path, addHooks(readSettings(path), commandFor));
-  console.log('mns enabled — live capture installed (Claude Code)');
+  console.log('zuzuu enabled — live capture installed (Claude Code)');
   console.log(`  settings : ${path}`);
-  console.log(`  hooks    : ${[...LIFECYCLE_EVENTS, ...GATE_EVENTS].join(", ")}  (lifecycle + guardrails gate; exit 0 if mns absent)`);
+  console.log(`  hooks    : ${[...LIFECYCLE_EVENTS, ...GATE_EVENTS].join(", ")}  (lifecycle + guardrails gate; exit 0 if zuzuu absent)`);
   console.log('  scope    : new sessions in this repo (restart your agent to pick them up)');
-  console.log('  disable  : mns disable');
+  console.log('  disable  : zuzuu disable');
 }
 
 export function disable(args = {}) {
@@ -171,7 +171,7 @@ export function disable(args = {}) {
     const path = HOST_HOOKS[args.host].file();
     if (!existsSync(path)) { console.log(`nothing to disable (no ${path})`); return; }
     writeSettings(path, removeHookEntries(readSettings(path)));
-    console.log(`mns disabled — hooks removed from ${path}`);
+    console.log(`zuzuu disabled — hooks removed from ${path}`);
     return;
   }
   if ((args.host || 'claude-code') === 'opencode') {
@@ -179,12 +179,12 @@ export function disable(args = {}) {
     for (const p of [opencodePluginPath(), opencodeLegacyPluginPath()]) {
       if (existsSync(p)) { rmSync(p, { force: true }); removed = true; }
     }
-    console.log(removed ? 'mns disabled for OpenCode — plugin removed' : 'nothing to disable (no OpenCode plugin)');
+    console.log(removed ? 'zuzuu disabled for OpenCode — plugin removed' : 'nothing to disable (no OpenCode plugin)');
     return;
   }
   if (args.host === 'pi') {
     const path = piExtPath();
-    if (existsSync(path)) { rmSync(path, { force: true }); console.log(`mns disabled for pi — extension removed (${path})`); }
+    if (existsSync(path)) { rmSync(path, { force: true }); console.log(`zuzuu disabled for pi — extension removed (${path})`); }
     else console.log('nothing to disable (no pi extension)');
     return;
   }
@@ -194,7 +194,7 @@ export function disable(args = {}) {
     return;
   }
   writeSettings(path, removeHooks(readSettings(path)));
-  console.log(`mns disabled — lifecycle hooks removed from ${path}`);
+  console.log(`zuzuu disabled — lifecycle hooks removed from ${path}`);
 }
 
 export { isInstalled };

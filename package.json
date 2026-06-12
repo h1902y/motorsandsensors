@@ -31,8 +31,7 @@
     "node": ">=22"
   },
   "bin": {
-    "zuzuu": "bin/zuzuu.mjs",
-    "mns": "bin/zuzuu.mjs"
+    "zuzuu": "bin/zuzuu.mjs"
   },
   "files": [
     "bin/",

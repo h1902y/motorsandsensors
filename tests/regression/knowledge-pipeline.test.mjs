@@ -14,8 +14,8 @@ import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS, loadRegistry } from '../..
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
 
 function withHome(fn) {
-  const dir = mkdtempSync(join(tmpdir(), 'mns-pipe-'));
-  const mnsDir = join(dir, '.mns');
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-pipe-'));
+  const mnsDir = join(dir, 'agent');
   const reg = join(mnsDir, 'knowledge', 'registry');
   mkdirSync(reg, { recursive: true });
   mkdirSync(join(mnsDir, 'knowledge', 'inbox'), { recursive: true });

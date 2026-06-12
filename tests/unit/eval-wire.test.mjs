@@ -36,7 +36,7 @@ test('evalLine appends low-signal warning when confidence is low', async () => {
 // ---------------------------------------------------------------------------
 test('mns eval prints proposals highest-score-first', () => {
   const root = mkdtempSync(join(tmpdir(), 'mns-eval-'));
-  const mns = join(root, '.mns');
+  const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(mns, d), { recursive: true });
   }
@@ -93,7 +93,7 @@ test('mns eval prints proposals highest-score-first', () => {
 // ---------------------------------------------------------------------------
 test('mns eval --faculty knowledge shows only knowledge proposals', () => {
   const root = mkdtempSync(join(tmpdir(), 'mns-eval-fac-'));
-  const mns = join(root, '.mns');
+  const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(mns, d), { recursive: true });
   }
@@ -124,7 +124,7 @@ test('mns eval --faculty knowledge shows only knowledge proposals', () => {
 // ---------------------------------------------------------------------------
 test('distill persists score on created proposal', async () => {
   const root = mkdtempSync(join(tmpdir(), 'mns-distill-score-'));
-  const mns = join(root, '.mns');
+  const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry']) {
     mkdirSync(join(mns, d), { recursive: true });
   }
@@ -163,7 +163,7 @@ test('distill persists score on created proposal', async () => {
 // ---------------------------------------------------------------------------
 test('review displays eval: line for knowledge proposals', () => {
   const root = mkdtempSync(join(tmpdir(), 'mns-rev-eval-'));
-  const mns = join(root, '.mns');
+  const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(mns, d), { recursive: true });
   }

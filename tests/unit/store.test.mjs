@@ -21,9 +21,6 @@ const sampleRequest = { resourceSpans: [{ resource: { attributes: [] }, scopeSpa
 test('homeDir prefers agent/ when present', () => {
   withTempRepo((cwd) => { mkdirSync(join(cwd, 'agent'), { recursive: true }); assert.equal(homeDir(cwd), join(cwd, 'agent')); });
 });
-test('homeDir falls back to legacy .mns/ when only it exists', () => {
-  withTempRepo((cwd) => { mkdirSync(join(cwd, '.mns'), { recursive: true }); assert.equal(homeDir(cwd), join(cwd, '.mns')); });
-});
 test('homeDir defaults to agent/ for a fresh project', () => {
   withTempRepo((cwd) => assert.equal(homeDir(cwd), join(cwd, 'agent')));
 });

@@ -8,7 +8,7 @@ export function trace(args) {
   let file = args._[0];
   if (args.last || !file) file = lastTrace();
   if (!file) {
-    console.error('no trace found — run `mns capture` first, or pass a file path');
+    console.error('no trace found — run `zuzuu capture` first, or pass a file path');
     process.exit(1);
   }
   if (!existsSync(file)) {
