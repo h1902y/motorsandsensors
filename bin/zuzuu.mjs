@@ -33,6 +33,7 @@ import { web } from '../zuzuu/commands/web.mjs';
 import { explain } from '../zuzuu/commands/explain.mjs';
 import { inbox } from '../zuzuu/commands/inbox.mjs';
 import { session } from '../zuzuu/commands/session.mjs';
+import { faculty } from '../zuzuu/commands/faculty.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -74,6 +75,10 @@ usage: zuzuu <command> [options]
   recall "query" [--type t] [--attr k=v] [--related-to id] [--semantic]
                             search knowledge: lexical · graph · semantic
   knowledge reindex|audit   rebuild the search index · check registry/items health
+  faculty items <f> [--json|--jsonl]
+                            list a faculty's envelope items (one doc · one line per item)
+  faculty schema <f> [--json]
+                            print a faculty's payload schema (JSON-Schema subset)
   digest [--json] [--budget N]
                             print the session-start grounding brief
   act [list|show <slug>|new <slug>|schema <slug>]
@@ -95,7 +100,8 @@ usage: zuzuu <command> [options]
   session [status|merge|continue|discard]
                             the invisible session branch (one per agent session)
   eval [--faculty f]        rank pending proposals by eval score, highest first
-  migrate [--home]          one-time migrators: proposal schema · --home moves agent/ → .zuzuu/
+  migrate [--home|--items]  one-time migrators: proposal schema · --home moves agent/ → .zuzuu/
+                            · --items rewrites legacy faculty shapes → the envelope standard
   doctor                    environment + session health (reconciles lost sessions)
   explain [topic]           the 5 faculties + how graduation works
   version                   print version
@@ -128,6 +134,7 @@ switch (cmd) {
   case 'disable': disable(args); break;
   case 'hook': runHook(args._[0], { host: args.host, session: args.session }); break;
   case 'session': session(args); break;
+  case 'faculty': faculty(args); break;
   case 'eval': evalCmd(args); break;
   case 'migrate': migrate(args); break;
   case 'generation': generation(args); break;
