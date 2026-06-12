@@ -189,7 +189,7 @@ The host adapters assume the user *already runs* a host. But a newcomer who runs
   - **(a) zuzuu-as-gateway** — zuzuu hosts an OpenAI-compatible endpoint; OpenCode points at it as a custom provider; users buy zuzuu credits (Razorpay) and zuzuu proxies upstream + keeps margin. *Controllable, no partnership needed — but real infra/payments/abuse work.*
   - **(b) Zen-reseller** — credits top up OpenCode's own Zen balance. *Simpler conceptually, but depends on an OpenCode partnership; no public reseller API found.*
   - **(c) zuzuu-credits for internal LLM ops (added 2026-06-10)** — users *without* ollama and *without* host subscriptions (Claude Code/Gemini/Codex) buy zuzuu credits; zuzuu provides the API access for its **specialized internal work** — entity resolution's LLM rung, embeddings, eval-judge, instructions-mining — and external LLM use generally. Natural fit: these ops are exactly the ones DESIGN already routes to "our own cheap model" as the MCP-Sampling stopgap (§6 Need-2) — the credit wallet monetizes that stopgap instead of apologizing for it.
-  > Credits remain flagged, not decided. The point today: the *plugin + default-host* path is real and partly built; the *credit* path is a business decision parked behind it.
+  > Credits remain flagged, not decided. The point today: the *plugin + default-host* path is real and partly built; the *credit* path is a business decision parked behind it. Two further monetization hypotheses (cloud sandboxes, zuzuu-codes broker) were added 2026-06-12 — see §13.
 
 ### The three-stage product sequence (decided 2026-06-10)
 
@@ -289,6 +289,39 @@ An exhaustive, educative reference organized by the **primitive entities of an a
 - **Workflows prove-it:** can one CF Workflows instance host a multi-round agent loop within execution/duration limits? (`waitForEvent` solves *pause*, not *loop-length*.) — note: largely dissolved by running only the *evolution* loop on Workflows, not the agent loop.
 - **Trace schema:** must capture per-tool input+output per call, tagged by tool+version, replayable — it powers both the eval lens and golden-replay.
 - Episodic Memory vs semantic Knowledge substrates (likely different); whether Cognition evolves on a substrate ladder of its own; whether Actions/Memory/Knowledge share retrieval infra at the vector tier.
+
+---
+
+## 13. Product experience & roadmap — the six workstreams (added 2026-06-12)
+
+With the spine built (observe + serve on 5 hosts; the local evolve loop proven in exp-14: 43 sessions mined, ~80% tool-call reduction from grounded knowledge), the bottleneck moved from *capability* to *experience*. This section records the product-experience vision and the decisions made on 2026-06-12.
+
+### Positioning, broadened
+
+**zuzuu turns any project folder into an AI-first directory.** The user keeps their folders, files, and working style; `zuzuu init` adds an opinionated external harness — the faculty home plus serving/observing mechanisms — so the terminal agent they already run works over that directory more efficiently (fewer tokens, less time, better output), with the human always in control. Coding is the **first vertical**, not the boundary: the same mechanism serves any folder-based knowledge work (an accountant's books, a CEO's briefings) — that's what the marketplace workstream (W4) makes concrete.
+
+**Philosophy, stated explicitly: enhance, never reinvent.** We don't reinvent files/folders, file preview, terminals, task formats (a future tasks faculty is YAML-native, DevOps-shaped), or the host's agent loop. The differentiators are open source, local-native, and the graduation loop — everything else is borrowed, battle-tested practice.
+
+### The six workstreams (dependency order)
+
+| # | Workstream | What it is | Status |
+|---|---|---|---|
+| **W1** | **Home & onboarding** | the hidden `.zuzuu/` home (decision below), the narrated `zz init` experience, the self-explaining directory contract | **in build (now)** — it gates W2/W4 and the education story |
+| **W2** | **Visual workbench** | a local app for non-terminal users: file tree \| **embedded terminal** \| file preview. **zuzuu-web evolves into this** — the read-only observe dashboard (shipped) is the workbench's first milestone, same daemon + app, growing panes | design; after W1 |
+| **W3** | **Faculty health & HITL UX** | make "is it actually improving?" visible — review-ceremony polish, per-faculty health surfaces, eval-ranked inbox | design |
+| **W4** | **Marketplace modules** | persona-opinionated home templates (accountant, CEO, …): a template = a `.zuzuu/` layout + seed faculties. Only after the W1 contract is stable | concept |
+| **W5** | **Workflows/tasks faculty** | task management + scheduled workflows/triggers as a faculty — YAML-native, mirroring DevOps practice, never a bespoke format | concept |
+| **W6** | **Efficiency benchmark** | the rigorous token/cost/time comparison (§2's falsifiable test); exp-14's ~80% lift is the informal precursor | deliberately deferred — premature before W1–W3 |
+
+### Decisions recorded (2026-06-12)
+
+- **The home is hidden: `agent/` → `.zuzuu/`.** Reverses the 2026-06-11 visible-`agent/` decision, with cause: `agent/` is a common directory name (clash risk in brownfield repos), and un-announced visible folders read as clutter, not transparency. The model is `.git`: **transparency comes from porcelain** — `zz status` / `zz explain` / `zz digest`, the digest brief, the workbench — plus plain-text files inside and the human gate, not from an un-dotted dir. The only visible footprint of `zz init` is the managed faculties block in CLAUDE.md/AGENTS.md and three `.gitignore` lines. Inner layout is byte-identical; clean break (no users existed), one-shot migration gated on `agent/agent.json` so unrelated `agent/` dirs are never touched.
+- **The workbench's middle pane is an embedded terminal** (xterm.js running the real host CLI), not a custom chat UI. Zero reinvention, observe-model intact (we never drive the host), every host works day one. A chat UI over OpenCode's server API stays a possible later enhancement, not the foundation.
+
+### Monetization hypotheses (added to the §6c list — flagged, not decided, not built)
+
+- **(d) Cloud sandboxes** — the user's project directory hosted in a fly.io sandbox, the full zuzuu harness running there, accessed from browser/mobile (remote workbench). Charged as usage with a markup. Open source + local-native stays free; *cloud convenience* is the paid layer.
+- **(e) zuzuu-codes broker** — for users who run no host and want none: a natively-integrated host built **over pi** (Stage 3 alignment, §6), with zuzuu as the inference broker. Never an OpenCode fork, never from scratch.
 
 ---
 
