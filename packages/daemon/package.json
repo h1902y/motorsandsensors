@@ -1,22 +1,40 @@
 {
-  "name": "zuzuu-web",
+  "name": "@zuzuucodes/web",
   "version": "0.1.0",
   "description": "Native-feeling terminal + file explorer for your local machine, in the browser",
   "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/h1902y/zuzuu-web.git"
+  },
+  "homepage": "https://github.com/h1902y/zuzuu-web",
   "bin": {
     "zuzuu-web": "./bin/zuzuu-web.js"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "web-dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts --no-open --port 7770",
     "start": "tsx src/index.ts",
-    "build": "tsc -p tsconfig.build.json && cp -r src/shell-integration/*.zsh src/shell-integration/*.bash src/shell-integration/*.fish dist/shell-integration/",
+    "build": "tsc -p tsconfig.build.json && cp -r src/shell-integration/*.zsh src/shell-integration/*.bash src/shell-integration/*.fish dist/shell-integration/ && node scripts/vendor-protocol.mjs && npm run bundle:web",
+    "bundle:web": "rm -rf web-dist && cp -R ../web/dist web-dist",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "npm test"
   },
   "dependencies": {
     "@hono/node-server": "^2.0.4",
     "@lydell/node-pty": "^1.2.0-beta.12",
-    "@zuzuu-web/protocol": "^0.1.0",
     "@xterm/addon-serialize": "^0.14.0",
     "@xterm/headless": "^6.0.0",
     "archiver": "^8.0.0",
@@ -26,6 +44,7 @@
   },
   "devDependencies": {
     "@types/archiver": "^8.0.0",
+    "@zuzuu-web/protocol": "^0.1.0",
     "@types/node": "^25.9.2",
     "@types/ws": "^8.18.1",
     "tsx": "^4.22.4",

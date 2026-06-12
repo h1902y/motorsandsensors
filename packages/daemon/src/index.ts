@@ -1,4 +1,5 @@
 import fsp from "node:fs/promises";
+import { existsSync } from "node:fs";
 import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
@@ -132,7 +133,13 @@ async function main(): Promise<void> {
   const token = args.token ?? crypto.randomBytes(24).toString("base64url");
   if (!hosted) await addRecent(root).catch(() => {}); // remember this workspace
   const port = hosted ? args.port : await findFreePort(args.port, args.host);
-  const webDist = path.resolve(HERE, "..", "..", "web", "dist");
+  // Web SPA assets: the published package carries them in web-dist/ (copied
+  // at build time); in the dev workspace fall back to the sibling web package.
+  const packagedWebDist = path.resolve(HERE, "..", "web-dist");
+  const workspaceWebDist = path.resolve(HERE, "..", "..", "web", "dist");
+  const webDist = existsSync(path.join(packagedWebDist, "index.html"))
+    ? packagedWebDist
+    : workspaceWebDist;
 
   // public origin(s) allowed in hosted mode (the <app>.fly.dev / custom host)
   const publicHost = process.env.WEBCODE_PUBLIC_HOST; // e.g. "myapp.fly.dev"
