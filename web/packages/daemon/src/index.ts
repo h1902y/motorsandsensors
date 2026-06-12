@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import crypto from "node:crypto";
 import { WebcodeServer } from "./server.js";
 import { addRecent } from "./config.js";
+import { writeInstanceFile, removeInstanceFile } from "./instance-file.js";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PORT = 7770;
@@ -167,15 +168,31 @@ async function main(): Promise<void> {
     console.log(`\n  zuzuu-web v${pkg.version}`);
     console.log(`  workspace  ${root}`);
     console.log(`  url        ${url}\n`);
+    // Singleton contract: record this instance so `zuzuu web` can reuse it
+    // instead of spawning a duplicate (never in hosted mode; never fatal).
+    if (!hosted) {
+      writeInstanceFile({
+        root,
+        port: boundPort,
+        pid: process.pid,
+        token,
+        startedAt: new Date().toISOString(),
+        version: pkg.version,
+      });
+    }
     if (args.open) openBrowser(url);
   });
 
   const shutdown = () => {
+    if (!hosted) removeInstanceFile(root);
     server.stop();
     process.exit(0);
   };
   process.on("SIGINT", shutdown);
   process.on("SIGTERM", shutdown);
+  process.on("exit", () => {
+    if (!hosted) removeInstanceFile(root); // best-effort; idempotent after shutdown()
+  });
 }
 
 void main();
