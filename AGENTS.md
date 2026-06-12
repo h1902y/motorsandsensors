@@ -1,7 +1,7 @@
 <!-- >>> zuzuu:faculties:v8 >>> -->
 ## zuzuu — agent faculty home
 
-This project has a zuzuu faculty home at `agent/` (managed by the zuzuu CLI; `mns` is a legacy alias). Work to this contract:
+This project has a zuzuu faculty home at `agent/` (managed by the zuzuu CLI). Work to this contract:
 
 - **Ground.** At session start, read `agent/.live/digest.md` if it exists — your *zuzuu digest* (instructions, knowledge, actions, proposals, guardrails), regenerated each session. Trust it as ground truth; don't re-derive what it states or re-read faculty files it already summarized. (On Claude Code the same brief also arrives inline at session start.)
 - **Cite in-flight.** When an answer draws on a stored fact, say `from knowledge: <id>`; when you follow a runbook/action, name it. Make the faculty visible.
