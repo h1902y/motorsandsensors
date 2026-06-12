@@ -1,7 +1,7 @@
 # guardrails/ — the Guardrails faculty (enforced, not advisory)
 
-Declarative rules in `rules.json`, evaluated on every tool call by the mns
-PreToolUse gate (installed by `mns enable`). Severity wins: deny > ask > allow;
+Declarative rules in `rules.json`, evaluated on every tool call by the zuzuu
+PreToolUse gate (installed by `zuzuu enable`). Severity wins: deny > ask > allow;
 no match → the host's normal permission flow. The engine FAILS OPEN — a
 guardrail bug can block nothing — and matched decisions are logged for the trace.
 
