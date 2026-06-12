@@ -13,6 +13,8 @@ import {
   sessionGitEnabled, sessionBranchName, mainBranch, listSessionBranches,
   openSession, checkpoint, sessionStatus, closeSession, continueSession, discardSession,
 } from '../../zuzuu/session-git.mjs';
+import { handleHook } from '../../zuzuu/commands/hook.mjs';
+import { listLive } from '../../zuzuu/live/live-store.mjs';
 
 function git(args, cwd, input) {
   const r = spawnSync('git', args, { cwd, encoding: 'utf8', input });
@@ -364,6 +366,54 @@ test('sessionStatus reflects a leftover branch whether or not checked out', () =
     assert.equal(s.onSessionBranch, false);
     assert.deepEqual(s.active, { branch: 'zz/session-status00', checkpoints: 2, dirty: false });
     assert.equal(s.mainBranch, 'main');
+  });
+});
+
+// ------------------------------------------------------------- hook wiring
+
+test('hook lifecycle in a git repo: OPEN branches, TURN checkpoints, END squashes to main', () => {
+  tmpRepo((cwd) => {
+    writeFileSync(join(cwd, '.gitignore'), '.zuzuu/.live/\n.zuzuu/.traces/\n'); // as `zuzuu init` does
+    git(['add', '-A'], cwd);
+    git(['commit', '-q', '-m', 'ignore zuzuu internals'], cwd);
+    const before = logCount(cwd, 'main');
+
+    handleHook({ event: 'SessionStart', payload: { session_id: 'hook-abc-123' }, cwd, now: 1000 });
+    assert.equal(curBranch(cwd), 'zz/session-hookabc1', 'OPEN created the session branch');
+
+    writeFileSync(join(cwd, 'work.txt'), 'turn output\n');
+    handleHook({ event: 'Stop', payload: { session_id: 'hook-abc-123' }, cwd, now: 2000 });
+    assert.equal(lastMsg(cwd), 'zz: checkpoint 1', 'TURN checkpointed on the branch');
+
+    handleHook({ event: 'SessionEnd', payload: { session_id: 'hook-abc-123' }, cwd, now: 3000 });
+    assert.equal(curBranch(cwd), 'main');
+    assert.equal(logCount(cwd, 'main'), before + 1, 'ONE squashed commit on main');
+    assert.match(lastMsg(cwd), /^session: zz\/session-hookabc1 · \d{4}-\d{2}-\d{2}$/);
+    assert.deepEqual(listSessionBranches(cwd), []);
+  });
+});
+
+test('hook OPEN against a leftover branch: blocked is recorded on the live record, session unharmed', () => {
+  tmpRepo((cwd) => {
+    openSession(cwd, 'crashed99');
+    git(['checkout', '-q', 'main'], cwd); // the crashed leftover
+    handleHook({ event: 'SessionStart', payload: { session_id: 'fresh-456' }, cwd, now: 1000 });
+    assert.equal(curBranch(cwd), 'main', 'no new branch while blocked');
+    assert.deepEqual(listSessionBranches(cwd), ['zz/session-crashed9'], 'invariant held');
+    const rec = listLive(cwd).find((r) => r.id === 'fresh-456');
+    assert.ok(rec, 'the session itself still opened (never blocked)');
+    assert.deepEqual(rec.sessionGit, { blocked: true, existing: 'zz/session-crashed9' });
+  });
+});
+
+test('hook lifecycle respects the opt-out: no branches, capture untouched', () => {
+  tmpRepo((cwd) => {
+    mkdirSync(join(cwd, '.zuzuu'), { recursive: true });
+    writeFileSync(join(cwd, '.zuzuu', 'agent.json'), JSON.stringify({ version: 3, sessionGit: false }) + '\n');
+    handleHook({ event: 'SessionStart', payload: { session_id: 'optout-77' }, cwd, now: 1000 });
+    assert.equal(curBranch(cwd), 'main');
+    assert.deepEqual(listSessionBranches(cwd), []);
+    assert.ok(listLive(cwd).find((r) => r.id === 'optout-77'), 'live capture unaffected');
   });
 });
 

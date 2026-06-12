@@ -50,6 +50,13 @@ export function touchLive({ id, host, transcriptPath, now }, cwd = process.cwd()
   return write({ ...existing, lastSeen: now, transcriptPath: transcriptPath ?? existing.transcriptPath }, cwd);
 }
 
+/** Merge a patch into an existing live record (no-op when absent). */
+export function updateLive(id, patch, cwd = process.cwd()) {
+  const existing = read(id, cwd);
+  if (!existing) return null;
+  return write({ ...existing, ...patch }, cwd);
+}
+
 /** Remove a live record (its lifecycle has reached a terminal state). */
 export function closeLive(id, cwd = process.cwd()) {
   try {

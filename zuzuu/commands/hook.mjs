@@ -16,7 +16,8 @@ import { join, dirname } from 'node:path';
 import { byName } from '../capture/adapters/registry.mjs';
 import { captureTrace } from '../capture-core.mjs';
 import { SessionState } from '../session.mjs';
-import { openLive, touchLive, closeLive } from '../live/live-store.mjs';
+import { openLive, touchLive, closeLive, updateLive } from '../live/live-store.mjs';
+import { sessionGitEnabled, openSession, checkpoint, closeSession } from '../session-git.mjs';
 import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../guardrails.mjs';
 import { paths, liveDir as liveDirOf } from '../store.mjs';
 import { computeDigest } from '../digest.mjs';
@@ -73,12 +74,30 @@ export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Dat
       openLive({ id, host, transcriptPath: ref, startedAt: new Date(now).toISOString(), now, generation }, cwd);
       safeCapture(adapter, ref, SessionState.ACTIVE, cwd, generation);
     } catch { /* live/capture hiccup must not block grounding below */ }
+    try {
+      // Invisible session-git: one session = one branch. A leftover branch
+      // (crashed session) BLOCKS a new one — record that on the live record so
+      // doctor/status surface the recovery path. Never blocks the session itself.
+      if (sessionGitEnabled(cwd)) {
+        const r = openSession(cwd, id);
+        if (r?.blocked) updateLive(id, { sessionGit: { blocked: true, existing: r.existing } }, cwd);
+      }
+    } catch { /* git trouble must never affect capture/digest/gate */ }
     writeLiveDigest(cwd); // universal grounding channel — every host reads .zuzuu/.live/digest.md
   } else if (TURN.has(event)) {
     touchLive({ id, host, transcriptPath: ref, now }, cwd);
     safeCapture(adapter, ref, SessionState.ACTIVE, cwd);
+    try {
+      if (sessionGitEnabled(cwd)) checkpoint(cwd); // commits only ON the session branch, never on main
+    } catch { /* fail-open */ }
   } else if (END.has(event)) {
     safeCapture(adapter, ref, SessionState.COMPLETED, cwd);
+    try {
+      // Squash the session branch to ONE `session: <title>` commit on main
+      // (default title: `<branch> · <date>`). Conflicts abort + restore; the
+      // leftover branch is then recovered via the next-session prompt or doctor.
+      if (sessionGitEnabled(cwd)) closeSession(cwd, {});
+    } catch { /* fail-open */ }
     closeLive(id, cwd);
   } else {
     return { event, skipped: 'unhandled event' };
