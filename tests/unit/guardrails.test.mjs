@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../../zuzuu/guardrails.mjs';
+import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../../zuzuu/guardrails/engine.mjs';
 import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
-import { LAYOUT } from '../../zuzuu/scaffold.mjs';
+import { LAYOUT } from '../../zuzuu/home/scaffold.mjs';
 
 // Build a throwaway guardrails faculty dir with one envelope item per rule.
 // `files` may also carry raw text values (malformed-item cases).

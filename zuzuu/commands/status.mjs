@@ -3,8 +3,8 @@
 import { existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { detected } from '../capture/adapters/registry.mjs';
-import { sessionStatus } from '../session-git.mjs';
-import { readIndex, paths } from '../store.mjs';
+import { sessionStatus } from '../sessions/session-git.mjs';
+import { readIndex, paths } from '../core/store.mjs';
 import { FACULTIES } from '../faculty/contract.mjs';
 import { listProposals } from '../faculty/proposal.mjs';
 import { activeGeneration as activeGenerationFn } from '../faculty/generation.mjs';

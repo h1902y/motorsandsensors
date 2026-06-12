@@ -12,10 +12,10 @@
 
 import { join, basename } from 'node:path';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { applyScaffold, ensureGitignore, homeExists } from '../scaffold.mjs';
-import { injectBlock, facultiesBlock, hasBlock, BLOCK_VERSION } from '../inject.mjs';
+import { applyScaffold, ensureGitignore, homeExists } from '../home/scaffold.mjs';
+import { injectBlock, facultiesBlock, hasBlock, BLOCK_VERSION } from '../home/inject.mjs';
 import { detected } from '../capture/adapters/registry.mjs';
-import { repoRoot } from '../store.mjs';
+import { repoRoot } from '../core/store.mjs';
 import { migrateHome, migrateItems, needsItemsMigration } from './migrate.mjs';
 
 const HOST_FILES = ['CLAUDE.md', 'AGENTS.md', 'GEMINI.md'];

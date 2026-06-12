@@ -7,7 +7,7 @@
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
-import { paths, readIndex } from '../store.mjs';
+import { paths, readIndex } from '../core/store.mjs';
 import { processInbox } from '../knowledge/inbox.mjs';
 import { getProposal, proposalsDir } from '../knowledge/proposals.mjs';
 import { readItem } from '../knowledge/items.mjs';

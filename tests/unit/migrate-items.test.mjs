@@ -12,11 +12,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { migrateItems, needsItemsMigration } from '../../zuzuu/commands/migrate.mjs';
 import { parseEnvelope, validateEnvelope, PAYLOAD_SCHEMAS } from '../../zuzuu/faculty/envelope.mjs';
-import { loadRules, evaluate } from '../../zuzuu/guardrails.mjs';
+import { loadRules, evaluate } from '../../zuzuu/guardrails/engine.mjs';
 import { readItem } from '../../zuzuu/knowledge/items.mjs';
 import { runAction } from '../../zuzuu/actions/dispatch.mjs';
 import { allActions } from '../../zuzuu/actions/manifest.mjs';
-import { computeDigest } from '../../zuzuu/digest.mjs';
+import { computeDigest } from '../../zuzuu/digest/compose.mjs';
 
 // ── the OLD shapes, verbatim ────────────────────────────────────────────────
 

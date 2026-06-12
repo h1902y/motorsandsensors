@@ -15,8 +15,8 @@
 
 import { join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
-import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from './knowledge/registry.mjs';
-import { serializeEnvelope, PAYLOAD_SCHEMAS, FACULTY_KINDS } from './faculty/envelope.mjs';
+import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../knowledge/registry.mjs';
+import { serializeEnvelope, PAYLOAD_SCHEMAS, FACULTY_KINDS } from '../faculty/envelope.mjs';
 
 export const MANIFEST_VERSION = 4;
 

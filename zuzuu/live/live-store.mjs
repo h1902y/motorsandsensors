@@ -7,8 +7,8 @@
 
 import { join } from 'node:path';
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';
-import { paths, liveDir as liveDirOf } from '../store.mjs';
-import { SessionState } from '../session.mjs';
+import { paths, liveDir as liveDirOf } from '../core/store.mjs';
+import { SessionState } from '../core/session.mjs';
 
 const liveDir = (cwd) => liveDirOf(paths(cwd).dir);
 // Some hosts pass a file PATH as the session id (pi → the session-file path).

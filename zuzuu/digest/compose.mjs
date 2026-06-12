@@ -5,11 +5,11 @@
 // reader is wrapped so a single broken faculty never sinks the whole digest.
 
 import { join } from 'node:path';
-import { allItems } from './knowledge/items.mjs';
-import { listProposals } from './knowledge/proposals.mjs';
-import { loadRules } from './guardrails.mjs';
-import { allActions } from './actions/manifest.mjs';
-import { listFacultyItems } from './faculty/items.mjs';
+import { allItems } from '../knowledge/items.mjs';
+import { listProposals } from '../knowledge/proposals.mjs';
+import { loadRules } from '../guardrails/engine.mjs';
+import { allActions } from '../actions/manifest.mjs';
+import { listFacultyItems } from '../faculty/items.mjs';
 
 const PLACEHOLDER_MARK = '<!-- Fill in:';
 

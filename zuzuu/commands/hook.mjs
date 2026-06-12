@@ -14,13 +14,13 @@
 import { readFileSync, writeFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { byName } from '../capture/adapters/registry.mjs';
-import { captureTrace } from '../capture-core.mjs';
-import { SessionState } from '../session.mjs';
+import { captureTrace } from '../core/capture-core.mjs';
+import { SessionState } from '../core/session.mjs';
 import { openLive, touchLive, closeLive, updateLive } from '../live/live-store.mjs';
-import { sessionGitEnabled, openSession, checkpoint, closeSession } from '../session-git.mjs';
-import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../guardrails.mjs';
-import { paths, liveDir as liveDirOf } from '../store.mjs';
-import { computeDigest } from '../digest.mjs';
+import { sessionGitEnabled, openSession, checkpoint, closeSession } from '../sessions/session-git.mjs';
+import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../guardrails/engine.mjs';
+import { paths, liveDir as liveDirOf } from '../core/store.mjs';
+import { computeDigest } from '../digest/compose.mjs';
 import { activeGeneration } from '../faculty/generation.mjs';
 
 // Lifecycle events, normalized across hosts (verified by observing each host):

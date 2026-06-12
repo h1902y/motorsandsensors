@@ -31,7 +31,7 @@
 
 import { join } from 'node:path';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { parseEnvelope } from './faculty/envelope.mjs';
+import { parseEnvelope } from '../faculty/envelope.mjs';
 
 const SEVERITY = { deny: 3, ask: 2, allow: 1 };
 const ACTIONS = new Set(Object.keys(SEVERITY));

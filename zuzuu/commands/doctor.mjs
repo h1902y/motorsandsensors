@@ -3,16 +3,16 @@
 
 import { mkdirSync, accessSync, constants } from 'node:fs';
 import { detected } from '../capture/adapters/registry.mjs';
-import { paths, gitInfo } from '../store.mjs';
+import { paths, gitInfo } from '../core/store.mjs';
 import { listLive } from '../live/live-store.mjs';
 import { reconcile } from '../live/reconcile.mjs';
-import { planScaffold, homeExists } from '../scaffold.mjs';
+import { planScaffold, homeExists } from '../home/scaffold.mjs';
 import { loadRegistry } from '../knowledge/registry.mjs';
 import { allItems } from '../knowledge/items.mjs';
 import { listProposals } from '../knowledge/proposals.mjs';
 import { detectEmbedder } from '../knowledge/embed.mjs';
 import { activeGeneration, readGeneration, snapshotFaculties } from '../faculty/generation.mjs';
-import { sessionStatus } from '../session-git.mjs';
+import { sessionStatus } from '../sessions/session-git.mjs';
 import { leftoverLine } from './session.mjs';
 
 /**

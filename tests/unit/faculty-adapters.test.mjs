@@ -16,8 +16,8 @@ import '../../zuzuu/memory/adapter.mjs';
 import * as registry from '../../zuzuu/faculty/registry.mjs';
 import * as gate from '../../zuzuu/faculty/gate.mjs';
 import { writeProposal, makeProposal } from '../../zuzuu/faculty/proposal.mjs';
-import { applyScaffold, LAYOUT } from '../../zuzuu/scaffold.mjs';
-import { loadRules } from '../../zuzuu/guardrails.mjs';
+import { applyScaffold, LAYOUT } from '../../zuzuu/home/scaffold.mjs';
+import { loadRules } from '../../zuzuu/guardrails/engine.mjs';
 import { parseEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 // ---------------------------------------------------------------------------

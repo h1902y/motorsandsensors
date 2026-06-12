@@ -8,7 +8,7 @@
 // All git mutation lives in session-git.mjs (fail-soft, never throws); this is
 // the thin print layer (xxxData pattern — pure data fns + --json everywhere).
 
-import { sessionStatus, closeSession, continueSession, discardSession } from '../session-git.mjs';
+import { sessionStatus, closeSession, continueSession, discardSession } from '../sessions/session-git.mjs';
 
 /** Pure: structured session-git state (the leftover detector included). */
 export function sessionStatusData(cwd = process.cwd()) {

@@ -1,4 +1,4 @@
-// zuzuu/session-git.mjs — invisible session-git: one agent session = one branch.
+// zuzuu/sessions/session-git.mjs — invisible session-git: one agent session = one branch.
 //
 //   OPEN  → create `zz/session-<shortid>` (a branch, never a worktree)
 //   TURN  → checkpoint commit ON the session branch
@@ -7,7 +7,7 @@
 // THE most safety-critical module in the codebase: it runs git mutations inside
 // USERS' repos, triggered from fail-open lifecycle hooks. Therefore:
 //   - every exported op is try-wrapped and returns { ok:false, reason } — NEVER throws
-//   - all git goes through spawnSync('git', [args], {cwd}) — no shell strings
+//   - all git goes through git.mjs plumbing — spawnSync argv arrays, no shell strings
 //   - non-repo / bare / detached HEAD / merge-rebase-in-progress / unborn HEAD → no-op
 //   - never push, never touch remotes, never auto-resolve conflicts (conflict →
 //     abort the squash, restore the branch, leave the repo exactly as before)
@@ -22,36 +22,11 @@
 //     still has checkpoints KEEPS the branch (explicit discard is the only
 //     way exploration history is dropped).
 
-import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, rmSync } from 'node:fs';
-import { join, isAbsolute, resolve } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { git, gitDir, currentBranch, branchExists, isDirty, cleanupSquashState } from './git.mjs';
 
 const PREFIX = 'zz/session-';
-
-/** One git call — argv array only (no shell), never throws. */
-function git(args, cwd, input) {
-  try {
-    const r = spawnSync('git', args, { cwd, encoding: 'utf8', input });
-    return { ok: r.status === 0 && !r.error, out: (r.stdout ?? '').trim(), err: (r.stderr ?? '').trim() };
-  } catch (e) {
-    return { ok: false, out: '', err: String(e) };
-  }
-}
-
-function gitDir(cwd) {
-  const r = git(['rev-parse', '--git-dir'], cwd);
-  if (!r.ok || !r.out) return null;
-  return isAbsolute(r.out) ? r.out : resolve(cwd, r.out);
-}
-
-/** Current branch name, or null when detached / not a repo. */
-function currentBranch(cwd) {
-  const r = git(['symbolic-ref', '--short', '-q', 'HEAD'], cwd);
-  return r.ok && r.out ? r.out : null;
-}
-
-const branchExists = (cwd, name) => git(['rev-parse', '-q', '--verify', `refs/heads/${name}`], cwd).ok;
-const isDirty = (cwd) => !!git(['status', '--porcelain'], cwd).out;
 
 /** Why git mutations are unsafe right now, or null when clear. */
 function unsafeReason(cwd) {
@@ -247,19 +222,6 @@ export function sessionStatus(cwd) {
 }
 
 const defaultTitle = (branch) => `${branch} · ${new Date().toISOString().slice(0, 10)}`;
-
-/** Best-effort: drop squash leftovers so they can't leak into the user's next commit. */
-function cleanupSquashState(cwd) {
-  const gd = gitDir(cwd);
-  if (!gd) return;
-  for (const f of ['SQUASH_MSG', 'MERGE_MSG']) {
-    try {
-      rmSync(join(gd, f), { force: true });
-    } catch {
-      /* best-effort */
-    }
-  }
-}
 
 /**
  * END: squash-merge the session branch into main as ONE commit

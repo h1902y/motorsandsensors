@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { LAYOUT, IGNORE_LINES, planScaffold, applyScaffold, ensureGitignore, homeExists } from '../../zuzuu/scaffold.mjs';
+import { LAYOUT, IGNORE_LINES, planScaffold, applyScaffold, ensureGitignore, homeExists } from '../../zuzuu/home/scaffold.mjs';
 import { parseEnvelope, validateEnvelope, PAYLOAD_SCHEMAS } from '../../zuzuu/faculty/envelope.mjs';
 
 function withTemp(fn) {

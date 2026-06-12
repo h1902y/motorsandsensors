@@ -5,7 +5,7 @@
 // points at `zuzuu review`. Fail-soft per faculty — a broken adapter or unreadable
 // proposal never sinks the whole view.
 
-import { paths } from '../store.mjs';
+import { paths } from '../core/store.mjs';
 import { FACULTIES } from '../faculty/contract.mjs';
 import { listProposals } from '../faculty/proposal.mjs';
 import * as registry from '../faculty/registry.mjs';

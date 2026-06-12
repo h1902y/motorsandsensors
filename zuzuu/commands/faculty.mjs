@@ -10,7 +10,7 @@
 
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { paths } from '../store.mjs';
+import { paths } from '../core/store.mjs';
 import { FACULTIES } from '../faculty/contract.mjs';
 import { listFacultyItems } from '../faculty/items.mjs';
 import { PAYLOAD_SCHEMAS, FACULTY_KINDS } from '../faculty/envelope.mjs';

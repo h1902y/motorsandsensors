@@ -4,7 +4,7 @@
 //   zuzuu generation mint             manually mint a generation from the current faculty state
 //   zuzuu generation rollback <id>    restore a past generation by content (flip active + restore)
 
-import { paths, repoRoot } from '../store.mjs';
+import { paths, repoRoot } from '../core/store.mjs';
 import {
   listGenerations, readGeneration, activeGeneration, mintGeneration, rollback, diffGenerations,
 } from '../faculty/generation.mjs';

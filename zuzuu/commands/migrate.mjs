@@ -17,10 +17,10 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync, renameSync, rmSync, statSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { paths, repoRoot } from '../store.mjs';
+import { paths, repoRoot } from '../core/store.mjs';
 import { proposalsDir, archiveDir } from '../faculty/contract.mjs';
-import { ensureGitignore } from '../scaffold.mjs';
-import { injectBlock, BLOCK_VERSION } from '../inject.mjs';
+import { ensureGitignore } from '../home/scaffold.mjs';
+import { injectBlock, BLOCK_VERSION } from '../home/inject.mjs';
 import { serializeEnvelope, deriveTitle } from '../faculty/envelope.mjs';
 import { serializeItem } from '../knowledge/items.mjs';
 

@@ -104,7 +104,7 @@ test('mode 3 — reinit restores missing pieces only', () => {
 });
 
 test('reinit upgrades an older faculty block to the current version in place', async () => {
-  const { facultiesBlock, BLOCK_VERSION } = await import('../../zuzuu/inject.mjs');
+  const { facultiesBlock, BLOCK_VERSION } = await import('../../zuzuu/home/inject.mjs');
   withTemp((cwd) => {
     writeFileSync(join(cwd, 'CLAUDE.md'), '# Mine\n\n' + facultiesBlock(1) + '\n\n## After section\n');
     const out = run(cwd);

@@ -18,7 +18,7 @@
 import { join } from 'node:path';
 import { slugify } from '../knowledge/items.mjs';
 import { makeProposal, writeProposal, listProposals, isArchivedResolved } from '../faculty/proposal.mjs';
-import { loadRules as loadRuleItems } from '../guardrails.mjs';
+import { loadRules as loadRuleItems } from '../guardrails/engine.mjs';
 import { register } from './registry.mjs';
 
 // ---------------------------------------------------------------------------

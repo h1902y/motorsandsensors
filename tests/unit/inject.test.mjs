@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { facultiesBlock, injectBlock, removeBlock, hasBlock } from '../../zuzuu/inject.mjs';
+import { facultiesBlock, injectBlock, removeBlock, hasBlock } from '../../zuzuu/home/inject.mjs';
 
 const USER = '# My project\n\nHand-written instructions the user owns.\n';
 

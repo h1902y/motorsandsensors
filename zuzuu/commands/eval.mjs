@@ -7,7 +7,7 @@
 // a one-line eval annotation per proposal card.
 
 import { join } from 'node:path';
-import { paths, readIndex } from '../store.mjs';
+import { paths, readIndex } from '../core/store.mjs';
 import * as registry from '../faculty/registry.mjs';
 import { listProposals as spineListProposals } from '../faculty/proposal.mjs';
 import { rank } from '../eval/rank.mjs';

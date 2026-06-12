@@ -5,7 +5,7 @@
 // registered faculty miner (knowledge today; actions/guardrails/instructions/
 // memory land in later WS5 tasks) over the shared sessions array.
 
-import { paths } from '../store.mjs';
+import { paths } from '../core/store.mjs';
 import { distillSessions, transcriptsFor, mineHostSession } from '../knowledge/distill.mjs';
 import * as registry from '../miners/registry.mjs';
 // Import miner modules so they self-register.

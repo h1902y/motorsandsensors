@@ -7,7 +7,7 @@
 
 import { join } from 'node:path';
 import { mkdirSync, appendFileSync } from 'node:fs';
-import { liveDir } from '../store.mjs';
+import { liveDir } from '../core/store.mjs';
 
 /**
  * Append a trail entry for a faculty. Never throws.

@@ -1,7 +1,7 @@
 // Knowledge CLI: `zuzuu remember` (human-direct write — the human IS the gate),
 // `zuzuu recall` (one command, three search modes), `zuzuu knowledge reindex|audit`.
 
-import { paths } from '../store.mjs';
+import { paths } from '../core/store.mjs';
 import { loadRegistry, validateItem } from '../knowledge/registry.mjs';
 import { slugify, writeItem, readItem, allItems } from '../knowledge/items.mjs';
 import { upsertItem, reindex, search, neighbors, indexPath, putVector, allVectors, unembedded } from '../knowledge/index.mjs';
