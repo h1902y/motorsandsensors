@@ -10,7 +10,7 @@
   },
   "homepage": "https://github.com/h1902y/zuzuu-web",
   "bin": {
-    "zuzuu-web": "./bin/zuzuu-web.js"
+    "zuzuu-web": "bin/zuzuu-web.js"
   },
   "files": [
     "bin",
