@@ -12,11 +12,6 @@ import * as registry from '../faculty/registry.mjs';
 import { buildSessionMtimes, facultyPending } from '../faculty/pending.mjs';
 import { rank } from '../eval/rank.mjs';
 import { getScorer } from '../eval/score.mjs';
-import '../knowledge/adapter.mjs';    // self-registers the 'knowledge' adapter
-import '../actions/adapter.mjs';      // self-registers the 'actions' adapter
-import '../guardrails/adapter.mjs';   // self-registers the 'guardrails' adapter
-import '../instructions/adapter.mjs'; // self-registers the 'instructions' adapter
-import '../memory/adapter.mjs';       // self-registers the 'memory' adapter
 
 /**
  * Format one eval annotation line for a proposal card in `zuzuu review`.

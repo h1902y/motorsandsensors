@@ -15,8 +15,8 @@ import { tmpdir } from 'node:os';
 
 import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../../zuzuu/knowledge/registry.mjs';
 import { createProposal, rejectProposal, approveProposal, listProposals } from '../../zuzuu/knowledge/proposals.mjs';
-import { propose as kPropose } from '../../zuzuu/miners/knowledge.mjs';
-import { aggregate as gAggregate, propose as gPropose } from '../../zuzuu/miners/guardrails.mjs';
+import { propose as kPropose } from '../../zuzuu/faculties/knowledge/index.mjs';
+import { aggregate as gAggregate, propose as gPropose } from '../../zuzuu/faculties/guardrails/index.mjs';
 import { archiveProposal, listProposals as listFacultyProposals, readArchived, isArchivedResolved } from '../../zuzuu/faculty/proposal.mjs';
 
 const home = (prefix) => mkdtempSync(join(tmpdir(), prefix));

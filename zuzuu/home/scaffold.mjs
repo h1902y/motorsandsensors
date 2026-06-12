@@ -17,6 +17,7 @@ import { join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../knowledge/registry.mjs';
 import { serializeEnvelope, PAYLOAD_SCHEMAS, FACULTY_KINDS } from '../faculty/envelope.mjs';
+import { BUILTIN_MODULES } from '../faculty/registry.mjs';
 
 export const MANIFEST_VERSION = 4;
 
@@ -194,6 +195,10 @@ const ENVELOPE_SPEC = JSON.stringify(
 
 const payloadSchemaSeed = (f) => JSON.stringify(PAYLOAD_SCHEMAS[f], null, 2) + '\n';
 
+/** Faculty Module manifest seed (faculty.json) — the built-in module's canonical
+ *  manifest, serialized. Pinned definitions: byte-identical on re-init. */
+export const manifestSeed = (f) => JSON.stringify(BUILTIN_MODULES[f].manifest, null, 2) + '\n';
+
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
   dirs: ['.zuzuu', '.zuzuu/knowledge', '.zuzuu/knowledge/registry', '.zuzuu/knowledge/items', '.zuzuu/knowledge/inbox', '.zuzuu/knowledge/proposals', '.zuzuu/memory', '.zuzuu/memory/entries', '.zuzuu/memory/inbox', '.zuzuu/memory/proposals', '.zuzuu/actions', '.zuzuu/actions/inbox', '.zuzuu/instructions', '.zuzuu/instructions/items', '.zuzuu/instructions/inbox', '.zuzuu/instructions/proposals', '.zuzuu/guardrails', '.zuzuu/guardrails/items', '.zuzuu/guardrails/inbox', '.zuzuu/guardrails/proposals', '.zuzuu/generations', '.zuzuu/generations/snapshots'],
@@ -202,15 +207,20 @@ export const LAYOUT = {
     '.zuzuu/schema.json': ENVELOPE_SPEC,
     '.zuzuu/knowledge/README.md': KNOWLEDGE_README,
     '.zuzuu/knowledge/schema.json': payloadSchemaSeed('knowledge'),
+    '.zuzuu/knowledge/faculty.json': manifestSeed('knowledge'),
     '.zuzuu/memory/README.md': MEMORY_README,
     '.zuzuu/memory/schema.json': payloadSchemaSeed('memory'),
+    '.zuzuu/memory/faculty.json': manifestSeed('memory'),
     '.zuzuu/actions/README.md': ACTIONS_README,
     '.zuzuu/actions/schema.json': payloadSchemaSeed('actions'),
+    '.zuzuu/actions/faculty.json': manifestSeed('actions'),
     '.zuzuu/instructions/README.md': INSTRUCTIONS_README,
     '.zuzuu/instructions/schema.json': payloadSchemaSeed('instructions'),
+    '.zuzuu/instructions/faculty.json': manifestSeed('instructions'),
     '.zuzuu/instructions/items/steering.md': STEERING_SEED,
     '.zuzuu/guardrails/README.md': GUARDRAILS_README,
     '.zuzuu/guardrails/schema.json': payloadSchemaSeed('guardrails'),
+    '.zuzuu/guardrails/faculty.json': manifestSeed('guardrails'),
     '.zuzuu/guardrails/items/no-root-wipe.md': RULE_SEEDS['no-root-wipe'],
     '.zuzuu/guardrails/items/no-secret-reads.md': RULE_SEEDS['no-secret-reads'],
     '.zuzuu/guardrails/items/confirm-force-push.md': RULE_SEEDS['confirm-force-push'],

@@ -10,11 +10,6 @@ import * as registry from '../faculty/registry.mjs';
 import * as gate from '../faculty/gate.mjs';
 import { pendingByFaculty } from '../faculty/pending.mjs';
 import { knowledgeLine, proposalTitle } from '../faculty/render.mjs';
-import '../knowledge/adapter.mjs';    // self-registers the 'knowledge' adapter
-import '../actions/adapter.mjs';      // self-registers the 'actions' adapter
-import '../guardrails/adapter.mjs';   // self-registers the 'guardrails' adapter
-import '../instructions/adapter.mjs'; // self-registers the 'instructions' adapter
-import '../memory/adapter.mjs';       // self-registers the 'memory' adapter
 
 /**
  * Resolve which faculty owns a given proposal id (used when --faculty is omitted).

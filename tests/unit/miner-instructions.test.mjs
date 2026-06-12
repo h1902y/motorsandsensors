@@ -8,17 +8,13 @@ import { join } from 'node:path';
 import { mkdtempSync, existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-import { miner, aggregate, propose } from '../../zuzuu/miners/instructions.mjs';
-import * as registry from '../../zuzuu/miners/registry.mjs';
+import { miner, aggregate, propose } from '../../zuzuu/faculties/instructions/index.mjs';
+import * as registry from '../../zuzuu/faculty/registry.mjs';
 import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 // Import memory miner so it self-registers (needed for Test 4 + Test 5).
-import '../../zuzuu/miners/memory.mjs';
 
 // Import all 5 miners to verify full registry (Test 5 requires them all).
-import '../../zuzuu/miners/knowledge.mjs';
-import '../../zuzuu/miners/actions.mjs';
-import '../../zuzuu/miners/guardrails.mjs';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -138,7 +134,7 @@ test('propose: idempotent — skips if text already present in an instructions i
 // Test 4: memory miner stub is registered, aggregate → [], propose → 0.
 
 test('memory miner: stub registered, aggregate returns [], propose returns 0', () => {
-  const m = registry.get('memory');
+  const m = registry.minerOf('memory');
   assert.ok(m, 'memory miner is registered');
   assert.equal(m.stub, true, 'memory miner has stub:true');
   assert.deepEqual(m.aggregate(), [], 'aggregate returns empty array');
@@ -149,7 +145,7 @@ test('memory miner: stub registered, aggregate returns [], propose returns 0', (
 // Test 5: registry.all() includes all 5 faculties after importing all miners.
 
 test('registry.all() includes all 5 faculties: knowledge, actions, guardrails, instructions, memory', () => {
-  const faculties = registry.all().map((m) => m.faculty);
+  const faculties = registry.miners().map((m) => m.faculty);
   assert.ok(faculties.includes('knowledge'), 'knowledge in registry');
   assert.ok(faculties.includes('actions'), 'actions in registry');
   assert.ok(faculties.includes('guardrails'), 'guardrails in registry');
@@ -162,8 +158,8 @@ test('registry.all() includes all 5 faculties: knowledge, actions, guardrails, i
 // Test 6: instructions miner self-registers on import.
 
 test('instructions miner self-registers on import', () => {
-  assert.ok(registry.get('instructions'), 'instructions miner in registry');
-  assert.equal(registry.get('instructions'), miner);
+  assert.ok(registry.minerOf('instructions'), 'instructions miner in registry');
+  assert.equal(registry.minerOf('instructions'), miner);
   assert.equal(miner.faculty, 'instructions');
   assert.equal(typeof miner.aggregate, 'function');
   assert.equal(typeof miner.propose, 'function');

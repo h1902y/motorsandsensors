@@ -7,8 +7,8 @@ import { join } from 'node:path';
 import { mkdtempSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-import { miner, aggregate, propose } from '../../zuzuu/miners/actions.mjs';
-import * as registry from '../../zuzuu/miners/registry.mjs';
+import { miner, aggregate, propose } from '../../zuzuu/faculties/actions/index.mjs';
+import * as registry from '../../zuzuu/faculty/registry.mjs';
 import { parseEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 // ---------------------------------------------------------------------------
@@ -144,8 +144,8 @@ test('propose: idempotent — second call does not duplicate or throw', () => {
 // Test 6: actions miner self-registers on import.
 
 test('actions miner self-registers on import', () => {
-  assert.ok(registry.get('actions'), 'actions miner in registry');
-  assert.equal(registry.get('actions'), miner);
+  assert.ok(registry.minerOf('actions'), 'actions miner in registry');
+  assert.equal(registry.minerOf('actions'), miner);
   assert.equal(miner.faculty, 'actions');
   assert.equal(typeof miner.aggregate, 'function');
   assert.equal(typeof miner.propose, 'function');

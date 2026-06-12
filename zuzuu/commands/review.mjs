@@ -17,11 +17,6 @@ import { activeGeneration } from '../faculty/generation/read.mjs';
 import { mintGeneration } from '../faculty/generation/write.mjs';
 import { getScorer } from '../eval/score.mjs';
 import { evalLine } from './eval.mjs';
-import '../knowledge/adapter.mjs';    // self-registers the 'knowledge' adapter
-import '../actions/adapter.mjs';      // self-registers the 'actions' adapter
-import '../guardrails/adapter.mjs';   // self-registers the 'guardrails' adapter
-import '../instructions/adapter.mjs'; // self-registers the 'instructions' adapter
-import '../memory/adapter.mjs';       // self-registers the 'memory' adapter
 
 /**
  * Pure: the graduation ceremony block shown when a generation is minted.

@@ -8,6 +8,8 @@ import { existsSync, readdirSync, readFileSync, writeFileSync, rmSync, statSync,
 import { join } from 'node:path';
 import { serializeEnvelope, deriveTitle } from '../../faculty/envelope.mjs';
 import { serializeItem } from '../../knowledge/items.mjs';
+import { FACULTIES } from '../../faculty/contract.mjs';
+import { BUILTIN_MODULES } from '../../faculty/registry.mjs';
 
 /** Does this file's frontmatter already carry the envelope (a `faculty:` key)? */
 function isEnvelopeText(text) {
@@ -289,10 +291,31 @@ function migrateInstructions(agentDir, out) {
   }
 }
 
+/** Seed missing <faculty>/faculty.json manifests into an existing home (the
+ *  Faculty Module contract, 2026-06-13). Only faculties whose dir exists get
+ *  one — a migrator repairs, it never scaffolds. Idempotent, fail-soft. */
+function seedFacultyManifests(agentDir, out) {
+  for (const f of FACULTIES) {
+    try {
+      const dir = join(agentDir, f);
+      if (!existsSync(dir)) continue;
+      const p = join(dir, 'faculty.json');
+      if (existsSync(p)) continue;
+      writeFileSync(p, JSON.stringify(BUILTIN_MODULES[f].manifest, null, 2) + '\n');
+      out.manifests++;
+    } catch (e) {
+      out.errors.push({ file: `${f}/faculty.json`, error: e.message });
+    }
+  }
+}
+
 /**
  * Are pre-standard shapes present? Cheap checks gate the init auto-run.
  */
 export function needsItemsMigration(agentDir) {
+  for (const f of FACULTIES) {
+    if (existsSync(join(agentDir, f)) && !existsSync(join(agentDir, f, 'faculty.json'))) return true;
+  }
   if (existsSync(join(agentDir, 'guardrails', 'rules.json'))) return true;
   if (existsSync(join(agentDir, 'instructions', 'project.md'))) return true;
   for (const base of [join(agentDir, 'actions'), join(agentDir, 'actions', 'inbox')]) {
@@ -322,15 +345,16 @@ export function needsItemsMigration(agentDir) {
  * files are skipped) and fail-soft per item (an unconvertible item is reported,
  * never fatal; its legacy source is left in place).
  * @returns {{knowledge:number, memory:number, guardrails:number, actions:number,
- *            instructions:number, skipped:number, errors:Array<{file,error}>}}
+ *            instructions:number, manifests:number, skipped:number, errors:Array<{file,error}>}}
  */
 export function migrateItems(agentDir) {
-  const out = { knowledge: 0, memory: 0, guardrails: 0, actions: 0, instructions: 0, skipped: 0, errors: [] };
+  const out = { knowledge: 0, memory: 0, guardrails: 0, actions: 0, instructions: 0, manifests: 0, skipped: 0, errors: [] };
   migrateKnowledgeItems(agentDir, out);
   migrateMemoryEntries(agentDir, out);
   migrateGuardrails(agentDir, out);
   migrateActions(agentDir, out);
   migrateInstructions(agentDir, out);
+  seedFacultyManifests(agentDir, out);
   return out;
 }
 

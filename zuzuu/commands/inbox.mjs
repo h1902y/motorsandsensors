@@ -9,11 +9,6 @@ import { paths } from '../core/store.mjs';
 import { FACULTIES } from '../faculty/contract.mjs';
 import { listProposals } from '../faculty/proposal.mjs';
 import * as registry from '../faculty/registry.mjs';
-import '../knowledge/adapter.mjs';    // self-registers the 'knowledge' adapter
-import '../actions/adapter.mjs';      // self-registers the 'actions' adapter
-import '../guardrails/adapter.mjs';   // self-registers the 'guardrails' adapter
-import '../instructions/adapter.mjs'; // self-registers the 'instructions' adapter
-import '../memory/adapter.mjs';       // self-registers the 'memory' adapter
 
 /** Best-effort one-line title for a proposal (adapter.render → payload → id). */
 function titleOf(faculty, p) {

@@ -8,11 +8,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, readFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-// Self-registers each adapter on import:
-import '../../zuzuu/guardrails/adapter.mjs';
-import '../../zuzuu/instructions/adapter.mjs';
-import '../../zuzuu/memory/adapter.mjs';
-
+// Built-in adapters are always present in the Faculty Module registry:
 import * as registry from '../../zuzuu/faculty/registry.mjs';
 import * as gate from '../../zuzuu/faculty/gate.mjs';
 import { writeProposal, makeProposal } from '../../zuzuu/faculty/proposal.mjs';

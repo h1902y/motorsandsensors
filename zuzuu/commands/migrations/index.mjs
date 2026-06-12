@@ -23,8 +23,9 @@ export function migrate(args = {}) {
     const r = migrateItems(agentDir);
     const total = r.knowledge + r.memory + r.guardrails + r.actions + r.instructions;
     console.log(`migrate --items: ${total} item(s) → the Faculty Standard envelope — knowledge ${r.knowledge} · memory ${r.memory} · guardrails ${r.guardrails} · actions ${r.actions} · instructions ${r.instructions} (${r.skipped} already standard)`);
+    if (r.manifests) console.log(`  seeded ${r.manifests} faculty manifest(s) (faculty.json — the Faculty Module contract)`);
     for (const e of r.errors) console.log(`  ✗ ${e.file}: ${e.error}`);
-    if (!total && !r.errors.length) console.log('  nothing to migrate (the home already speaks the envelope)');
+    if (!total && !r.manifests && !r.errors.length) console.log('  nothing to migrate (the home already speaks the envelope)');
     return;
   }
   if (args.home) {

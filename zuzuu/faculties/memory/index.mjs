@@ -1,7 +1,9 @@
-// zuzuu/memory/adapter.mjs
-// The Memory faculty adapter. Wraps episode proposals behind the
-// faculty-spine adapter contract — { name, ingest, validate, apply, render } —
-// so `zuzuu review` can surface and approve memory entries uniformly.
+// zuzuu/faculties/memory/index.mjs — the Memory faculty module.
+//
+// Consolidates the adapter (episode proposals → envelope entries) and the
+// miner STUB (WS5-T4, deferred — see the WHAT IT WOULD MINE note below) behind
+// the Faculty Module contract. No digest section today (the pre-module digest
+// never rendered one — preserved).
 //
 // A memory proposal payload is an episode record:
 //   { id, date, title, provenance: {sessions, hosts}, tags, body }
@@ -11,12 +13,27 @@
 //        (kind: episode; payload = {sessions, hosts, tags}; body = the
 //        Attempted / Resulted / Remember-next-time sections).
 //
-// Registers itself on import.
+// MINER (when implemented): completed-session episodes — a Run that reached
+// `completed` in .zuzuu/sessions.json distilled into curated entries, emitted
+// as kind-'episode' proposals for `zuzuu review`. Deferred until the Memory
+// substrate decision lands and completed runs carry rich enough trace data.
 
-import * as registry from '../faculty/registry.mjs';
-import { writeFacultyItem } from '../faculty/items.mjs';
+import { writeFacultyItem } from '../../faculty/items.mjs';
 
 const name = 'memory';
+
+export const manifest = {
+  id: 'memory',
+  title: 'Memory',
+  tagline: 'what HAPPENED — curated episodes from past sessions',
+  version: '1.0.0',
+  contract: 1,
+  kinds: ['episode'],
+  itemsDir: 'entries',
+  schema: 'schema.json',
+  hooks: { miner: true, digest: false, eval: false, gate: false },
+  ui: { icon: 'clock', accent: 'neutral', teaching: 'Curated episodes from past sessions — what was attempted, what resulted, what to remember.' },
+};
 
 // mem-<YYYY-MM-DD>-<slug>: the id must START with "mem-"
 const MEM_ID_RE = /^mem-/;
@@ -37,7 +54,7 @@ function ingest(_agentDir, raw) {
  * Validate an episode payload.
  * @returns {{ok:boolean, errors:string[], warnings:string[]}}
  */
-function validate(_agentDir, payload) {
+export function validate(_agentDir, payload) {
   const errors = [];
   if (!payload?.id || typeof payload.id !== 'string') {
     errors.push('id is required');
@@ -76,6 +93,8 @@ function apply(agentDir, proposal) {
   return { ok: true, action: `wrote memory ${p.id}`, itemIds: [p.id] };
 }
 
+export const applyProposal = apply;
+
 /**
  * Render an episode proposal for the human gate.
  * @returns {{line:string, card:string}}
@@ -93,4 +112,13 @@ function render(proposal) {
 
 export const adapter = { name, ingest, validate, apply, render };
 
-registry.register(adapter);
+// ---------------------------------------------------------------------------
+// miner (registered no-op stub — deferred)
+// ---------------------------------------------------------------------------
+
+export const miner = {
+  faculty: name,
+  stub: true,
+  aggregate: () => [],
+  propose: () => 0,
+};

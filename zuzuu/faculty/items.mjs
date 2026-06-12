@@ -22,10 +22,15 @@ const ITEM_DIRS = {
   guardrails: ['guardrails', 'items'],
 };
 
-/** The flat items dir for a faculty, or null for dir-shaped faculties (actions). */
-export function itemsDirFor(agentDir, faculty) {
+/** The flat items dir for a faculty, or null for dir-shaped faculties (actions).
+ *  Unknown (declarative) faculties default to `<faculty>/<itemsDir||'items'>`
+ *  under the home — manifest-only faculties get items listing for free. */
+export function itemsDirFor(agentDir, faculty, itemsDir) {
+  if (faculty === 'actions') return null;
   const rel = ITEM_DIRS[faculty];
-  return rel ? join(agentDir, ...rel) : null;
+  if (rel) return join(agentDir, ...rel);
+  const sub = itemsDir && itemsDir !== '.' ? itemsDir : 'items';
+  return join(agentDir, faculty, sub);
 }
 
 /** Canonical envelope file path for one item. */
@@ -36,9 +41,10 @@ export function itemPathFor(agentDir, faculty, id) {
 
 /**
  * All envelope items of a faculty. Parse errors collected, never thrown.
+ * @param {{itemsDir?: string}} [opts]  declarative faculties pass manifest.itemsDir
  * @returns {{items: object[], errors: Array<{file: string, error: string}>}}
  */
-export function listFacultyItems(agentDir, faculty) {
+export function listFacultyItems(agentDir, faculty, opts = {}) {
   const items = [];
   const errors = [];
   if (faculty === 'actions') {
@@ -56,7 +62,7 @@ export function listFacultyItems(agentDir, faculty) {
     }
     return { items, errors };
   }
-  const dir = itemsDirFor(agentDir, faculty);
+  const dir = itemsDirFor(agentDir, faculty, opts.itemsDir);
   if (!dir || !existsSync(dir)) return { items, errors };
   for (const f of readdirSync(dir).filter((f) => f.endsWith('.md')).sort()) {
     const { ok, item, errors: errs } = parseEnvelope(readFileSync(join(dir, f), 'utf8'));

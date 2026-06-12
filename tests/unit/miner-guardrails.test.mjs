@@ -8,8 +8,8 @@ import { join } from 'node:path';
 import { mkdtempSync, existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-import { miner, aggregate, propose, escapeRegex } from '../../zuzuu/miners/guardrails.mjs';
-import * as registry from '../../zuzuu/miners/registry.mjs';
+import { miner, aggregate, propose, escapeRegex } from '../../zuzuu/faculties/guardrails/index.mjs';
+import * as registry from '../../zuzuu/faculty/registry.mjs';
 import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 // ---------------------------------------------------------------------------
@@ -261,8 +261,8 @@ test('propose: skips if the rule id already exists as a live rule item', () => {
 // Test 10: guardrails miner self-registers on import
 
 test('guardrails miner self-registers on import', () => {
-  assert.ok(registry.get('guardrails'), 'guardrails miner in registry');
-  assert.equal(registry.get('guardrails'), miner);
+  assert.ok(registry.minerOf('guardrails'), 'guardrails miner in registry');
+  assert.equal(registry.minerOf('guardrails'), miner);
   assert.equal(miner.faculty, 'guardrails');
   assert.equal(typeof miner.aggregate, 'function');
   assert.equal(typeof miner.propose, 'function');

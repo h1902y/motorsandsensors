@@ -124,7 +124,7 @@ switch (cmd) {
   case 'knowledge': await knowledge(args); break;
   case 'digest': digest(args); break;
   case 'act': act(args); break;
-  case 'distill': distill(args); break;
+  case 'distill': await distill(args); break;
   case 'inbox': inbox(args); break;
   case 'review': await review(args); break;
   case 'proposals': proposals(args); break;
