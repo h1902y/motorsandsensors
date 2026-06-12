@@ -21,6 +21,7 @@ import { DisconnectedBanner } from "./DisconnectedBanner";
 import { WelcomeOverlay } from "./onboarding/WelcomeOverlay";
 import { VaultPicker } from "./onboarding/VaultPicker";
 import { Bar, ModeTabs, Tab, TabBar, IconButton, StatusDot, DialogHost, prompt, ActionMenu, type MenuItem } from "./components/ui";
+import { SessionIndicator } from "./components/SessionIndicator";
 import { useView } from "./state/view";
 import { FacultiesView } from "./faculties/FacultiesView";
 import { ReviewFlow } from "./faculties/ReviewFlow";
@@ -49,7 +50,6 @@ export default function App() {
   const workspace = useQuery({ queryKey: ["workspace"], queryFn: api.workspace });
   const conn = useConnection();
   const wsConfig = useQuery({ queryKey: ["workspace", "config"], queryFn: api.workspaceConfig });
-  const gitStatus = useQuery({ queryKey: ["git", "status"], queryFn: api.gitStatus, refetchInterval: 4000, placeholderData: keepPreviousData });
   const files = useQuery({ queryKey: ["files"], queryFn: api.listFiles, staleTime: 30_000, placeholderData: keepPreviousData });
 
   // zuzuu agent chip: health gates everything; status + the combined review
@@ -248,6 +248,9 @@ export default function App() {
     document.title = activeTab ? `${activeTab.title} — ${name}` : name;
   }, [activeTab, workspace.data]);
 
+  // the active session's live cwd — folded into the vault menu button
+  const cwdLive = activeTab?.cwdLive ?? null;
+
   if (workspace.error || initError) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-ink-300">
@@ -258,8 +261,6 @@ export default function App() {
       </div>
     );
   }
-
-  const dirtyCount = gitStatus.data?.entries.length ?? 0;
 
   return (
     <div className="flex h-full flex-col">
@@ -351,9 +352,16 @@ export default function App() {
             {agentChipLabel(zuzuuStatus.data?.activeGeneration, reviewCount)}
           </button>
         )}
-        {/* connection health — hover reveals the live stats (files · sessions · uptime · mem) */}
+        {/* the ❯_ mark carries connection health: calm when connected (live
+            stats on hover), warn/red + pulse only while reconnecting/down */}
         <span
-          className="flex shrink-0 items-center gap-1.5"
+          className={`shrink-0 ${
+            conn.state === "connected"
+              ? "text-accent-dim"
+              : conn.state === "reconnecting"
+                ? "animate-pulse text-warn"
+                : "text-danger"
+          }`}
           title={[
             `daemon ${conn.state}`,
             files.data ? `${files.data.files.length}${files.data.truncated ? "+" : ""} files` : null,
@@ -364,21 +372,20 @@ export default function App() {
             .filter(Boolean)
             .join(" · ")}
         >
-          <StatusDot
-            tone={conn.state === "connected" ? "ok" : conn.state === "reconnecting" ? "warn" : "bad"}
-            pulse={conn.state === "reconnecting"}
-          />
-          <span className="text-accent-dim">❯_</span>
+          ❯_
         </span>
 
-        {/* vault name → vault menu */}
+        {/* vault name (· session cwd when it differs from the root) → vault menu */}
         <div className="relative shrink-0">
           <button
             onClick={() => setVaultMenuOpen((v) => !v)}
-            className="rounded px-1 text-ink-300 hover:text-accent"
-            title={workspace.data?.root}
+            className="max-w-72 truncate rounded px-1 text-ink-300 hover:text-accent"
+            title={cwdLive ? `${workspace.data?.root} · cwd ${cwdLive.cwd || "."}` : workspace.data?.root}
           >
-            {workspace.data?.name ?? "…"} ▾
+            {workspace.data?.name ?? "…"}
+            {cwdLive?.cwd && !cwdLive.outside && <span className="text-ink-500"> · {cwdLive.cwd}</span>}
+            {cwdLive?.outside && <span className="text-warn"> · {cwdLive.cwd} (outside)</span>}
+            {" "}▾
           </button>
           {vaultMenuOpen && (
             <>
@@ -396,6 +403,18 @@ export default function App() {
                 >
                   Browse… <span className="text-ink-500">⌘⇧O</span>
                 </button>
+                {cwdLive?.cwd && !cwdLive.outside && (
+                  <button
+                    onClick={() => {
+                      setVaultMenuOpen(false);
+                      closeSearch(); // make sure the tree is showing
+                      revealPath(cwdLive.cwd);
+                    }}
+                    className="block w-full px-3 py-1.5 text-left text-ui text-ink-100 hover:bg-hover"
+                  >
+                    Reveal cwd in tree
+                  </button>
+                )}
                 {vaultParent && (
                   <button
                     onClick={() => void switchVault(vaultParent)}
@@ -440,31 +459,8 @@ export default function App() {
           )}
         </div>
 
-        {/* cwd */}
-        {activeTab?.cwdLive && (
-          <button
-            title="Reveal in file tree"
-            onClick={() => {
-              if (!activeTab.cwdLive!.outside && activeTab.cwdLive!.cwd) {
-                closeSearch(); // make sure the tree is showing
-                revealPath(activeTab.cwdLive!.cwd);
-              }
-            }}
-            className="shrink-0 truncate text-ink-300 hover:text-accent"
-          >
-            ❯ {activeTab.cwdLive.outside
-              ? `${activeTab.cwdLive.cwd} (outside)`
-              : `./${activeTab.cwdLive.cwd}`}
-          </button>
-        )}
-
-        {/* git branch + dirty count */}
-        {gitStatus.data?.repo && (
-          <span className="shrink-0" title="Git branch">
-            ⎇ {gitStatus.data.branch}
-            {dirtyCount > 0 && <span className="ml-1 text-warn">±{dirtyCount}</span>}
-          </span>
-        )}
+        {/* session-git indicator (the old git-branch item's slot) */}
+        <SessionIndicator enabled={zuzuuHome} />
 
         <button
           onClick={() => setPaletteOpen(true)}

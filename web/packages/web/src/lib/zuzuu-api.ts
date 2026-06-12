@@ -3,15 +3,19 @@ import type {
   ZuzuuHealth, ZuzuuStatus, FacultySummary, FacultyDetail, InboxResponse,
   GenerationList, GenerationDiff, SessionsResponse, DigestResponse,
   EvalResponse, HostsResponse, ApproveResult, RejectResult, MintResult, RollbackResult,
+  SessionGitStatus, SessionMergeResult,
 } from "@zuzuu-web/protocol";
 
 /** Mutations fail in two daemon-defined shapes: 503 {error:"zuzuu CLI required"}
- *  (binary absent) and 502 {error, stderr} (command failed) — keep both. */
+ *  (binary absent) and 502 {error, stderr, data} (command failed — `data` is
+ *  the CLI's structured JSON when it printed one even on refusal). Keep all. */
 export class ZuzuuApiError extends Error {
   constructor(
     readonly status: number,
     message: string,
     readonly stderr?: string,
+    /** structured refusal payload (e.g. {reason:'empty-squash-with-checkpoints'}) */
+    readonly data?: unknown,
   ) {
     super(message);
   }
@@ -30,8 +34,8 @@ export function describeZuzuuError(err: unknown): string {
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api/zuzuu${path}`, init);
   if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { error?: string; stderr?: string } | null;
-    throw new ZuzuuApiError(res.status, body?.error ?? `request failed (${res.status})`, body?.stderr);
+    const body = (await res.json().catch(() => null)) as { error?: string; stderr?: string; data?: unknown } | null;
+    throw new ZuzuuApiError(res.status, body?.error ?? `request failed (${res.status})`, body?.stderr, body?.data);
   }
   return res.json() as Promise<T>;
 }
@@ -68,4 +72,11 @@ export const zuzuuApi = {
     request<MintResult>("/generation/mint", json({ from })),
   rollback: (id: string) =>
     request<RollbackResult>(`/generation/${encodeURIComponent(id)}/rollback`, json({})),
+
+  // ── Session-git (the invisible zz/session-* branch; footer + Phase ④ cards) ──
+  sessionGit: () => request<SessionGitStatus>("/session"),
+  sessionMerge: () => request<SessionMergeResult>("/session/merge", json({})),
+  sessionContinue: () => request<{ ok?: boolean; branch?: string }>("/session/continue", json({})),
+  /** daemon rides --yes server-side — the SPA confirm dialog is the human gate */
+  sessionDiscard: () => request<{ ok?: boolean }>("/session/discard", json({})),
 };
