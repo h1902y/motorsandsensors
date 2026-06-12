@@ -179,3 +179,95 @@ describe("POST /api/sessions command allowlist", () => {
     server.stop();
   });
 });
+describe("agent exit → session-git merge", () => {
+  it("agent PTY exit triggers EXACTLY ONE merge; closeResult retrievable via GET /api/sessions/:id", async () => {
+    const { stub, marker } = mergeStub(root);
+    const server = makeServer({ commandAllowlist: ["/bin/echo"], zuzuuBinary: stub });
+    const headers = await authedHeaders(server);
+    const created = await (
+      await postJson(server, headers, { command: "/bin/echo", args: ["done"], type: "agent", host: "claude" })
+    ).json();
+
+    let detail: Record<string, unknown> = {};
+    await waitFor(async () => {
+      const res = await server.app.request(`/api/sessions/${created.id}`, { headers });
+      expect(res.status).toBe(200);
+      detail = await res.json();
+      return detail.closeResult !== undefined;
+    });
+    expect(detail.alive).toBe(false);
+    expect(detail.closeResult).toEqual({
+      ok: true,
+      merge: { ok: true, mergedAs: "abc12345", mergedTo: "main", commits: 2, branch: "zz/session-x" },
+    });
+
+    await sleep(300); // give any would-be duplicate merge a beat
+    const calls = readFileSync(marker, "utf8").trim().split("\n");
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toContain("session merge");
+    server.stop();
+  });
+
+  it("absent zuzuu CLI → closeResult {cliAbsent:true}", async () => {
+    const server = makeServer({
+      commandAllowlist: ["/bin/echo"],
+      zuzuuBinary: "definitely-not-a-real-binary-zzz",
+    });
+    const headers = await authedHeaders(server);
+    const created = await (
+      await postJson(server, headers, { command: "/bin/echo", type: "agent" })
+    ).json();
+    let detail: Record<string, unknown> = {};
+    await waitFor(async () => {
+      detail = await (await server.app.request(`/api/sessions/${created.id}`, { headers })).json();
+      return detail.closeResult !== undefined;
+    });
+    expect(detail.closeResult).toEqual({ cliAbsent: true });
+    server.stop();
+  });
+
+  it("failed merge → closeResult {ok:false, stderr}", async () => {
+    const stub = path.join(root, "zuzuu-fail.sh");
+    writeFileSync(stub, `#!/bin/sh\necho 'merge kaboom' >&2\nexit 1\n`);
+    chmodSync(stub, 0o755);
+    const server = makeServer({ commandAllowlist: ["/bin/echo"], zuzuuBinary: stub });
+    const headers = await authedHeaders(server);
+    const created = await (
+      await postJson(server, headers, { command: "/bin/echo", type: "agent" })
+    ).json();
+    let detail: Record<string, unknown> = {};
+    await waitFor(async () => {
+      detail = await (await server.app.request(`/api/sessions/${created.id}`, { headers })).json();
+      return detail.closeResult !== undefined;
+    });
+    expect(detail.closeResult).toMatchObject({ ok: false });
+    expect((detail.closeResult as { stderr: string }).stderr).toMatch(/merge kaboom/);
+    server.stop();
+  });
+
+  it("shell-typed command exit never triggers a merge", async () => {
+    const { stub, marker } = mergeStub(root);
+    const server = makeServer({ commandAllowlist: ["/bin/echo"], zuzuuBinary: stub });
+    const headers = await authedHeaders(server);
+    const created = await (
+      await postJson(server, headers, { command: "/bin/echo", args: ["bye"] }) // type defaults to shell
+    ).json();
+    expect(created.type).toBe("shell");
+    await waitFor(async () => {
+      const detail = await (await server.app.request(`/api/sessions/${created.id}`, { headers })).json();
+      return detail.alive === false;
+    });
+    await sleep(300);
+    expect(existsSync(marker)).toBe(false);
+    const detail = await (await server.app.request(`/api/sessions/${created.id}`, { headers })).json();
+    expect(detail.closeResult).toBeUndefined();
+    server.stop();
+  });
+
+  it("GET /api/sessions/:id → 404 for unknown ids", async () => {
+    const server = makeServer();
+    const headers = await authedHeaders(server);
+    expect((await server.app.request("/api/sessions/deadbeef", { headers })).status).toBe(404);
+    server.stop();
+  });
+});

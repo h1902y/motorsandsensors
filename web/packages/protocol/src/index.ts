@@ -107,6 +107,12 @@ export interface CreateSessionRequest {
   host?: string;
 }
 
+/** GET /api/sessions/:id — SessionInfo plus, after an agent PTY exited,
+ *  the result of the automatic `zuzuu session merge`. */
+export interface SessionDetail extends SessionInfo {
+  closeResult?: import("./zuzuu.js").SessionCloseResult;
+}
+
 // ── Filesystem REST (/api/fs/*) ─────────────────────────────────────────
 export type EntryKind = "file" | "dir" | "symlink" | "other";
 

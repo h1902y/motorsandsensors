@@ -118,3 +118,28 @@ export interface RollbackResult {
   restored: number;
   active: string;
 }
+
+// ── Session-git (invisible session branch: agent session = zz/session-*) ──
+
+/** `zuzuu session merge --json` (also the agent-exit auto-merge). */
+export interface SessionMergeResult {
+  ok: boolean;
+  /** squash commit sha, or null when the session had no changes */
+  mergedAs?: string | null;
+  /** branch the squash landed on */
+  mergedTo?: string;
+  commits?: number;
+  branch?: string;
+  conflict?: boolean;
+  /** e.g. 'no-session-branch' | 'empty-squash-with-checkpoints' */
+  reason?: string;
+  warning?: string;
+  restoredTo?: string | null;
+}
+
+/** Stored on a daemon session after the agent-exit auto-merge ran;
+ *  read via GET /api/sessions/:id. */
+export type SessionCloseResult =
+  | { cliAbsent: true }
+  | { ok: true; merge: SessionMergeResult }
+  | { ok: false; stderr?: string };

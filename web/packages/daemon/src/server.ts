@@ -13,14 +13,17 @@ import { WebSocketServer } from "ws";
 import type {
   CreateSessionRequest,
   SaveRecordingRequest,
+  SessionCloseResult,
+  SessionDetail,
+  SessionMergeResult,
   WorkspaceInfo,
 } from "@zuzuu-web/protocol";
 import type { Workflow } from "@zuzuu-web/protocol";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { SessionManager } from "./sessions.js";
+import { SessionManager, type Session } from "./sessions.js";
 import { createFsApi } from "./fs-api.js";
-import { createZuzuuApi } from "./zuzuu-api.js";
+import { createZuzuuApi, runZuzuuMut } from "./zuzuu-api.js";
 import { search } from "./search.js";
 import { listFiles } from "./file-list.js";
 import { listWorkflows, saveWorkflow } from "./workflows.js";
@@ -121,6 +124,21 @@ export class WebcodeServer {
     this.sessions = new SessionManager(resolved);
     this.root = resolved;
     await config.addRecent(resolved);
+  }
+
+  /**
+   * Agent PTY exited → squash-merge its invisible session branch back to
+   * main via the zuzuu CLI. Runs in the session's cwd (the repo the agent
+   * worked in). CLI-only, like every zuzuu mutation; absent CLI is recorded,
+   * never fatal. Session.runCloseHook guarantees this runs once per session.
+   */
+  private async closeAgentSession(session: Session): Promise<SessionCloseResult> {
+    const r = await runZuzuuMut(session.cwd, ["session", "merge"], {
+      binary: this.cfg.zuzuuBinary,
+    });
+    if (r.ok) return { ok: true, merge: r.data as SessionMergeResult };
+    if (r.code === "absent") return { cliAbsent: true };
+    return { ok: false, ...(r.stderr !== undefined ? { stderr: r.stderr } : {}) };
   }
 
   // ── security gates ─────────────────────────────────────────────────
@@ -228,8 +246,25 @@ export class WebcodeServer {
         ...(body.command !== undefined ? { command: body.command, args: body.args ?? [] } : {}),
         type,
         ...(body.host !== undefined ? { host: body.host } : {}),
+        ...(type === "agent" ? { onClose: (s: Session) => this.closeAgentSession(s) } : {}),
       });
       return c.json(session.info(), 201);
+    });
+
+    // Single-session read: the SPA polls this once after the Exit frame to
+    // pick up closeResult (the agent-exit auto-merge outcome). Awaiting
+    // whenClosed() means a poll that races the merge still gets the result.
+    app.get("/api/sessions/:id", async (c) => {
+      const session = this.sessions.get(c.req.param("id"));
+      if (!session) return c.json({ error: "no such session" }, 404);
+      await session.whenClosed();
+      const body: SessionDetail = {
+        ...session.info(),
+        ...(session.closeResult !== undefined
+          ? { closeResult: session.closeResult as SessionCloseResult }
+          : {}),
+      };
+      return c.json(body);
     });
 
     app.delete("/api/sessions/:id", (c) => {
@@ -412,7 +447,7 @@ export class WebcodeServer {
     });
 
     app.route("/api/fs", createFsApi(() => this.root));
-    app.route("/api/zuzuu", createZuzuuApi(() => this.root));
+    app.route("/api/zuzuu", createZuzuuApi(() => this.root, { binary: cfg.zuzuuBinary }));
 
     // Static SPA with index.html fallback
     app.get("*", async (c) => {
