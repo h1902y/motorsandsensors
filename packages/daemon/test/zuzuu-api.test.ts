@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, chmodSync, realpathSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import process from "node:process";
 import { runZuzuu, runZuzuuMut, createZuzuuApi } from "../src/zuzuu-api.js";
 
 let root: string;
@@ -84,6 +85,19 @@ describe("runZuzuuMut", () => {
     const stub = jsonStub(root, "not json at all");
     const r = await runZuzuuMut(root, ["generation", "mint"], { binary: stub });
     expect(r).toMatchObject({ ok: false, code: "failed" });
+  });
+  it("non-ENOENT spawn error (EACCES) → {ok:false, code:'failed'} not 'absent'", async () => {
+    // Skip on Windows: chmod is a no-op there and EACCES isn't raised the same way.
+    if (process.platform === "win32") return;
+    const notExec = path.join(root, "not-executable");
+    writeFileSync(notExec, "#!/bin/sh\necho '{}'\n");
+    chmodSync(notExec, 0o644); // readable but not executable → EACCES on spawn
+    const r = await runZuzuuMut(root, ["any"], { binary: notExec });
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.code).toBe("failed");
+      expect(r.stderr).toBeTruthy();
+    }
   });
 });
 
@@ -251,6 +265,22 @@ describe("createZuzuuApi mutation routes", () => {
     const app = createZuzuuApi(() => root, { binary: stub });
     const res = await post(app, "/proposals/p1/reject", { faculty: "knowledge", reason: "x".repeat(501) });
     expect(res.status).toBe(400);
+    expect(existsSync(marker)).toBe(false);
+  });
+  it("200-char id → 400 without spawn (SAFE_ID length cap)", async () => {
+    fixtureHome(root);
+    const { stub, marker } = markerStub(root);
+    const app = createZuzuuApi(() => root, { binary: stub });
+    const longId = "a".repeat(200);
+    expect((await post(app, `/proposals/${longId}/approve`, { faculty: "knowledge" })).status).toBe(400);
+    expect(existsSync(marker)).toBe(false);
+  });
+  it("mint with 201-element from[] → 400 without spawn", async () => {
+    fixtureHome(root);
+    const { stub, marker } = markerStub(root);
+    const app = createZuzuuApi(() => root, { binary: stub });
+    const ids = Array.from({ length: 201 }, (_, i) => `id${i}`);
+    expect((await post(app, "/generation/mint", { from: ids })).status).toBe(400);
     expect(existsSync(marker)).toBe(false);
   });
   it("reject reason rides as one argv element (shell-meta inert)", async () => {

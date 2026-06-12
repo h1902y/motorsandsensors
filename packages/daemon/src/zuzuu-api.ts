@@ -16,7 +16,7 @@ import { PathError, resolveSafe } from "./safe-path.js";
 const FACULTIES = ["knowledge", "memory", "actions", "instructions", "guardrails"] as const;
 
 /** Ids/slugs/generation-ids that may ride into a zuzuu argv. Validated BEFORE any spawn. */
-const SAFE_ID = /^[a-z0-9][a-z0-9._-]*$/i;
+const SAFE_ID = /^[a-z0-9][a-z0-9._-]{0,127}$/i;
 const MAX_REASON_LEN = 500;
 
 interface RunOpts { binary?: string; timeoutMs?: number; }
@@ -76,7 +76,11 @@ export function runZuzuuMut(root: string, args: string[], opts: RunOpts = {}): P
       err += b.toString();
       if (err.length > STDERR_TAIL) err = err.slice(-STDERR_TAIL);
     });
-    child.on("error", () => { clearTimeout(timer); finish({ ok: false, code: "absent" }); });
+    child.on("error", (e: NodeJS.ErrnoException) => {
+      clearTimeout(timer);
+      if (e.code === "ENOENT") finish({ ok: false, code: "absent" });
+      else finish({ ok: false, code: "failed", stderr: e.message });
+    });
     child.on("close", (code) => {
       clearTimeout(timer);
       if (code !== 0) return finish({ ok: false, code: "failed", stderr: err.slice(-STDERR_TAIL) });
@@ -267,7 +271,7 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
   app.post("/generation/mint", async (c) => {
     const { from } = await readBody(c);
     if (from !== undefined &&
-        (!Array.isArray(from) || !from.every((f) => typeof f === "string" && SAFE_ID.test(f))))
+        (!Array.isArray(from) || from.length > 200 || !from.every((f) => typeof f === "string" && SAFE_ID.test(f))))
       return c.json({ error: "bad from ids" }, 400);
     const fromIds = (from as string[] | undefined) ?? [];
     return mutate(c, ["generation", "mint", ...(fromIds.length ? ["--from", fromIds.join(",")] : [])]);
