@@ -1,112 +1,18 @@
+// The /api/zuzuu/* routes (zuzuu-routes.ts): CLI-first reads with file-read
+// fallbacks, CLI-only mutations (503/502 mapping), and argv-injection gates —
+// all through stub binaries (see zuzuu-fixtures.ts).
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, chmodSync, realpathSync, existsSync } from "node:fs";
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, realpathSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import process from "node:process";
-import { runZuzuu, runZuzuuMut, createZuzuuApi } from "../src/zuzuu-api.js";
+import { createZuzuuApi } from "../src/zuzuu-routes.js";
+import { envelope, fixtureHome, jsonStub, failStub, markerStub, argvStub } from "./zuzuu-fixtures.js";
 
 let root: string;
 // realpath the temp root: resolveSafe requires an already-realpath'd root (the
 // daemon does this at startup); on macOS /var → /private/var would else 403.
 beforeEach(() => { root = realpathSync(mkdtempSync(path.join(tmpdir(), "zw-"))); });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
-
-/** A Faculty Standard envelope item (strict frontmatter + prose body). */
-function envelope(fields: Record<string, string>, body = ""): string {
-  const fm = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join("\n");
-  return `---\n${fm}\n---\n${body}`;
-}
-
-function fixtureHome(r: string) {
-  const agent = path.join(r, ".zuzuu");
-  for (const f of ["knowledge", "memory", "actions", "instructions", "guardrails"])
-    mkdirSync(path.join(agent, f, "proposals"), { recursive: true });
-  mkdirSync(path.join(agent, "knowledge", "items"), { recursive: true });
-  mkdirSync(path.join(agent, "generations"), { recursive: true });
-  mkdirSync(path.join(agent, ".live"), { recursive: true });
-  writeFileSync(path.join(agent, "sessions.json"), JSON.stringify({ version: 1, sessions: [{ id: "s1", host: "claude-code" }] }));
-  writeFileSync(path.join(agent, "knowledge", "items", "k1.md"),
-    envelope({ id: "k1", faculty: "knowledge", kind: "fact", title: '"fact one"', status: "active", created_at: "2026-06-12T00:00:00Z" }, "fact one\n"));
-  writeFileSync(path.join(agent, "knowledge", "proposals", "p1.json"),
-    JSON.stringify({ id: "p1", candidate: { body: "use node:sqlite" } }));
-  writeFileSync(path.join(agent, ".live", "digest.md"), "# zuzuu faculty digest\n");
-  return agent;
-}
-
-function jsonStub(r: string, payload: string) {
-  const stub = path.join(r, "zuzuu-stub.sh");
-  writeFileSync(stub, `#!/bin/sh\necho '${payload}'\n`);
-  chmodSync(stub, 0o755);
-  return stub;
-}
-
-/** A stub that exits non-zero after writing to stderr. */
-function failStub(r: string, msg = "boom: faculty not found") {
-  const stub = path.join(r, "zuzuu-fail.sh");
-  writeFileSync(stub, `#!/bin/sh\necho '${msg}' >&2\nexit 1\n`);
-  chmodSync(stub, 0o755);
-  return stub;
-}
-
-describe("runZuzuu", () => {
-  it("returns null when the binary is absent", async () => {
-    const out = await runZuzuu(root, ["status"], { binary: "definitely-not-a-real-binary-zzz" });
-    expect(out).toBeNull();
-  });
-  it("parses JSON stdout from a stub binary", async () => {
-    const stub = jsonStub(root, '{"ok":true}');
-    const out = await runZuzuu(root, ["status"], { binary: stub });
-    expect(out).toEqual({ ok: true });
-  });
-});
-
-/** A stub that creates a marker file when executed — for asserting NO spawn happened. */
-function markerStub(r: string) {
-  const marker = path.join(r, "spawned.marker");
-  const stub = path.join(r, "zuzuu-marker.sh");
-  writeFileSync(stub, `#!/bin/sh\ntouch '${marker}'\necho '{}'\n`);
-  chmodSync(stub, 0o755);
-  return { stub, marker };
-}
-
-describe("runZuzuuMut", () => {
-  it("absent binary → {ok:false, code:'absent'}", async () => {
-    const r = await runZuzuuMut(root, ["proposals", "approve", "p1"], { binary: "definitely-not-a-real-binary-zzz" });
-    expect(r).toEqual({ ok: false, code: "absent" });
-  });
-  it("stub success → {ok:true, data} with parsed stdout JSON", async () => {
-    const stub = jsonStub(root, '{"ok":true,"action":"approve","itemIds":["k2"],"warnings":[]}');
-    const r = await runZuzuuMut(root, ["proposals", "approve", "p1"], { binary: stub });
-    expect(r).toEqual({ ok: true, data: { ok: true, action: "approve", itemIds: ["k2"], warnings: [] } });
-  });
-  it("non-zero exit → {ok:false, code:'failed'} with stderr tail", async () => {
-    const stub = failStub(root, "no such proposal: p9");
-    const r = await runZuzuuMut(root, ["proposals", "approve", "p9"], { binary: stub });
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.code).toBe("failed");
-      expect(r.stderr).toMatch(/no such proposal: p9/);
-    }
-  });
-  it("unparseable stdout on exit 0 → 'failed'", async () => {
-    const stub = jsonStub(root, "not json at all");
-    const r = await runZuzuuMut(root, ["generation", "mint"], { binary: stub });
-    expect(r).toMatchObject({ ok: false, code: "failed" });
-  });
-  it("non-ENOENT spawn error (EACCES) → {ok:false, code:'failed'} not 'absent'", async () => {
-    // Skip on Windows: chmod is a no-op there and EACCES isn't raised the same way.
-    if (process.platform === "win32") return;
-    const notExec = path.join(root, "not-executable");
-    writeFileSync(notExec, "#!/bin/sh\necho '{}'\n");
-    chmodSync(notExec, 0o644); // readable but not executable → EACCES on spawn
-    const r = await runZuzuuMut(root, ["any"], { binary: notExec });
-    expect(r.ok).toBe(false);
-    if (!r.ok) {
-      expect(r.code).toBe("failed");
-      expect(r.stderr).toBeTruthy();
-    }
-  });
-});
 
 describe("createZuzuuApi file routes", () => {
   it("GET /health reports home + bin presence", async () => {
@@ -346,11 +252,7 @@ describe("createZuzuuApi mutation routes", () => {
   });
   it("reject reason rides as one argv element (shell-meta inert)", async () => {
     fixtureHome(root);
-    // a stub that echoes its argv as JSON so we can see exactly what was passed
-    const stub = path.join(root, "zuzuu-argv.sh");
-    writeFileSync(stub, `#!/bin/sh\nprintf '{"argv":"'\nprintf '%s|' "$@"\nprintf '"}'\n`);
-    chmodSync(stub, 0o755);
-    const app = createZuzuuApi(() => root, { binary: stub });
+    const app = createZuzuuApi(() => root, { binary: argvStub(root) });
     const res = await post(app, "/proposals/p1/reject", { faculty: "knowledge", reason: "dup; $(rm -rf) of k1" });
     expect(res.status).toBe(200);
     expect((await res.json()).argv).toBe("proposals|reject|p1|--faculty|knowledge|--reason|dup; $(rm -rf) of k1|--json|");
@@ -388,11 +290,7 @@ describe("createZuzuuApi session-git routes", () => {
   });
   it("POST /session/discard always rides --yes (the SPA confirm is the gate)", async () => {
     fixtureHome(root);
-    // argv-echo stub: shows exactly what reached the CLI
-    const stub = path.join(root, "zuzuu-argv2.sh");
-    writeFileSync(stub, `#!/bin/sh\nprintf '{"argv":"'\nprintf '%s|' "$@"\nprintf '"}'\n`);
-    chmodSync(stub, 0o755);
-    const app = createZuzuuApi(() => root, { binary: stub });
+    const app = createZuzuuApi(() => root, { binary: argvStub(root, "zuzuu-argv2.sh") });
     const res = await post(app, "/session/discard");
     expect(res.status).toBe(200);
     expect((await res.json()).argv).toBe("session|discard|--yes|--json|");
