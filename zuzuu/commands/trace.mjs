@@ -1,7 +1,7 @@
 // `zuzuu trace [--last | <file>]` — print the span tree of a captured trace.
 
 import { existsSync } from 'node:fs';
-import { loadSpans, renderTree } from '../../experiments/experiment-1-trace-capture/core/render.mjs';
+import { loadSpans, renderTree } from '../capture/core/render.mjs';
 import { lastTrace } from '../store.mjs';
 
 export function trace(args) {

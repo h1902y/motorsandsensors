@@ -1,5 +1,5 @@
 // pi adapter — parse a minimal pi-shaped session JSONL → span tree.
-// Built against REAL wire data (see experiments/.../adapters/pi.mjs header):
+// Built against REAL wire data (see zuzuu/capture/adapters/pi.mjs header):
 //   header line     { type:"session", version, id, timestamp, cwd }
 //   user message    { type:"message", id, parentId, timestamp, message:{role:"user", content:[{type:"text",text}]} }
 //   assistant w/    { type:"message", message:{role:"assistant", content:[{type:"toolCall", id, name, arguments}]} }
@@ -11,8 +11,8 @@ import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { pi } from '../../experiments/experiment-1-trace-capture/adapters/pi.mjs';
-import { EventKind, Status } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
+import { pi } from '../../zuzuu/capture/adapters/pi.mjs';
+import { EventKind, Status } from '../../zuzuu/capture/core/event.mjs';
 
 function writeSession(dir) {
   const lines = [

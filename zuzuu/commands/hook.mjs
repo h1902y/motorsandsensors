@@ -13,7 +13,7 @@
 
 import { readFileSync, writeFileSync, appendFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { byName } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
+import { byName } from '../capture/adapters/registry.mjs';
 import { captureTrace } from '../capture-core.mjs';
 import { SessionState } from '../session.mjs';
 import { openLive, touchLive, closeLive } from '../live/live-store.mjs';

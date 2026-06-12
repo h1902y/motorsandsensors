@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { event, trace, EventKind, Status } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
+import { event, trace, EventKind, Status } from '../../zuzuu/capture/core/event.mjs';
 
 test('event requires a refId', () => {
   assert.throws(() => event({ kind: EventKind.TOOL_CALL, name: 'x', startMs: 0 }), /refId required/);

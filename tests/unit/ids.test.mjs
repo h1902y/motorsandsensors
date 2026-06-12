@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { traceId, spanId, traceparent } from '../../experiments/experiment-1-trace-capture/core/ids.mjs';
+import { traceId, spanId, traceparent } from '../../zuzuu/capture/core/ids.mjs';
 
 test('traceId is deterministic for the same inputs', () => {
   assert.equal(traceId('claude-code', 's1'), traceId('claude-code', 's1'));

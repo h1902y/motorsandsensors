@@ -11,7 +11,7 @@
 import { join, relative, resolve, isAbsolute } from 'node:path';
 import { existsSync, readFileSync, readdirSync, statSync, mkdirSync, writeFileSync, renameSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
-import { writeNdjson } from '../experiments/experiment-1-trace-capture/core/otlp.mjs';
+import { writeNdjson } from './capture/core/otlp.mjs';
 
 const INDEX_VERSION = 1;
 

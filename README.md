@@ -40,7 +40,7 @@ zuzuu doctor      # health + lost-session reconciliation
 
 ¹ **Codex is interactive-only** — `codex exec` (headless) fires no hooks (verified, v0.138.0), so live capture + gate work when you run Codex interactively; headless Codex still gets post-hoc `zuzuu capture`.
 
-All five verified against **real sessions** — never fixtures; every host's live capture + gate was wired from **real captured hook payloads** and dogfooded end-to-end ([`experiments/LOG.md`](experiments/LOG.md) exp-11 Gemini/Codex, exp-12 OpenCode/pi). Gate semantics are host-honest: deny hard-blocks everywhere; `ask` maps to a native prompt on Claude, defers to the host elsewhere.
+All five verified against **real sessions** — never fixtures; every host's live capture + gate was wired from **real captured hook payloads** and dogfooded end-to-end ([`docs/LOG.md`](docs/LOG.md) exp-11 Gemini/Codex, exp-12 OpenCode/pi). Gate semantics are host-honest: deny hard-blocks everywhere; `ask` maps to a native prompt on Claude, defers to the host elsewhere.
 
 **Prerequisites:** Node ≥ 22 — that's it. You need at least one supported agent you've already used, so a session exists to capture. (Hacking on zuzuu itself? `git clone https://github.com/h1902y/zuzuu && cd zuzuu && npm link`.)
 
@@ -77,15 +77,14 @@ All five verified against **real sessions** — never fixtures; every host's liv
 
 | Path | What |
 |---|---|
-| [`zuzuu/`](zuzuu/) + `bin/zuzuu.mjs` | the CLI — capture, live lifecycle, faculty home (product surface) |
-| [`experiments/`](experiments/) | spike code + [`LOG.md`](experiments/LOG.md) — the build journal (hypothesis → real-data proof → conclusions per experiment) |
-| [`app/`](app/) | the durable application skeleton (be / run / evolve) — proven code harvests here |
+| [`zuzuu/`](zuzuu/) + `bin/zuzuu.mjs` | the CLI — capture pipeline (`zuzuu/capture/`), live lifecycle, faculty home (product surface) |
+| [`web/`](web/) | the visual workbench — nested project (daemon + React SPA), ships bundled inside the npm package |
 | [`tests/`](tests/) | hermetic unit + regression (`npm test`) + real-data smoke playgrounds (`npm run playground`) |
-| [`docs/`](docs/) | [`DESIGN.md`](docs/DESIGN.md) (the canon) + [`inspiration/`](docs/inspiration/) (the research shelf: 100-project survey + 5 audits) |
+| [`docs/`](docs/) | [`DESIGN.md`](docs/DESIGN.md) (the canon) + [`LOG.md`](docs/LOG.md) (the build journal) + [`inspiration/`](docs/inspiration/) (the research shelf) |
 
 ## How this is built (the method)
 
-**Experiment → prove on real data → conclude → harvest.** Every capability starts as a numbered experiment with a hypothesis; it must be verified against *real* sessions/wire data (never invented fixtures) before it counts; lessons land in the experiment’s Conclusions section; proven parts graduate into `app/`. Built in public — day-by-day on X ([@h1902y](https://x.com/h1902y)).
+**Prove on real data, record in the journal.** Every capability is verified against *real* sessions/wire data (never invented fixtures) before it counts; the record lives in [`docs/LOG.md`](docs/LOG.md) (append-only). Live experimentation happens in disposable project directories outside the repo, keeping the codebase clean. Built in public — day-by-day on X ([@h1902y](https://x.com/h1902y)).
 
 ## License & status
 

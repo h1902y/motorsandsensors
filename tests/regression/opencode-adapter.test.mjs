@@ -3,9 +3,9 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { buildTrace } from '../../experiments/experiment-1-trace-capture/adapters/opencode.mjs';
-import { eventsToSpans } from '../../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { EventKind, Status } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
+import { buildTrace } from '../../zuzuu/capture/adapters/opencode.mjs';
+import { eventsToSpans } from '../../zuzuu/capture/core/spans.mjs';
+import { EventKind, Status } from '../../zuzuu/capture/core/event.mjs';
 
 // Fixture is parsed-row shape (the pure buildTrace input), mirroring REAL
 // opencode.db rows: session(model JSON) + message(role) + part(text|tool|reasoning).

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { toExportRequest, toNdjson } from '../../experiments/experiment-1-trace-capture/core/otlp.mjs';
+import { toExportRequest, toNdjson } from '../../zuzuu/capture/core/otlp.mjs';
 
 const built = { traceId: 'a'.repeat(32), spans: [{ spanId: 'b'.repeat(16), name: 'x' }] };
 const meta = { host: 'claude-code', sessionId: 'sess' };

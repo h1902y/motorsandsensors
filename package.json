@@ -1,6 +1,6 @@
 {
   "name": "@zuzuucodes/cli",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -42,15 +42,13 @@
     "bin/",
     "zuzuu/",
     "web-app/",
-    "experiments/experiment-1-trace-capture/core/",
-    "experiments/experiment-1-trace-capture/adapters/",
     "LICENSE",
     "README.md"
   ],
   "scripts": {
     "zuzuu": "node bin/zuzuu.mjs",
-    "capture": "node experiments/experiment-1-trace-capture/bin/capture.mjs",
-    "inspect": "node experiments/experiment-1-trace-capture/bin/inspect-trace.mjs",
+    "capture": "node zuzuu/capture/bin/capture.mjs",
+    "inspect": "node zuzuu/capture/bin/inspect-trace.mjs",
     "test": "node --test 'tests/**/*.test.mjs'",
     "playground": "node tests/playground/run.mjs",
     "prepublishOnly": "npm test",

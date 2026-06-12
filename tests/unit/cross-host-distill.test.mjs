@@ -6,12 +6,12 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { createRequire } from 'node:module';
 
-import { codex } from '../../experiments/experiment-1-trace-capture/adapters/codex.mjs';
-import { pi } from '../../experiments/experiment-1-trace-capture/adapters/pi.mjs';
-import { opencode } from '../../experiments/experiment-1-trace-capture/adapters/opencode.mjs';
-import { geminiCli } from '../../experiments/experiment-1-trace-capture/adapters/gemini-cli.mjs';
+import { codex } from '../../zuzuu/capture/adapters/codex.mjs';
+import { pi } from '../../zuzuu/capture/adapters/pi.mjs';
+import { opencode } from '../../zuzuu/capture/adapters/opencode.mjs';
+import { geminiCli } from '../../zuzuu/capture/adapters/gemini-cli.mjs';
 import { aggregate, transcriptsFor } from '../../zuzuu/knowledge/distill.mjs';
-import * as registry from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
+import * as registry from '../../zuzuu/capture/adapters/registry.mjs';
 
 const require = createRequire(import.meta.url);
 const FIX = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');

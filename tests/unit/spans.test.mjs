@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { event, trace, EventKind, Status } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
-import { eventsToSpans } from '../../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { traceId, spanId } from '../../experiments/experiment-1-trace-capture/core/ids.mjs';
+import { event, trace, EventKind, Status } from '../../zuzuu/capture/core/event.mjs';
+import { eventsToSpans } from '../../zuzuu/capture/core/spans.mjs';
+import { traceId, spanId } from '../../zuzuu/capture/core/ids.mjs';
 
 const sample = () =>
   trace({

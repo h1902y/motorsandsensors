@@ -12,7 +12,7 @@
 //   failures  — tools failing ≥3× → `fact` candidates (worth knowing!)
 
 import { readFileSync } from 'node:fs';
-import * as registry from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
+import * as registry from '../capture/adapters/registry.mjs';
 import { slugify } from './items.mjs';
 import { createProposal, fileRegistryProposals } from './proposals.mjs';
 

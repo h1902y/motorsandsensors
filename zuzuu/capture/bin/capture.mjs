@@ -93,7 +93,7 @@ function main() {
   console.log(`  events   : ${spans.length}  (${Object.entries(counts).map(([k, v]) => `${k}:${v}`).join(', ')})`);
   console.log(`  duration : ${durSec}s`);
   console.log(`  written  : ${outPath}`);
-  console.log(`  inspect  : node ${join('experiments', 'experiment-1-trace-capture', 'bin', 'inspect-trace.mjs')} "${outPath}"`);
+  console.log(`  inspect  : node ${join('zuzuu', 'capture', 'bin', 'inspect-trace.mjs')} "${outPath}"`);
 }
 
 main();

@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { codex } from '../../experiments/experiment-1-trace-capture/adapters/codex.mjs';
-import { eventsToSpans } from '../../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { EventKind } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
+import { codex } from '../../zuzuu/capture/adapters/codex.mjs';
+import { eventsToSpans } from '../../zuzuu/capture/core/spans.mjs';
+import { EventKind } from '../../zuzuu/capture/core/event.mjs';
 
 // Fixture mirrors REAL Codex wire data (a captured `codex exec` rollout):
 // {timestamp,type,payload}; turns from event_msg/user_message; tools paired by call_id.

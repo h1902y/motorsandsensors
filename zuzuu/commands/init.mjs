@@ -14,7 +14,7 @@ import { join, basename } from 'node:path';
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { applyScaffold, ensureGitignore, homeExists } from '../scaffold.mjs';
 import { injectBlock, facultiesBlock, hasBlock, BLOCK_VERSION } from '../inject.mjs';
-import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
+import { detected } from '../capture/adapters/registry.mjs';
 import { repoRoot } from '../store.mjs';
 import { migrateHome } from './migrate.mjs';
 

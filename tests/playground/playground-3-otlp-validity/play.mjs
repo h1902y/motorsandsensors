@@ -5,9 +5,9 @@
 // OTLP/JSON shape (hex ids, uint64-nano string timestamps, AnyValue attrs,
 // resolvable parents, valid status codes). Skips if no host data is present.
 
-import { detected } from '../../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
-import { eventsToSpans } from '../../../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { toExportRequest } from '../../../experiments/experiment-1-trace-capture/core/otlp.mjs';
+import { detected } from '../../../zuzuu/capture/adapters/registry.mjs';
+import { eventsToSpans } from '../../../zuzuu/capture/core/spans.mjs';
+import { toExportRequest } from '../../../zuzuu/capture/core/otlp.mjs';
 import { run, check, note, skip, otlpProblems } from '../_harness.mjs';
 
 await run('captured trace is structurally valid OTLP/JSON', async () => {

@@ -1,7 +1,7 @@
 // `zuzuu status` — detected hosts + recorded sessions (the git-native index).
 
 import { existsSync } from 'node:fs';
-import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
+import { detected } from '../capture/adapters/registry.mjs';
 import { readIndex, paths } from '../store.mjs';
 import { FACULTIES } from '../faculty/contract.mjs';
 import { listProposals } from '../faculty/proposal.mjs';

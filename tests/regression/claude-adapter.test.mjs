@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { claudeCode } from '../../experiments/experiment-1-trace-capture/adapters/claude-code.mjs';
-import { eventsToSpans } from '../../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { EventKind, Status } from '../../experiments/experiment-1-trace-capture/core/event.mjs';
+import { claudeCode } from '../../zuzuu/capture/adapters/claude-code.mjs';
+import { eventsToSpans } from '../../zuzuu/capture/core/spans.mjs';
+import { EventKind, Status } from '../../zuzuu/capture/core/event.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FIXTURE = join(HERE, '..', 'fixtures', 'claude-sample.jsonl');

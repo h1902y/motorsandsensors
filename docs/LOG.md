@@ -781,3 +781,11 @@ Two product decisions superseded the morning's two-package design, both user-dri
 **② One npm package.** The workbench ships INSIDE `@zuzuucodes/cli` as `web-app/` (staged by `scripts/build-web.mjs`: web build → copy daemon dist + web-dist + minimal nested package.json). The web runtime's 8 deps became the CLI's **`optionalDependencies`** — `dependencies` stays empty, CLI code never imports them, so a failed node-pty native build degrades the workbench, never the CLI; `--omit=optional` = light install. ADK-style: `npm i -g @zuzuucodes/cli` is the whole product. **This dissolved the publish blocker entirely** — no second package, no first-publish OTP, no extra trusted-publisher registration; the existing OIDC pipeline ships everything (publish.yml gained one `build-web` step). `@zuzuucodes/web` was never published; the interim `h1902y/zuzuu-web` repo is archived.
 
 **Verified:** 370 hermetic tests + web's 103 in place under `web/`; `npm pack` = 519 files / 5.6MB; the tarball installed globally for real — optional deps resolved, node-pty built, `zuzuu-web` booted a tmp workspace, SPA served HTTP 200, `/api/zuzuu/health` answered. v1.2.0.
+
+### Repo hygiene — the harvest lands; experiments move out (2026-06-12)
+
+**The journal moved:** this file now lives at `docs/LOG.md` (was `experiments/LOG.md`) — same file, same append-only contract.
+
+**The long-queued harvest finally happened.** `experiments/experiment-1-trace-capture/{adapters,core,bin}` — proven since exp-1 but imported in place ever since — moved into the product tree at **`zuzuu/capture/`**. The in-repo `experiments/` dir and the never-used `app/` be/run/evolve skeleton are deleted (git history keeps both). 370 hermetic tests + all 4 real-data playgrounds green after the move; golden ids unchanged (ids never depended on file location). npm `files` simplifies to `bin/ zuzuu/ web-app/`.
+
+**The method evolves:** numbered in-repo spike dirs are retired. Live experimentation now happens in **`~/Documents/zuzuu-experiments/`** — disposable sibling project dirs where zuzuu is exercised for real (init/code/web, benchmarks, host playgrounds). Findings that matter still land HERE, in this journal. Also this entry: the 21 mns-era knowledge proposals were swept (bulk-rejected, reason recorded) — the queue is clean for fresh distills from real zuzuu-era sessions.

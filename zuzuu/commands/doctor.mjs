@@ -2,7 +2,7 @@
 // real problems (warnings don't fail). Phase 2 will also reconcile lost sessions.
 
 import { mkdirSync, accessSync, constants } from 'node:fs';
-import { detected } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
+import { detected } from '../capture/adapters/registry.mjs';
 import { paths, gitInfo } from '../store.mjs';
 import { listLive } from '../live/live-store.mjs';
 import { reconcile } from '../live/reconcile.mjs';

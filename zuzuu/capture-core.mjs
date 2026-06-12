@@ -3,9 +3,9 @@
 // (`hook`/`reconcile`, statuses active/completed/abandoned). One proven path —
 // Design B: the hook never builds spans, it re-runs THIS.
 
-import { eventsToSpans } from '../experiments/experiment-1-trace-capture/core/spans.mjs';
-import { toExportRequest } from '../experiments/experiment-1-trace-capture/core/otlp.mjs';
-import { EventKind, Status } from '../experiments/experiment-1-trace-capture/core/event.mjs';
+import { eventsToSpans } from './capture/core/spans.mjs';
+import { toExportRequest } from './capture/core/otlp.mjs';
+import { EventKind, Status } from './capture/core/event.mjs';
 import { makeSession, SessionState } from './session.mjs';
 import { writeTrace, upsertSession, gitInfo } from './store.mjs';
 

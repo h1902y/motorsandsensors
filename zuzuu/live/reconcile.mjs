@@ -4,7 +4,7 @@
 // correct capture of the abandoned session before closing it. Nothing is lost.
 
 import { listLive, isStale, closeLive } from './live-store.mjs';
-import { byName } from '../../experiments/experiment-1-trace-capture/adapters/registry.mjs';
+import { byName } from '../capture/adapters/registry.mjs';
 import { captureTrace } from '../capture-core.mjs';
 import { SessionState } from '../session.mjs';
 
