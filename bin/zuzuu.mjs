@@ -54,14 +54,14 @@ function version() {
 }
 
 function help() {
-  console.log(`zuzuu — evolving faculties for the coding agent you already run  (\`mns\` still works as an alias)
+  console.log(`zuzuu — evolving faculties for the coding agent you already run
 
 usage: zuzuu <command> [options]
 
   code [dir]                launch OpenCode as the bundled default host (faculty home + capture + gate + digest)
-  init                      scaffold the faculty home (.mns/) — git-style, idempotent
+  init                      scaffold the faculty home (agent/) — git-style, idempotent
   status                    detected hosts + recorded sessions
-  capture [--host NAME]     capture a session → .mns/traces + .mns/sessions.json
+  capture [--host NAME]     capture a session → agent/.traces + agent/sessions.json
           [--session ID] [--file PATH]
   trace [--last | FILE]     print a captured trace's span tree
   remember "fact" [--type t] [--attr k=v] [--rel type=target]
@@ -95,8 +95,7 @@ usage: zuzuu <command> [options]
   help                      this message
 
 \`zuzuu capture\` works post-hoc on existing transcripts. \`zuzuu enable\` turns on
-live, invisible capture across the session lifecycle — see the README.
-(\`mns\` remains a legacy alias for every command above.)`);
+live, invisible capture across the session lifecycle — see the README.`);
 }
 
 const [cmd, ...rest] = process.argv.slice(2);
