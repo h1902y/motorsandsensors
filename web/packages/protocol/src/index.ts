@@ -70,6 +70,11 @@ export const FLOW_LOW_WATER = 16 * 1024;
 export const ACK_INTERVAL = 32 * 1024;
 
 // ── Sessions REST (/api/sessions) ───────────────────────────────────────
+/** "shell" = the user's login shell with rc injection; "agent" = a host
+ *  coding-agent CLI spawned directly on the PTY (no shell, no injection) —
+ *  agent exits trigger the zuzuu session-git auto-merge. */
+export type SessionType = "shell" | "agent";
+
 export interface SessionInfo {
   id: string;
   title: string;
@@ -77,6 +82,9 @@ export interface SessionInfo {
   /** true while the PTY process is alive */
   alive: boolean;
   createdAt: number;
+  type: SessionType;
+  /** host CLI name for agent sessions (e.g. "claude") */
+  host?: string;
 }
 
 export interface SaveRecordingRequest {
@@ -89,6 +97,14 @@ export interface CreateSessionRequest {
   cwd?: string;
   cols?: number;
   rows?: number;
+  /**
+   * Program to run directly on the PTY instead of a shell. Validated against
+   * a server-side allowlist; spawned as an argv array, never shell-interpreted.
+   */
+  command?: string;
+  args?: string[];
+  type?: SessionType;
+  host?: string;
 }
 
 // ── Filesystem REST (/api/fs/*) ─────────────────────────────────────────

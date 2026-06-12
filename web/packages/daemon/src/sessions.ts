@@ -18,6 +18,7 @@ import {
   FLOW_LOW_WATER,
   type CwdPayload,
   type SessionInfo,
+  type SessionType,
 } from "@zuzuu-web/protocol";
 import { encodeFrame } from "./frames.js";
 import { toRel } from "./safe-path.js";
@@ -69,6 +70,25 @@ function pickShell(): string {
   return process.env.SHELL ?? (process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
 }
 
+/** Options for non-default sessions (direct command spawn / agent lifecycle). */
+export interface SessionSpawnOpts {
+  /**
+   * Spawn this program directly on the PTY instead of a shell: argv array,
+   * never shell-interpreted, plain env (no rc injection / temp ZDOTDIR).
+   * The caller (server) is responsible for allowlisting the command.
+   */
+  command?: string;
+  args?: string[];
+  type?: SessionType;
+  /** host CLI name for agent sessions (display/bookkeeping only) */
+  host?: string;
+  /**
+   * Runs ONCE when an agent PTY exits (the zuzuu session-git merge); its
+   * resolved value is stored as `closeResult` and surfaced over REST.
+   */
+  onClose?: (session: Session) => Promise<unknown>;
+}
+
 /**
  * A PTY whose lifetime is decoupled from any WebSocket. A headless xterm
  * mirrors all output so a (re)attaching client gets an accurate replay of
@@ -84,6 +104,12 @@ export class Session {
   readonly createdAt = Date.now();
   title: string;
   alive = true;
+  readonly type: SessionType;
+  readonly host: string | undefined;
+  /** result of the agent-exit close hook (e.g. the session-git merge) */
+  closeResult: unknown;
+  private closeRan = false;
+  private closeSettled: Promise<void> = Promise.resolve();
   /** live working directory of the shell (absolute) */
   cwdAbs: string;
   private readonly pty: IPty;
@@ -109,10 +135,13 @@ export class Session {
     cols = 80,
     rows = 24,
     private readonly onUpdate: () => void,
+    private readonly opts: SessionSpawnOpts = {},
   ) {
     this.cwdAbs = cwd;
-    const shell = pickShell();
-    this.title = shell.split("/").pop() ?? shell;
+    this.type = opts.type ?? "shell";
+    this.host = opts.host;
+    const file = opts.command ?? pickShell();
+    this.title = file.split("/").pop() ?? file;
     this.mirror = new Terminal({ cols, rows, scrollback: SCROLLBACK, allowProposedApi: true });
     this.mirror.loadAddon(this.serializer);
 
@@ -132,10 +161,17 @@ export class Session {
       return true;
     });
 
-    const injection = process.platform === "win32" ? null : buildInjection(shell);
+    // Direct command sessions (agents) get NO shell and NO rc injection:
+    // the argv is spawned as-is with a plain env, so nothing a host CLI
+    // prints/parses is polluted by our shell-integration hook.
+    const injection =
+      opts.command || process.platform === "win32" ? null : buildInjection(file);
     this.tempDir = injection?.tempDir;
-    const args = injection?.args ?? (process.platform === "win32" ? [] : ["-l"]);
-    this.pty = pty.spawn(shell, args, {
+    const args =
+      opts.command !== undefined
+        ? opts.args ?? []
+        : injection?.args ?? (process.platform === "win32" ? [] : ["-l"]);
+    this.pty = pty.spawn(file, args, {
       name: "xterm-256color",
       cols,
       rows,
@@ -171,10 +207,31 @@ export class Session {
 
     this.pty.onExit(({ exitCode, signal }) => {
       this.alive = false;
+      this.runCloseHook();
       this.exitPayload = JSON.stringify({ exitCode, signal });
       this.send(encodeFrame(ServerOp.Exit, this.exitPayload));
       this.onUpdate();
     });
+  }
+
+  /** Agent exit → run the close hook (session-git merge) exactly once. */
+  private runCloseHook(): void {
+    const onClose = this.opts.onClose;
+    if (this.type !== "agent" || !onClose || this.closeRan) return;
+    this.closeRan = true;
+    this.closeSettled = onClose(this).then(
+      (result) => {
+        this.closeResult = result;
+      },
+      () => {
+        this.closeResult = { ok: false, stderr: "close hook failed" };
+      },
+    );
+  }
+
+  /** Resolves once any pending agent close hook has settled (immediately otherwise). */
+  whenClosed(): Promise<void> {
+    return this.closeSettled;
   }
 
   /** Single-attachment model: a new client takes over the session. */
@@ -328,6 +385,8 @@ export class Session {
       cwd: this.cwdAbs,
       alive: this.alive,
       createdAt: this.createdAt,
+      type: this.type,
+      ...(this.host !== undefined ? { host: this.host } : {}),
     };
   }
 }
@@ -337,8 +396,8 @@ export class SessionManager {
 
   constructor(private readonly defaultCwd: string = os.homedir()) {}
 
-  create(cwd?: string, cols?: number, rows?: number): Session {
-    const session = new Session(cwd ?? this.defaultCwd, this.defaultCwd, cols, rows, () => {});
+  create(cwd?: string, cols?: number, rows?: number, opts?: SessionSpawnOpts): Session {
+    const session = new Session(cwd ?? this.defaultCwd, this.defaultCwd, cols, rows, () => {}, opts);
     this.sessions.set(session.id, session);
     return session;
   }

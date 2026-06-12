@@ -52,7 +52,17 @@ export interface ServerConfig {
   hosted?: boolean;
   /** public hostname the VM is reached at (e.g. "app.fly.dev") */
   publicHost?: string;
+  /**
+   * Commands POST /api/sessions may spawn directly (host coding-agent CLIs).
+   * Injectable for tests; defaults to the fixed host allowlist.
+   */
+  commandAllowlist?: string[];
+  /** zuzuu binary override (tests); defaults to "zuzuu" on PATH */
+  zuzuuBinary?: string;
 }
+
+/** Host CLIs an agent/command session may run. Argv-spawned, never a shell. */
+const DEFAULT_COMMAND_ALLOWLIST = ["claude", "gemini", "codex", "pi", "opencode", "zuzuu"];
 
 const STATIC_MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -75,10 +85,12 @@ export class WebcodeServer {
   private readonly authSessions = new Set<string>();
   private readonly allowedHosts: Set<string>;
   private readonly allowedOrigins: Set<string>;
+  private readonly commandAllowlist: Set<string>;
   private server: ServerType | null = null;
 
   constructor(private readonly cfg: ServerConfig) {
     this.root = cfg.root;
+    this.commandAllowlist = new Set(cfg.commandAllowlist ?? DEFAULT_COMMAND_ALLOWLIST);
     this.sessions = new SessionManager(cfg.root);
     const hostNames = ["127.0.0.1", "localhost", "[::1]"];
     this.allowedHosts = new Set(hostNames.flatMap((h) => [h, `${h}:${cfg.port}`]));
@@ -189,8 +201,34 @@ export class WebcodeServer {
       } catch {
         // empty body is fine
       }
+      // Direct command sessions: the allowlist keeps the spawn surface honest
+      // (authenticated localhost daemon or not). Argv only — never a shell.
+      if (body.command !== undefined) {
+        if (typeof body.command !== "string" || !this.commandAllowlist.has(body.command)) {
+          return c.json({ error: "command not allowed" }, 400);
+        }
+        if (
+          body.args !== undefined &&
+          (!Array.isArray(body.args) || !body.args.every((a) => typeof a === "string"))
+        ) {
+          return c.json({ error: "args must be an array of strings" }, 400);
+        }
+      } else if (body.args !== undefined) {
+        return c.json({ error: "args require command" }, 400);
+      }
+      if (body.type !== undefined && body.type !== "shell" && body.type !== "agent") {
+        return c.json({ error: "bad type" }, 400);
+      }
+      if (body.host !== undefined && (typeof body.host !== "string" || body.host.length > 64)) {
+        return c.json({ error: "bad host" }, 400);
+      }
       const cwd = body.cwd ? safeJoin(this.root, body.cwd) : this.root;
-      const session = this.sessions.create(cwd, body.cols, body.rows);
+      const type = body.type ?? "shell";
+      const session = this.sessions.create(cwd, body.cols, body.rows, {
+        ...(body.command !== undefined ? { command: body.command, args: body.args ?? [] } : {}),
+        type,
+        ...(body.host !== undefined ? { host: body.host } : {}),
+      });
       return c.json(session.info(), 201);
     });
 
