@@ -1,7 +1,9 @@
 // `zuzuu status` — detected hosts + recorded sessions (the git-native index).
 
 import { existsSync } from 'node:fs';
+import { dirname } from 'node:path';
 import { detected } from '../capture/adapters/registry.mjs';
+import { sessionStatus } from '../session-git.mjs';
 import { readIndex, paths } from '../store.mjs';
 import { FACULTIES } from '../faculty/contract.mjs';
 import { listProposals } from '../faculty/proposal.mjs';
@@ -10,8 +12,9 @@ import { detectDrift } from './doctor.mjs';
 
 const fmtDur = (ms) => (ms < 60_000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 60_000).toFixed(1)}m`);
 
-/** Pure: structured status for a faculty home (the zuzuu-web /status source). Fail-soft per field. */
-export function statusData(agentDir, { hosts = detected().map((a) => ({ name: a.name })) } = {}) {
+/** Pure: structured status for a faculty home (the zuzuu-web /status source). Fail-soft per field.
+ *  `session` is injectable (like hosts) for hermetic tests; default = the repo above the home. */
+export function statusData(agentDir, { hosts = detected().map((a) => ({ name: a.name })), session } = {}) {
   let active = null, drift = { dirty: false, items: [] };
   const pending = {};
   try { active = activeGenerationFn(agentDir); } catch { active = null; }
@@ -23,7 +26,11 @@ export function statusData(agentDir, { hosts = detected().map((a) => ({ name: a.
     const items = Array.isArray(d?.drifted) ? d.drifted : [];
     drift = { dirty: items.length > 0, items };
   } catch { /* fail-soft */ }
-  return { home: existsSync(agentDir), activeGeneration: active, pending, drift, hosts };
+  let sess = session;
+  if (sess === undefined) {
+    try { sess = sessionStatus(dirname(agentDir)); } catch { sess = null; } // sessionStatus never throws — belt + braces
+  }
+  return { home: existsSync(agentDir), activeGeneration: active, pending, drift, hosts, session: sess };
 }
 
 /**

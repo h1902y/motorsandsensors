@@ -15,6 +15,14 @@ export function sessionStatusData(cwd = process.cwd()) {
   return sessionStatus(cwd);
 }
 
+/** Pure: the leftover-branch warning (shared by session/status/doctor), or null.
+ *  A checked-out session branch is presumed in use — never warned on (an agent
+ *  running doctor mid-session must not be nudged into "fixing" its own branch). */
+export function leftoverLine(ss) {
+  if (!ss?.active || ss.onSessionBranch) return null;
+  return `leftover session branch ${ss.active.branch} (${ss.active.checkpoints} checkpoint(s)) — zuzuu session continue | merge | discard`;
+}
+
 /** Pure: squash-merge the session branch as ONE `session: <title>` commit. */
 export function sessionMergeData(cwd = process.cwd(), { title } = {}) {
   return closeSession(cwd, { title });
@@ -43,7 +51,7 @@ export function session(args = {}) {
     } else if (d.onSessionBranch) {
       console.log(`● ${d.active.branch} (checked out) — ${d.active.checkpoints} checkpoint(s)${d.active.dirty ? ' + uncommitted changes' : ''}`);
     } else {
-      console.log(`⚠ leftover session branch ${d.active.branch} (${d.active.checkpoints} checkpoint(s)) — zuzuu session continue | merge | discard`);
+      console.log(`⚠ ${leftoverLine(d)}`);
     }
     return;
   }

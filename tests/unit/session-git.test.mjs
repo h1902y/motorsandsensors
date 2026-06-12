@@ -15,6 +15,8 @@ import {
 } from '../../zuzuu/session-git.mjs';
 import { handleHook } from '../../zuzuu/commands/hook.mjs';
 import { listLive } from '../../zuzuu/live/live-store.mjs';
+import { statusData } from '../../zuzuu/commands/status.mjs';
+import { leftoverLine } from '../../zuzuu/commands/session.mjs';
 
 function git(args, cwd, input) {
   const r = spawnSync('git', args, { cwd, encoding: 'utf8', input });
@@ -415,6 +417,45 @@ test('hook lifecycle respects the opt-out: no branches, capture untouched', () =
     assert.deepEqual(listSessionBranches(cwd), []);
     assert.ok(listLive(cwd).find((r) => r.id === 'optout-77'), 'live capture unaffected');
   });
+});
+
+// ---------------------------------------------------------------- surfacing
+
+test('statusData carries the session summary (injectable for hermetic callers)', () => {
+  // injected — fully hermetic
+  const injected = { enabled: true, mainBranch: 'main', active: null, onSessionBranch: false };
+  const home = mkdtempSync(join(tmpdir(), 'zz-statushome-'));
+  try {
+    assert.deepEqual(statusData(join(home, '.zuzuu'), { hosts: [], session: injected }).session, injected);
+    // default in a non-git dir degrades to disabled, never throws
+    const d = statusData(join(home, '.zuzuu'), { hosts: [] });
+    assert.equal(d.session.enabled, false);
+    assert.equal(d.session.active, null);
+  } finally {
+    rmSync(home, { recursive: true, force: true });
+  }
+  // default in a real repo reflects the leftover branch
+  tmpRepo((cwd) => {
+    openSession(cwd, 'surface01');
+    git(['checkout', '-q', 'main'], cwd);
+    const d = statusData(join(cwd, '.zuzuu'), { hosts: [] });
+    assert.equal(d.session.active.branch, 'zz/session-surface0');
+    assert.equal(d.session.onSessionBranch, false);
+  });
+});
+
+test('leftoverLine: warns only on a NOT-checked-out session branch (doctor/status line)', () => {
+  assert.equal(leftoverLine(null), null);
+  assert.equal(leftoverLine({ active: null, onSessionBranch: false }), null);
+  assert.equal(
+    leftoverLine({ active: { branch: 'zz/session-abc', checkpoints: 3, dirty: false }, onSessionBranch: true }),
+    null,
+    'a checked-out branch is in use, not a leftover',
+  );
+  assert.equal(
+    leftoverLine({ active: { branch: 'zz/session-abc', checkpoints: 3, dirty: false }, onSessionBranch: false }),
+    'leftover session branch zz/session-abc (3 checkpoint(s)) — zuzuu session continue | merge | discard',
+  );
 });
 
 test('sessionBranchName sanitizes to [a-z0-9], first 8', () => {
