@@ -10,7 +10,7 @@ describe("buildHostRows", () => {
   });
 
   it("marks only detected hosts launchable; OpenCode stays launchable regardless", () => {
-    const rows = buildHostRows([{ name: "claude" }, { name: "gemini-cli" }]);
+    const rows = buildHostRows([{ name: "claude-code" }, { name: "gemini-cli" }]);
     expect(rows.map((r) => [r.command, r.detected])).toEqual([
       ["claude", true],
       ["gemini", true],

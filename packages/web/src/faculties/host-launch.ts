@@ -13,7 +13,7 @@ export interface HostRow {
 
 /** Hosts zuzuu can wrap, in menu order; `name` matches zuzuuApi.hosts() entries. */
 const KNOWN_HOSTS = [
-  { name: "claude", label: "Claude Code", command: "claude" },
+  { name: "claude-code", label: "Claude Code", command: "claude" },
   { name: "gemini-cli", label: "Gemini CLI", command: "gemini" },
   { name: "codex", label: "Codex", command: "codex" },
   { name: "pi", label: "pi", command: "pi" },
