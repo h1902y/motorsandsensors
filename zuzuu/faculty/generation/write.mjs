@@ -11,7 +11,7 @@ import { reindex } from '../../knowledge/index.mjs';
 import {
   snapshotsDir, activePath, lockfilePath, agentJsonPath, readJson,
   knowledgeFiles, memoryFiles, actionFiles, guardrailFiles, instructionFiles,
-  snapshotFaculties, agentId, activeGeneration, listGenerations, readGeneration,
+  snapshotFaculties, agentId, listGenerations, readGeneration,
 } from './read.mjs';
 
 const writeJson = (p, obj) => {

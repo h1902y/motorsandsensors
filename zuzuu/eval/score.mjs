@@ -1,8 +1,14 @@
 // zuzuu/eval/score.mjs
 // Mechanical scorer — weighted sum of normalized signals → { score, confidence, rationale, signals }.
 // Pure; deterministic; no FS, no Date.now(), no Math.random().
+//
+// Faculty Module hook: a module may export evalSignals(proposal) → PARTIAL
+// signals; those overlay the mechanical extraction (fail-soft via the
+// registry's invoke — a broken hook leaves the default scorer untouched).
+// No built-in implements it today, so behavior is unchanged.
 
 import { extractSignals } from './signals.mjs';
+import { BUILTIN_MODULES, invoke } from '../faculty/registry.mjs';
 
 // Weight vector (must sum to 1.0).
 const W = {
@@ -60,7 +66,14 @@ function buildRationale(s) {
  * @returns {{ score: number, confidence: string, rationale: string, signals: object }}
  */
 export function mechanicalScore(proposal, opts = {}) {
-  const s = extractSignals(proposal, opts);
+  let s = extractSignals(proposal, opts);
+
+  // Optional per-faculty evalSignals hook — partial overlay, fail-soft.
+  const mod = BUILTIN_MODULES[proposal?.faculty];
+  if (mod && typeof mod.evalSignals === 'function') {
+    const r = invoke({ id: proposal.faculty, module: mod }, 'evalSignals', proposal);
+    if (r.ok && r.value && typeof r.value === 'object') s = { ...s, ...r.value };
+  }
 
   const raw =
     W.occurrence       * s.occurrence +

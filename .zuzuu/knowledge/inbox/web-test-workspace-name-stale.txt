@@ -1,1 +1,0 @@
-web/CLAUDE.md's test command 'npm run test -w zuzuu-web' is stale: the daemon package was renamed to @zuzuucodes/web (packages/daemon/package.json), so use 'npm run test -w @zuzuucodes/web'; the web SPA suite is 'npm run test -w @zuzuu-web/web'. Verified 2026-06-12 during W2.2.

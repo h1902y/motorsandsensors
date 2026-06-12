@@ -16,13 +16,15 @@ export function knowledgeCard(agentDir, p, i, total, scoreResult) {
   if (p.kind === 'registry') {
     lines.push(`  register ${p.registry.slice(0, -1)}: '${p.key}'  (seen ${p.evidence?.occurrences}× in candidates)`);
   } else {
-    const c = p.candidate;
+    // dual-read: legacy records carry `candidate`/`er`; spine records (e.g.
+    // inbox-promoted) carry `payload`/`analysis.er` — both must render.
+    const c = p.candidate ?? p.payload ?? {};
     lines.push(`  ${c.type}: ${c.body?.slice(0, 100).replace(/\n/g, ' ')}`);
     for (const [k, v] of Object.entries(c.attributes ?? {})) lines.push(`    · ${k} = ${v}`);
     for (const r of c.relations ?? []) lines.push(`    → ${r.type} ${r.target}`);
     const ev = p.evidence ?? {};
     if (Object.keys(ev).length) lines.push(`  evidence: ${Object.entries(ev).map(([k, v]) => `${k}=${JSON.stringify(v)}`).join('  ')}`);
-    const er = p.er ?? {};
+    const er = p.er ?? p.analysis?.er ?? {};
     lines.push(`  er: ${er.verdict}${er.match ? ` → ${er.match}` : ''}  (${(er.confidence ?? 0).toFixed(2)} · ${er.reason ?? ''})`);
     if (er.match) {
       const m = readItem(agentDir, er.match);
@@ -36,10 +38,11 @@ export function knowledgeCard(agentDir, p, i, total, scoreResult) {
 
 /** The historical knowledge one-liner for `zuzuu proposals list`. */
 export function knowledgeLine(p) {
+  const c = p.candidate ?? p.payload ?? {}; // dual-read, same as the card
   const what = p.kind === 'registry'
     ? `register ${p.registry.slice(0, -1)} '${p.key}'`
-    : `${p.candidate.type}: ${p.candidate.body?.slice(0, 60).replace(/\n/g, ' ')}`;
-  return `  ${p.id}  [${p.er?.verdict ?? p.kind}]  ${what}`;
+    : `${c.type}: ${c.body?.slice(0, 60).replace(/\n/g, ' ')}`;
+  return `  ${p.id}  [${p.er?.verdict ?? p.analysis?.er?.verdict ?? p.kind}]  ${what}`;
 }
 
 /** Derive the human title for a proposal (the JSON list/table form). */

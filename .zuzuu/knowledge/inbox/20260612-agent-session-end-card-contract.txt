@@ -1,7 +1,0 @@
-zuzuu-web agent sessions: the end-of-session UI must read merge outcomes from
-GET /api/sessions/:id closeResult (the daemon awaits whenClosed() so a fetch
-racing the PTY-exit auto-merge still gets the result). The empty-squash
-refusal can arrive in TWO shapes — as closeResult.refusal.reason on a non-zero
-CLI exit, or inside an exit-0 merge result ({ok:false, reason}) — the card
-state machine (web/packages/web/src/lib/session-cards.ts endCard) handles both;
-keep them in sync if the CLI's session-merge JSON changes.

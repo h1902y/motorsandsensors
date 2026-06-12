@@ -313,3 +313,28 @@ test('doctor facultyModuleHealth: healthy declarative faculty is an informationa
     assert.ok(notes.some((n) => n.includes('declarative faculties: todo')));
   });
 });
+
+// ---------------------------------------------------------------------------
+// knowledge render dual-read (spine-shaped records — e.g. inbox-promoted)
+// ---------------------------------------------------------------------------
+
+test('knowledge card + line render spine-shaped records (payload/analysis.er) without legacy keys', async () => {
+  const { knowledgeCard, knowledgeLine } = await import('../../zuzuu/faculty/render.mjs');
+  const spineRecord = {
+    id: 'web-test-fact-abc123', kind: 'item', status: 'pending', source: 'agent',
+    payload: { id: 'web-test-fact', type: 'fact', body: 'The web test workspace name was stale.' },
+    analysis: { er: { verdict: 'new' } },
+    evidence: { inboxFile: 'note.txt' },
+    provenance: [],
+  };
+  const card = knowledgeCard('/nowhere', spineRecord, 0, 1, null);
+  assert.ok(card.includes('fact: The web test workspace name was stale.'), card);
+  assert.ok(card.includes('er: new'), card);
+  const line = knowledgeLine(spineRecord);
+  assert.ok(line.includes('[new]'), line);
+  assert.ok(line.includes('fact: The web test workspace name was stale.'), line);
+  // legacy records still render identically
+  const legacy = { ...spineRecord, candidate: spineRecord.payload, er: { verdict: 'new' } };
+  assert.equal(knowledgeCard('/nowhere', legacy, 0, 1, null), card);
+  assert.equal(knowledgeLine(legacy), line);
+});

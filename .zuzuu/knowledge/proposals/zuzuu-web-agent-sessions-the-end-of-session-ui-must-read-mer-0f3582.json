@@ -1,0 +1,34 @@
+{
+  "id": "zuzuu-web-agent-sessions-the-end-of-session-ui-must-read-mer-0f3582",
+  "kind": "item",
+  "status": "pending",
+  "created_at": "2026-06-12T20:37:30.395Z",
+  "source": "agent",
+  "evidence": {
+    "inboxFile": "20260612-agent-session-end-card-contract.txt"
+  },
+  "analysis": {
+    "er": {
+      "verdict": "new"
+    }
+  },
+  "score": {
+    "score": 0.175,
+    "confidence": "low",
+    "rationale": "novel signal"
+  },
+  "payload": {
+    "id": "zuzuu-web-agent-sessions-the-end-of-session-ui-must-read-mer",
+    "type": "fact",
+    "body": "zuzuu-web agent sessions: the end-of-session UI must read merge outcomes from\nGET /api/sessions/:id closeResult (the daemon awaits whenClosed() so a fetch\nracing the PTY-exit auto-merge still gets the result). The empty-squash\nrefusal can arrive in TWO shapes — as closeResult.refusal.reason on a non-zero\nCLI exit, or inside an exit-0 merge result ({ok:false, reason}) — the card\nstate machine (web/packages/web/src/lib/session-cards.ts endCard) handles both;\nkeep them in sync if the CLI's session-merge JSON changes.",
+    "attributes": {},
+    "relations": [],
+    "provenance": [
+      {
+        "session": "agent",
+        "ref": "inbox/20260612-agent-session-end-card-contract.txt"
+      }
+    ]
+  },
+  "faculty": "knowledge"
+}
