@@ -13,7 +13,7 @@ import { digestData } from '../../zuzuu/commands/digest.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zjson-'));
-  const dir = join(root, 'agent');
+  const dir = join(root, '.zuzuu');
   mkdirSync(join(dir, 'knowledge', 'proposals'), { recursive: true });
   try { return fn(dir); } finally { rmSync(root, { recursive: true, force: true }); }
 }

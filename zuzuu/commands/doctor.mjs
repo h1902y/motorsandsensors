@@ -123,14 +123,14 @@ export async function doctor() {
   if (commit) ok(`git repo on ${branch} @ ${commit.slice(0, 8)}`);
   else info("not a git repo — capture works; sessions just won’t link to a commit");
 
-  // agent/ writable
+  // .zuzuu/ writable
   const { dir } = paths();
   try {
     mkdirSync(dir, { recursive: true });
     accessSync(dir, constants.W_OK);
-    ok(`agent/ writable (${dir})`);
+    ok(`.zuzuu/ writable (${dir})`);
   } catch {
-    bad(`agent/ not writable (${dir})`);
+    bad(`.zuzuu/ not writable (${dir})`);
   }
 
   // faculty home (served by `zuzuu init`)

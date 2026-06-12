@@ -6,7 +6,7 @@
 import { paths } from '../store.mjs';
 import { computeDigest } from '../digest.mjs';
 
-/** Pure: the digest payload — the zuzuu-web /digest source (the daemon also reads agent/.live/digest.md directly). */
+/** Pure: the digest payload — the zuzuu-web /digest source (the daemon also reads .zuzuu/.live/digest.md directly). */
 export function digestData(agentDir, opts = {}) {
   const d = computeDigest(agentDir, opts);
   return { text: d.text ?? '' };

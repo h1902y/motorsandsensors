@@ -1,6 +1,6 @@
 // Proposals — the human gate, as files. The first build of DESIGN's Proposal
 // entity: { candidate, source, evidence, er-verdict, status }. Pending under
-// agent/knowledge/proposals/<id>.json; resolved ones move to proposals/archive/
+// .zuzuu/knowledge/proposals/<id>.json; resolved ones move to proposals/archive/
 // (an auditable history — approvals also show up as item-file diffs in git).
 //
 // Registry governance rides the same gate: an unregistered attribute/relation

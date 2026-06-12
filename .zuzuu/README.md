@@ -1,7 +1,9 @@
-# agent/ — your coding agent's home, in the open
+# .zuzuu/ — your agent's home (hidden, like .git — yours to read & version)
 
 This directory is your agent's evolving brain. Five **faculties** grow from how you
-actually work — and **nothing changes without your approval**.
+actually work — and **nothing changes without your approval**. It's dot-prefixed to
+stay out of your way; everything inside is plain text, versioned in git, and
+surfaced by `zuzuu status` / `zuzuu explain` / `zuzuu digest`.
 
 ## The five faculties
 - **knowledge/** — what's TRUE (facts about this project)
@@ -11,19 +13,19 @@ actually work — and **nothing changes without your approval**.
 - **guardrails/** — what NOT to do (enforced rules, checked on every tool call)
 
 ## How things graduate (you're in the loop)
-    a session runs  →  mns mines candidates  →  inbox/  →  proposals/
+    a session runs  →  zuzuu mines candidates  →  inbox/  →  proposals/
                                                               │  you decide
-                                                    mns review  (y / n / edit)
+                                                    zuzuu review  (y / n / edit)
                                                               ▼
                                           approved → the faculty + a new *generation*
 A **generation** is a pinned checkpoint of every faculty. Approving proposals mints
-one; `mns generation rollback <id>` restores any earlier checkpoint.
+one; `zuzuu generation rollback <id>` restores any earlier checkpoint.
 
 ## Get in the loop
-- `mns inbox`            — what's waiting for your approval
-- `mns review`          — approve / reject, one at a time
-- `mns generation list` — your checkpoints (· = active)
-- `mns explain`         — this model, any time
+- `zuzuu inbox`            — what's waiting for your approval
+- `zuzuu review`          — approve / reject, one at a time
+- `zuzuu generation list` — your checkpoints (· = active)
+- `zuzuu explain`         — this model, any time
 
 ## What to ignore
 `.traces/`, `.live/`, and `knowledge/.index.db` are machine internals (git-ignored).

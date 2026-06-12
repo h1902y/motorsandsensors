@@ -7,13 +7,13 @@
 export const SIGNATURE = 'zuzuu.mjs'; // appears in every zuzuu hook command path, quote-agnostic
 const tagged = (cmd) => String(cmd).includes(SIGNATURE);
 // entire-style: agent can't read its own observability output (feedback loop) —
-// but ONLY that. The faculty home (agent/knowledge etc., served by `zuzuu init`)
+// but ONLY that. The faculty home (.zuzuu/knowledge etc., served by `zuzuu init`)
 // must stay readable, so the deny is narrowed to .traces/ + .live/.
-const DENY_RULES = ['Read(./agent/.traces/**)', 'Read(./agent/.live/**)'];
+const DENY_RULES = ['Read(./.zuzuu/.traces/**)', 'Read(./.zuzuu/.live/**)'];
 
 // Minimal hook set: lifecycle (Design B re-captures the transcript — no
 // PostToolUse needed) + the PreToolUse Guardrails GATE (the one place we *do*
-// sit on the hot path: it evaluates agent/guardrails/rules.json per tool call,
+// sit on the hot path: it evaluates .zuzuu/guardrails/rules.json per tool call,
 // fails open, and stays silent unless a rule matches).
 export const LIFECYCLE_EVENTS = ['SessionStart', 'Stop', 'SessionEnd'];
 export const GATE_EVENTS = ['PreToolUse'];

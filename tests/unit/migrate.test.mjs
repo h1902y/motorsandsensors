@@ -3,11 +3,11 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { migrateProposals } from '../../zuzuu/commands/migrate.mjs';
+import { migrateProposals, migrateHome } from '../../zuzuu/commands/migrate.mjs';
 import { readProposal } from '../../zuzuu/faculty/proposal.mjs';
 
 // ---------------------------------------------------------------------------
@@ -15,7 +15,7 @@ import { readProposal } from '../../zuzuu/faculty/proposal.mjs';
 // ---------------------------------------------------------------------------
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-migrate-'));
-  const agentDir = join(root, 'agent');
+  const agentDir = join(root, '.zuzuu');
   mkdirSync(join(agentDir, 'knowledge', 'proposals', 'archive'), { recursive: true });
   try {
     return fn(agentDir);
@@ -23,6 +23,96 @@ function withHome(fn) {
     rmSync(root, { recursive: true, force: true });
   }
 }
+
+function withTempRepo(fn) {
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-mig-home-'));
+  try { return fn(root); } finally { rmSync(root, { recursive: true, force: true }); }
+}
+
+// seed a legitimate zuzuu home at agent/ (the pre-2026-06-12 layout)
+function seedLegacyHome(root) {
+  mkdirSync(join(root, 'agent', '.traces'), { recursive: true });
+  mkdirSync(join(root, 'agent', 'knowledge'), { recursive: true });
+  writeFileSync(join(root, 'agent', 'agent.json'), '{"version":3}\n');
+  writeFileSync(join(root, 'agent', '.traces', 'claude-code-a.otlp.jsonl'), '{}\n');
+  writeFileSync(
+    join(root, 'agent', 'sessions.json'),
+    JSON.stringify({ version: 1, sessions: [{ id: 'a', host: 'claude-code', traceRef: 'agent/.traces/claude-code-a.otlp.jsonl' }] }, null, 2) + '\n',
+  );
+}
+
+// ---------------------------------------------------------------------------
+// migrateHome — agent/ → .zuzuu/ (W1, 2026-06-12)
+// ---------------------------------------------------------------------------
+test('migrateHome moves agent/ → .zuzuu/, rewrites gitignore + traceRefs; idempotent', () => {
+  withTempRepo((root) => {
+    seedLegacyHome(root);
+    writeFileSync(join(root, '.gitignore'), 'agent/.traces/\nagent/.live/\nagent/knowledge/.index.db\nnode_modules/\n');
+
+    const r1 = migrateHome(root);
+    assert.equal(r1.migrated, true);
+    assert.ok(existsSync(join(root, '.zuzuu', 'agent.json')), 'home moved to .zuzuu/');
+    assert.ok(existsSync(join(root, '.zuzuu', '.traces', 'claude-code-a.otlp.jsonl')), 'inner layout byte-identical');
+    assert.ok(!existsSync(join(root, 'agent')), 'old agent/ gone');
+
+    const gi = readFileSync(join(root, '.gitignore'), 'utf8');
+    assert.ok(gi.includes('.zuzuu/.traces/') && !gi.includes('agent/.traces/'), 'gitignore rewritten');
+    assert.ok(gi.includes('node_modules/'), 'user gitignore lines preserved');
+
+    const idx = JSON.parse(readFileSync(join(root, '.zuzuu', 'sessions.json'), 'utf8'));
+    assert.equal(idx.sessions[0].traceRef, '.zuzuu/.traces/claude-code-a.otlp.jsonl', 'traceRef rewritten');
+
+    assert.equal(migrateHome(root).migrated, false, 'idempotent second run');
+  });
+});
+
+test('migrateHome never clobbers an existing .zuzuu/', () => {
+  withTempRepo((root) => {
+    seedLegacyHome(root);
+    mkdirSync(join(root, '.zuzuu'), { recursive: true });
+    assert.equal(migrateHome(root).migrated, false);
+    assert.ok(existsSync(join(root, 'agent', 'agent.json')), 'legacy left untouched when .zuzuu/ present');
+  });
+});
+
+test('migrateHome does NOT touch an unrelated agent/ dir (no agent.json)', () => {
+  withTempRepo((root) => {
+    mkdirSync(join(root, 'agent', 'src'), { recursive: true });
+    writeFileSync(join(root, 'agent', 'src', 'index.ts'), 'export {}\n');
+    assert.equal(migrateHome(root).migrated, false);
+    assert.ok(existsSync(join(root, 'agent', 'src', 'index.ts')), 'user agent/ dir untouched');
+    assert.ok(!existsSync(join(root, '.zuzuu')), 'no .zuzuu created');
+  });
+});
+
+test('migrateHome scrubs legacy deny rules from .claude settings, keeps user rules', () => {
+  withTempRepo((root) => {
+    seedLegacyHome(root);
+    mkdirSync(join(root, '.claude'), { recursive: true });
+    writeFileSync(
+      join(root, '.claude', 'settings.json'),
+      JSON.stringify({ permissions: { deny: ['Read(./agent/.traces/**)', 'Read(./agent/.live/**)', 'Read(./secrets/**)'] } }, null, 2) + '\n',
+    );
+
+    migrateHome(root);
+
+    const s = JSON.parse(readFileSync(join(root, '.claude', 'settings.json'), 'utf8'));
+    assert.ok(!s.permissions.deny.includes('Read(./agent/.traces/**)'), 'legacy deny gone');
+    assert.ok(s.permissions.deny.includes('Read(./.zuzuu/.traces/**)'), 'new deny present');
+    assert.ok(s.permissions.deny.includes('Read(./.zuzuu/.live/**)'), 'new live deny present');
+    assert.ok(s.permissions.deny.includes('Read(./secrets/**)'), 'user deny preserved');
+  });
+});
+
+test('migrateHome drops the derived knowledge index (rebuilds on next recall)', () => {
+  withTempRepo((root) => {
+    seedLegacyHome(root);
+    writeFileSync(join(root, 'agent', 'knowledge', '.index.db'), 'derived');
+    migrateHome(root);
+    assert.ok(!existsSync(join(root, '.zuzuu', 'knowledge', '.index.db')), 'derived index dropped');
+    assert.ok(existsSync(join(root, '.zuzuu', 'knowledge')), 'knowledge dir intact');
+  });
+});
 
 const LEGACY = {
   id: 'x-1',

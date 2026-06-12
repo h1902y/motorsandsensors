@@ -76,7 +76,7 @@ export function code(args = {}, deps = {}) {
 
   // a clean one-screen summary of what the newcomer just got (vs. the verbose enable output)
   d.log('zuzuu code → OpenCode, faculty-equipped');
-  d.log(`  ✓ faculty home (agent/)   ${wired ? '✓ capture + guardrails gate   ✓ session grounding' : '⚠ plugin not wired (degraded)'}`);
+  d.log(`  ✓ faculty home (.zuzuu/)   ${wired ? '✓ capture + guardrails gate   ✓ session grounding' : '⚠ plugin not wired (degraded)'}`);
   d.log(`  → launching OpenCode in ${dir} …`);
 
   // 5. launch the real OpenCode (configure + launch, never drive)

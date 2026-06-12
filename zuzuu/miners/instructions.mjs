@@ -97,7 +97,7 @@ export function aggregate(sessions, { minSessions = 2 } = {}) {
 // propose
 
 /**
- * Write an instructions proposal into agent/instructions/proposals/ for each
+ * Write an instructions proposal into .zuzuu/instructions/proposals/ for each
  * candidate.
  *
  * Idempotent:

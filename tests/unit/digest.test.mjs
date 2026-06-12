@@ -11,7 +11,7 @@ import { createProposal } from '../../zuzuu/knowledge/proposals.mjs';
 // Build a throwaway .home home; return its path (the agentDir).
 function withHome(fn, seed = {}) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-digest-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   mkdirSync(join(home, 'knowledge', 'items'), { recursive: true });
   mkdirSync(join(home, 'knowledge', 'proposals'), { recursive: true });
   mkdirSync(join(home, 'instructions'), { recursive: true });

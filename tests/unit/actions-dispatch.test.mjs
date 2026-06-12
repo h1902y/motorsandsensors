@@ -7,12 +7,12 @@ import { runAction } from '../../zuzuu/actions/dispatch.mjs';
 
 function withAction(slug, manifest, runBody, fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-disp-'));
-  const dir = join(root, 'agent', 'actions', slug);
+  const dir = join(root, '.zuzuu', 'actions', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'action.json'), JSON.stringify({ slug, ...manifest }));
   writeFileSync(join(dir, 'run.mjs'), runBody);
   try {
-    return fn(join(root, 'agent'));
+    return fn(join(root, '.zuzuu'));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

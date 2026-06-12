@@ -21,8 +21,8 @@ test('applyScaffold creates the full layout + manifest in a fresh dir', () => {
     assert.equal(plan.dirs.length, LAYOUT.dirs.length);
     for (const d of LAYOUT.dirs) assert.ok(existsSync(join(cwd, d)), d);
     for (const f of Object.keys(LAYOUT.files)) assert.ok(existsSync(join(cwd, f)), f);
-    assert.ok(existsSync(join(cwd, 'agent', 'README.md')), 'agent/README.md scaffolded');
-    const m = JSON.parse(readFileSync(join(cwd, 'agent', 'agent.json'), 'utf8'));
+    assert.ok(existsSync(join(cwd, '.zuzuu', 'README.md')), '.zuzuu/README.md scaffolded');
+    const m = JSON.parse(readFileSync(join(cwd, '.zuzuu', 'agent.json'), 'utf8'));
     assert.equal(m.version, 3);
     assert.deepEqual(m.layout, ['knowledge', 'memory', 'actions', 'instructions', 'guardrails']);
     assert.equal(homeExists(cwd), true);
@@ -40,7 +40,7 @@ test('re-apply is a no-op plan (idempotent)', () => {
 test('no-clobber: user edits to seeded files survive re-apply', () => {
   withTemp((cwd) => {
     applyScaffold(cwd, { now: 0 });
-    const target = join(cwd, 'agent', 'instructions', 'project.md');
+    const target = join(cwd, '.zuzuu', 'instructions', 'project.md');
     writeFileSync(target, 'MY CUSTOM STEERING\n');
     applyScaffold(cwd, { now: 1 });
     assert.equal(readFileSync(target, 'utf8'), 'MY CUSTOM STEERING\n');
@@ -50,11 +50,11 @@ test('no-clobber: user edits to seeded files survive re-apply', () => {
 test('partial home: apply restores only the missing pieces', () => {
   withTemp((cwd) => {
     applyScaffold(cwd, { now: 0 });
-    rmSync(join(cwd, 'agent', 'memory'), { recursive: true });
+    rmSync(join(cwd, '.zuzuu', 'memory'), { recursive: true });
     const plan = applyScaffold(cwd, { now: 1 });
-    assert.deepEqual(plan.dirs, ['agent/memory', 'agent/memory/entries', 'agent/memory/inbox', 'agent/memory/proposals']);
-    assert.deepEqual(plan.files, ['agent/memory/README.md']);
-    assert.ok(existsSync(join(cwd, 'agent', 'memory', 'README.md')));
+    assert.deepEqual(plan.dirs, ['.zuzuu/memory', '.zuzuu/memory/entries', '.zuzuu/memory/inbox', '.zuzuu/memory/proposals']);
+    assert.deepEqual(plan.files, ['.zuzuu/memory/README.md']);
+    assert.ok(existsSync(join(cwd, '.zuzuu', 'memory', 'README.md')));
   });
 });
 
@@ -74,6 +74,6 @@ test('ensureGitignore creates/appends without duplicating, preserving content', 
 test('scaffold includes the actions/inbox dir', () => {
   withTemp((cwd) => {
     applyScaffold(cwd, { now: 0 });
-    assert.ok(existsSync(join(cwd, 'agent', 'actions', 'inbox')), 'actions/inbox exists');
+    assert.ok(existsSync(join(cwd, '.zuzuu', 'actions', 'inbox')), 'actions/inbox exists');
   });
 });

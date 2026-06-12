@@ -16,7 +16,7 @@ import { detectDrift } from '../../zuzuu/commands/doctor.mjs';
 
 function withMns(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-drift-'));
-  const agentDir = join(root, 'agent');
+  const agentDir = join(root, '.zuzuu');
   mkdirSync(agentDir, { recursive: true });
   try {
     return fn({ root, agentDir });

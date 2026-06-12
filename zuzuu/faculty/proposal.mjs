@@ -71,7 +71,7 @@ export function makeProposal({ faculty, kind, source, payload, analysis = {}, ev
 }
 
 /**
- * Write a proposal record to `agent/<faculty>/proposals/<id>.json`.
+ * Write a proposal record to `.zuzuu/<faculty>/proposals/<id>.json`.
  * Creates directories as needed. Returns the written path.
  */
 export function writeProposal(agentDir, proposal) {

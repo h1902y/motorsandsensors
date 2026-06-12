@@ -28,7 +28,7 @@ function readInstructions(agentDir) {
 const INTERVIEW = [
   'Project steering is empty. Before substantive work, interview your human',
   '(what is this project, its conventions, its priorities), draft',
-  'agent/instructions/project.md from their answers, and get their approval.',
+  '.zuzuu/instructions/project.md from their answers, and get their approval.',
 ].join(' ');
 
 function knowledgeSection(agentDir, limit) {
@@ -73,7 +73,7 @@ function guardrailsSection(agentDir) {
 
 /**
  * Compute the digest for a faculty home.
- * @param {string} agentDir  path to the agent/ directory
+ * @param {string} agentDir  path to the .zuzuu/ directory
  * @param {{ knowledgeLimit?: number, budget?: number }} options
  * @returns {{ text: string, sections: object }}
  */

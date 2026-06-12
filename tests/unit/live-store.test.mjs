@@ -7,7 +7,7 @@ import { openLive, touchLive, closeLive, listLive } from '../../zuzuu/live/live-
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-live-'));
-  mkdirSync(join(root, 'agent'), { recursive: true });
+  mkdirSync(join(root, '.zuzuu'), { recursive: true });
   try { return fn(root); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 

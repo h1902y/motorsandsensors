@@ -11,7 +11,7 @@ import { SEED_TYPES } from '../../zuzuu/knowledge/registry.mjs';
 
 function withHome(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'zuzuu-gate-'));
-  const agentDir = join(dir, 'agent');
+  const agentDir = join(dir, '.zuzuu');
   const reg = join(agentDir, 'knowledge', 'registry');
   mkdirSync(reg, { recursive: true });
   mkdirSync(join(agentDir, 'knowledge', 'items'), { recursive: true });

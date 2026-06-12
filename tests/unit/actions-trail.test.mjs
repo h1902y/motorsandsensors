@@ -7,8 +7,8 @@ import { recordOutcome } from '../../zuzuu/actions/trail.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-trail-'));
-  mkdirSync(join(root, 'agent'), { recursive: true });
-  try { return fn(join(root, 'agent')); } finally { rmSync(root, { recursive: true, force: true }); }
+  mkdirSync(join(root, '.zuzuu'), { recursive: true });
+  try { return fn(join(root, '.zuzuu')); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
 test('recordOutcome appends a JSONL line with slug + ok + error', () => {

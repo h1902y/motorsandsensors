@@ -36,7 +36,7 @@ test('evalLine appends low-signal warning when confidence is low', async () => {
 // ---------------------------------------------------------------------------
 test('home eval prints proposals highest-score-first', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-eval-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(home, d), { recursive: true });
   }
@@ -93,7 +93,7 @@ test('home eval prints proposals highest-score-first', () => {
 // ---------------------------------------------------------------------------
 test('home eval --faculty knowledge shows only knowledge proposals', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-eval-fac-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(home, d), { recursive: true });
   }
@@ -124,7 +124,7 @@ test('home eval --faculty knowledge shows only knowledge proposals', () => {
 // ---------------------------------------------------------------------------
 test('distill persists score on created proposal', async () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-distill-score-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry']) {
     mkdirSync(join(home, d), { recursive: true });
   }
@@ -163,7 +163,7 @@ test('distill persists score on created proposal', async () => {
 // ---------------------------------------------------------------------------
 test('review displays eval: line for knowledge proposals', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-rev-eval-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(home, d), { recursive: true });
   }

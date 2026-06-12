@@ -12,7 +12,7 @@ import { mintGeneration } from '../../zuzuu/faculty/generation.mjs';
 
 function freshHome() {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-status-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   mkdirSync(join(home, 'knowledge', 'items'), { recursive: true });
   mkdirSync(join(home, 'knowledge', 'proposals'), { recursive: true });
   mkdirSync(join(home, 'knowledge', 'registry'), { recursive: true });

@@ -28,7 +28,9 @@ experiments/**/out/
 .codex/hooks.json
 
 # mns: local-only observability data
-agent/.traces/
-agent/.live/
-agent/knowledge/.index.db
 .pi/extensions/zuzuu.ts
+
+# zuzuu: local-only observability data
+.zuzuu/.traces/
+.zuzuu/.live/
+.zuzuu/knowledge/.index.db

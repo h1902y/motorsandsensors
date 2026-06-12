@@ -1,17 +1,17 @@
 // zuzuu/actions/inbox.mjs
 // The Actions crystallization gate (the same governed pipeline as Knowledge
 // promotion, kept out of the knowledge ER/registry machinery). A proposed action
-// is a real dir under agent/actions/inbox/<slug>/. A human activates it (move to
-// agent/actions/<slug>/) or rejects it (remove). Never auto-activates.
+// is a real dir under .zuzuu/actions/inbox/<slug>/. A human activates it (move to
+// .zuzuu/actions/<slug>/) or rejects it (remove). Never auto-activates.
 
 import { join } from 'node:path';
 import { existsSync, readFileSync, renameSync, mkdirSync, rmSync } from 'node:fs';
 import { actionsDir, inboxDir, listActions, isSafeSlug } from './manifest.mjs';
 
-/** Archive dir for rejected action proposals: agent/actions/proposals/archive/. */
+/** Archive dir for rejected action proposals: .zuzuu/actions/proposals/archive/. */
 const archiveBaseDir = (agentDir) => join(actionsDir(agentDir), 'proposals', 'archive');
 
-/** Proposed actions awaiting review (in agent/actions/inbox/). */
+/** Proposed actions awaiting review (in .zuzuu/actions/inbox/). */
 export function listProposedActions(agentDir) {
   return listActions(inboxDir(agentDir));
 }

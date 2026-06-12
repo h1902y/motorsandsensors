@@ -19,7 +19,7 @@ npm install -g @zuzuucodes/cli   # zero dependencies — installs the `zuzuu` co
 zuzuu code        # scaffold the faculty home, install + wire OpenCode, launch it (capture + gate + grounding)
 
 # already run Claude Code / Gemini / Codex / OpenCode / pi? wrap the one you have:
-zuzuu init        # scaffold your project's agent home (agent/) — git-style, open
+zuzuu init        # scaffold your project's agent home (.zuzuu/) — git-style, hidden like .git
 zuzuu explain     # the 5 faculties + how graduation works (you're always in the loop)
 zuzuu inbox       # what's pending your approval · zuzuu review to approve/reject
 zuzuu capture     # turn your latest agent session into an OpenTelemetry trace
@@ -42,11 +42,11 @@ All five verified against **real sessions** — never fixtures; every host's liv
 
 **Prerequisites:** Node ≥ 22 — that's it. You need at least one supported agent you've already used, so a session exists to capture. (Hacking on zuzuu itself? `git clone https://github.com/h1902y/zuzuu && cd zuzuu && npm link`.)
 
-**`zuzuu init`** behaves like `git init`: empty dir → scaffolds the agent home + `AGENTS.md`/`CLAUDE.md`; existing project → adds `agent/` and injects a small delimiter-marked block into your existing instruction files (your text is never touched); already initialized → restores missing pieces only. The home is **open and self-explaining** — a visible `agent/` dir you can read and version in git: `agent/README.md` (the explainer) · `knowledge/` (verified facts) · `memory/` (curated episodes) · `actions/` (runbooks) · `instructions/` (steering) · `guardrails/` (enforced rules), plus `generations/` (your checkpoints). Machine internals are dot-prefixed + git-ignored (`agent/.traces/`, `agent/.live/`).
+**`zuzuu init`** behaves like `git init`: empty dir → scaffolds the agent home + `AGENTS.md`/`CLAUDE.md`; existing project → adds the home and injects a small delimiter-marked block into your existing instruction files (your text is never touched); already initialized → restores missing pieces only. The home is **hidden like `.git` and self-explaining** — a `.zuzuu/` dir you can read and version in git (the only visible footprint is the managed block + three `.gitignore` lines; transparency lives in `zuzuu status` / `explain` / `digest`): `.zuzuu/README.md` (the explainer) · `knowledge/` (verified facts) · `memory/` (curated episodes) · `actions/` (runbooks) · `instructions/` (steering) · `guardrails/` (enforced rules), plus `generations/` (your checkpoints). Machine internals are dot-prefixed + git-ignored (`.zuzuu/.traces/`, `.zuzuu/.live/`). *(Pre-2026-06-12 homes at `agent/` migrate automatically on `zuzuu init`, or via `zuzuu migrate --home`.)*
 
 **Live capture** (`zuzuu enable`) is invisible by design: a minimal lifecycle hook set (Claude Code, Gemini CLI, Codex), a bus plugin (OpenCode), or an extension (pi) — each wrapped so it **always exits 0 / fails open — it can never break your agent**. The same hook carries the guardrails gate, applied in each host's own idiom (Claude/Codex `hookSpecificOutput`, Gemini `{decision:"deny"}`, OpenCode throws from `tool.execute.before`, pi returns `{block:true}` from `tool_call`). Most hosts emit no clean end-signal when a terminal is killed, so `zuzuu doctor` *reconciles* lost sessions afterward from the transcript still on disk (nothing lost).
 
-**Where your data lives:** transcripts are read **read-only**; output is git-native in your repo — `agent/sessions.json` (small tracked index, each session linked to a commit) + `agent/.traces/*.otlp.jsonl` (local, git-ignored). **Nothing is uploaded**; no raw tool input/output on the trace (byte sizes only).
+**Where your data lives:** transcripts are read **read-only**; output is git-native in your repo — `.zuzuu/sessions.json` (small tracked index, each session linked to a commit) + `.zuzuu/.traces/*.otlp.jsonl` (local, git-ignored). **Nothing is uploaded**; no raw tool input/output on the trace (byte sizes only).
 
 **Verify / troubleshoot:** `npm test` (hermetic) · `npm run playground` (⏭️ skip = that host isn't on *your* machine, not a failure) · `zuzuu doctor` (env + session health). "No host detected" → use a supported agent once in the repo, then retry.
 

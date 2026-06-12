@@ -60,7 +60,7 @@ function run(agentDir, slug, args) {
 
 function propose(agentDir, slug) {
   const { created } = proposeAction(agentDir, slug);
-  if (created.length) console.log(`proposed action '${slug}' → ${created.join(', ')} in agent/actions/inbox/${slug}/ (review with \`zuzuu review\`)`);
+  if (created.length) console.log(`proposed action '${slug}' → ${created.join(', ')} in .zuzuu/actions/inbox/${slug}/ (review with \`zuzuu review\`)`);
   else console.log(`proposed action '${slug}' already complete — nothing to do`);
 }
 

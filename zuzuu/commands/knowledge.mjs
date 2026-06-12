@@ -50,7 +50,7 @@ export function remember(args) {
   const unknown = [...v.unknownKeys.attributes, ...v.unknownKeys.relations];
   if (!v.ok || unknown.length) {
     for (const e of v.errors) console.error(`  ✗ ${e}`);
-    for (const k of unknown) console.error(`  ✗ unregistered key: ${k} (register it in agent/knowledge/registry/ first)`);
+    for (const k of unknown) console.error(`  ✗ unregistered key: ${k} (register it in .zuzuu/knowledge/registry/ first)`);
     process.exit(1);
   }
   const path = writeItem(agentDir, item);

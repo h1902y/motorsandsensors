@@ -123,7 +123,7 @@ export function aggregate(sessions, { minFailures = 3, minSessions = 2 } = {}) {
 // propose
 
 /**
- * Write a guardrails proposal into agent/guardrails/proposals/ for each candidate.
+ * Write a guardrails proposal into .zuzuu/guardrails/proposals/ for each candidate.
  * Idempotent:
  *   - skips if a guardrails proposal with the same payload.id already exists
  *   - skips if rules.json already has a rule with that id

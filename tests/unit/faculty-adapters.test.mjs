@@ -24,7 +24,7 @@ import { applyScaffold, LAYOUT } from '../../zuzuu/scaffold.mjs';
 
 function withHome(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'zuzuu-fadapters-'));
-  const agentDir = join(dir, 'agent');
+  const agentDir = join(dir, '.zuzuu');
   mkdirSync(agentDir, { recursive: true });
   try {
     return fn(agentDir, dir);
@@ -326,9 +326,9 @@ test('memory adapter.render: returns line and card with title and date', () => {
 
 test('scaffold LAYOUT.dirs includes inbox and proposals for guardrails/instructions/memory', () => {
   const expected = [
-    'agent/guardrails/inbox', 'agent/guardrails/proposals',
-    'agent/instructions/inbox', 'agent/instructions/proposals',
-    'agent/memory/inbox', 'agent/memory/proposals',
+    '.zuzuu/guardrails/inbox', '.zuzuu/guardrails/proposals',
+    '.zuzuu/instructions/inbox', '.zuzuu/instructions/proposals',
+    '.zuzuu/memory/inbox', '.zuzuu/memory/proposals',
   ];
   for (const d of expected) {
     assert.ok(LAYOUT.dirs.includes(d), `LAYOUT.dirs includes ${d}`);
@@ -339,9 +339,9 @@ test('applyScaffold creates new inbox/proposals dirs for all three new faculties
   withHome((_agentDir, cwd) => {
     applyScaffold(cwd);
     for (const d of [
-      'agent/guardrails/inbox', 'agent/guardrails/proposals',
-      'agent/instructions/inbox', 'agent/instructions/proposals',
-      'agent/memory/inbox', 'agent/memory/proposals',
+      '.zuzuu/guardrails/inbox', '.zuzuu/guardrails/proposals',
+      '.zuzuu/instructions/inbox', '.zuzuu/instructions/proposals',
+      '.zuzuu/memory/inbox', '.zuzuu/memory/proposals',
     ]) {
       assert.ok(existsSync(join(cwd, d)), `${d} created by applyScaffold`);
     }

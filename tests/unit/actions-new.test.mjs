@@ -9,8 +9,8 @@ import { scaffoldAction } from '../../zuzuu/commands/act-author.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-new-'));
-  mkdirSync(join(root, 'agent', 'actions'), { recursive: true });
-  try { return fn(join(root, 'agent')); } finally { rmSync(root, { recursive: true, force: true }); }
+  mkdirSync(join(root, '.zuzuu', 'actions'), { recursive: true });
+  try { return fn(join(root, '.zuzuu')); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
 test('scaffoldAction creates manifest + run.mjs; manifest is valid JSON with the slug', () => {
@@ -46,7 +46,7 @@ test('scaffoldAction throws on an unsafe slug (containment at the lib layer)', (
 
 test('home act new rejects a path-traversal slug (containment)', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-trav-'));
-  mkdirSync(join(root, 'agent', 'actions'), { recursive: true });
+  mkdirSync(join(root, '.zuzuu', 'actions'), { recursive: true });
   const bin = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
   try {
     const r = spawnSync(process.execPath, [bin, 'act', 'new', '../../escaped'], { cwd: root, encoding: 'utf8' });

@@ -1,6 +1,6 @@
 // zuzuu/actions/trail.mjs
 // The actions observability trail (A7): every `zuzuu act` run appends an outcome
-// record to agent/.live/actions.jsonl. This is the "details" side of the result —
+// record to .zuzuu/.live/actions.jsonl. This is the "details" side of the result —
 // the agent sees the marker value; the trace keeps the metadata. Fail-soft: a
 // logging failure must never affect the action (mirrors the guardrails decision log).
 

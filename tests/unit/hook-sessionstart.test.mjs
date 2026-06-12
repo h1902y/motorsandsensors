@@ -8,14 +8,14 @@ import { sessionStartContext, writeLiveDigest, handleHook } from '../../zuzuu/co
 
 function withHome(fn, project) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-hook-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   mkdirSync(join(home, 'knowledge', 'items'), { recursive: true });
   mkdirSync(join(home, 'knowledge', 'proposals'), { recursive: true });
   mkdirSync(join(home, 'instructions'), { recursive: true });
   mkdirSync(join(home, 'guardrails'), { recursive: true });
   writeFileSync(join(home, 'instructions', 'project.md'), project);
   try {
-    return fn(root); // pass repo root; paths() derives agent/ under it
+    return fn(root); // pass repo root; paths() derives .zuzuu/ under it
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -30,10 +30,10 @@ test('sessionStartContext returns the Claude additionalContext shape', () => {
   }, '# Project steering\n\nShip daily.\n');
 });
 
-test('writeLiveDigest writes the digest to agent/.live/digest.md (universal channel)', () => {
+test('writeLiveDigest writes the digest to .zuzuu/.live/digest.md (universal channel)', () => {
   withHome((root) => {
     writeLiveDigest(root);
-    const p = join(root, 'agent', '.live', 'digest.md');
+    const p = join(root, '.zuzuu', '.live', 'digest.md');
     assert.ok(existsSync(p), 'digest.md created');
     assert.match(readFileSync(p, 'utf8'), /zuzuu faculty digest/);
     assert.match(readFileSync(p, 'utf8'), /Ship daily/);
@@ -43,7 +43,7 @@ test('writeLiveDigest writes the digest to agent/.live/digest.md (universal chan
 test('handleHook delivers the digest file on an OPEN event for a non-Claude host (pi)', () => {
   withHome((root) => {
     handleHook({ event: 'session_start', payload: { session_id: 'x' }, cwd: root, host: 'pi' });
-    assert.ok(existsSync(join(root, 'agent', '.live', 'digest.md')), 'digest delivered on pi session_start');
+    assert.ok(existsSync(join(root, '.zuzuu', '.live', 'digest.md')), 'digest delivered on pi session_start');
   }, '# Project steering\n\nShip daily.\n');
 });
 

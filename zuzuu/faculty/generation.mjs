@@ -7,7 +7,7 @@
 // for items that were never committed). Identity: Agent → Generation → Run —
 // rollback = flip the active pointer + restore content; never `git revert`.
 //
-// Layout under agent/:
+// Layout under .zuzuu/:
 //   generations/active             {active: "gen_NNN"}  — the live pointer
 //   generations/<id>.json          the lockfile (content-addressed manifest)
 //   generations/snapshots/<id>/<faculty>/...  pinned item bytes (rollback source)
@@ -126,7 +126,7 @@ export function snapshotFaculties(agentDir) {
 
 /** Stable agent id derived from the repo root: agt_<first12 of sha256(root)>. */
 export function agentId(agentDir) {
-  // agentDir is the agent/ dir; the repo root is its parent.
+  // agentDir is the .zuzuu/ dir; the repo root is its parent.
   const root = dirname(agentDir);
   return 'agt_' + sha256(root).slice(0, 12);
 }

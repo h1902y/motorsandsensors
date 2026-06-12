@@ -7,7 +7,7 @@
 // A guardrails proposal payload is a single rule record:
 //   { id, action: deny|ask|allow, tool, pattern, reason }
 //
-// apply: loads agent/guardrails/rules.json (seeding {version:1,rules:[]} if
+// apply: loads .zuzuu/guardrails/rules.json (seeding {version:1,rules:[]} if
 //        absent), appends the rule or replaces an existing one with the same id,
 //        then writes the file back.
 //

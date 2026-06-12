@@ -1,9 +1,9 @@
-// Liveness store for in-flight sessions: thin lifecycle records under agent/.live/.
+// Liveness store for in-flight sessions: thin lifecycle records under .zuzuu/.live/.
 // Holds NO spans (Design B — spans come from re-parsing the transcript). Just
 // enough to know a session is open and when it was last seen, so a killed
 // terminal (which sends no SessionEnd) can be reconciled later.
 //
-// agent/.live/ is git-ignored (transient machine state, like .git/ session state).
+// .zuzuu/.live/ is git-ignored (transient machine state, like .git/ session state).
 
 import { join } from 'node:path';
 import { existsSync, readFileSync, readdirSync, writeFileSync, mkdirSync, rmSync } from 'node:fs';

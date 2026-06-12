@@ -52,7 +52,7 @@ export function facultiesLine(agentDir) {
 export function status(args = {}) {
   if (args.json) { console.log(JSON.stringify(statusData(paths().dir))); return; }
   const { sessions } = readIndex();
-  console.log(`this project — recorded sessions (agent/sessions.json): ${sessions.length}`);
+  console.log(`this project — recorded sessions (.zuzuu/sessions.json): ${sessions.length}`);
   if (!sessions.length) {
     console.log('  none yet — run `zuzuu capture`, or just start your agent (live capture)');
   } else {

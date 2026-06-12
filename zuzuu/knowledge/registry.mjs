@@ -4,7 +4,7 @@
 // are never silently auto-registered — repeated use files a registry *proposal*
 // (human-gated, like everything in this system).
 //
-// Files (tracked, seeded by `zuzuu init`): agent/knowledge/registry/
+// Files (tracked, seeded by `zuzuu init`): .zuzuu/knowledge/registry/
 //   types.json       [{name, description}]
 //   attributes.json  [{key, value, description}]   value: "string"|"number"|"date"|"url"|{"enum":[...]}
 //   relations.json   [{name, inverse, description}]
@@ -42,7 +42,7 @@ export function registryDir(agentDir) {
   return join(agentDir, 'knowledge', 'registry');
 }
 
-/** Load the registry from agent/knowledge/registry/. Missing files → empty sets. */
+/** Load the registry from .zuzuu/knowledge/registry/. Missing files → empty sets. */
 export function loadRegistry(agentDir) {
   const dir = registryDir(agentDir);
   const read = (f) => {

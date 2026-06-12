@@ -46,12 +46,12 @@ function scaffoldInto(baseDir, slug) {
   return { created };
 }
 
-/** Scaffold a live action (agent/actions/<slug>/). Humans author here directly. */
+/** Scaffold a live action (.zuzuu/actions/<slug>/). Humans author here directly. */
 export function scaffoldAction(agentDir, slug) {
   return scaffoldInto(actionsDir(agentDir), slug);
 }
 
-/** Scaffold a PROPOSED action (agent/actions/inbox/<slug>/) — agents propose here. */
+/** Scaffold a PROPOSED action (.zuzuu/actions/inbox/<slug>/) — agents propose here. */
 export function proposeAction(agentDir, slug) {
   return scaffoldInto(inboxDir(agentDir), slug);
 }
@@ -59,7 +59,7 @@ export function proposeAction(agentDir, slug) {
 export function newAction(agentDir, slug) {
   if (!slug) { console.error('usage: zuzuu act new <slug>'); process.exit(1); }
   const { created } = scaffoldAction(agentDir, slug);
-  if (created.length) console.log(`scaffolded action '${slug}' → ${created.join(', ')} in agent/actions/${slug}/`);
+  if (created.length) console.log(`scaffolded action '${slug}' → ${created.join(', ')} in .zuzuu/actions/${slug}/`);
   else console.log(`action '${slug}' already complete — nothing to do`);
 }
 

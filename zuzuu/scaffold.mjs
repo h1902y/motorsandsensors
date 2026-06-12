@@ -5,7 +5,10 @@
 // user edits to any seeded file always survive a re-init.
 //
 // Layout = the five faculties (docs/DESIGN.md §3①, the 5+3 anatomy):
-//   agent/agent.json + knowledge/ memory/ actions/ instructions/ guardrails/
+//   .zuzuu/agent.json + knowledge/ memory/ actions/ instructions/ guardrails/
+// The home is HIDDEN (.zuzuu/, like .git — decided 2026-06-12, DESIGN §13):
+// transparency comes from porcelain (zz status/explain/digest) + plain-text
+// files inside; the only visible footprint is the managed block + .gitignore lines.
 // Guardrails became first-class (enforced via the PreToolUse gate) on 2026-06-10;
 // the old instructions/guardrails.md advisory seed left the layout (existing
 // projects keep theirs — no-clobber — but new scaffolds get the real faculty).
@@ -16,10 +19,12 @@ import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from './knowledge/registr
 
 export const MANIFEST_VERSION = 3;
 
-const AGENT_README = `# agent/ — your coding agent's home, in the open
+const AGENT_README = `# .zuzuu/ — your agent's home (hidden, like .git — yours to read & version)
 
 This directory is your agent's evolving brain. Five **faculties** grow from how you
-actually work — and **nothing changes without your approval**.
+actually work — and **nothing changes without your approval**. It's dot-prefixed to
+stay out of your way; everything inside is plain text, versioned in git, and
+surfaced by \`zuzuu status\` / \`zuzuu explain\` / \`zuzuu digest\`.
 
 ## The five faculties
 - **knowledge/** — what's TRUE (facts about this project)
@@ -61,7 +66,7 @@ checks health.
 
 const MEMORY_README = `# memory/ — episodic faculty (what HAPPENED)
 
-Curated recollections of past sessions, distilled from the observability traces (\`agent/.traces/\`).
+Curated recollections of past sessions, distilled from the observability traces (\`.zuzuu/.traces/\`).
 - **Who writes:** zuzuu (distillation — *not built yet*), human (curation). Raw traces stay in traces/ — this is the *curated* layer.
 - **Where:** one Markdown file per entry under \`entries/\`, named \`<id>.md\`.
 
@@ -72,7 +77,7 @@ id: mem-2026-06-11-flaky-ci-retry      # mem-<YYYY-MM-DD>-<slug>, stable
 date: 2026-06-11                        # ISO date the episode occurred
 title: Flaky CI fixed by pinning node 22
 provenance:                            # links back to observability
-  sessions: [ses_abc123]               # ids that exist in agent/sessions.json
+  sessions: [ses_abc123]               # ids that exist in .zuzuu/sessions.json
   hosts: [claude-code]
 tags: [ci, flaky-test]                 # optional
 status: curated                        # curated (human) | proposed (reserved — future distiller)
@@ -138,24 +143,24 @@ const RULES_SEED =
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['agent', 'agent/knowledge', 'agent/knowledge/registry', 'agent/knowledge/items', 'agent/knowledge/inbox', 'agent/knowledge/proposals', 'agent/memory', 'agent/memory/entries', 'agent/memory/inbox', 'agent/memory/proposals', 'agent/actions', 'agent/actions/inbox', 'agent/instructions', 'agent/instructions/inbox', 'agent/instructions/proposals', 'agent/guardrails', 'agent/guardrails/inbox', 'agent/guardrails/proposals', 'agent/generations', 'agent/generations/snapshots'],
+  dirs: ['.zuzuu', '.zuzuu/knowledge', '.zuzuu/knowledge/registry', '.zuzuu/knowledge/items', '.zuzuu/knowledge/inbox', '.zuzuu/knowledge/proposals', '.zuzuu/memory', '.zuzuu/memory/entries', '.zuzuu/memory/inbox', '.zuzuu/memory/proposals', '.zuzuu/actions', '.zuzuu/actions/inbox', '.zuzuu/instructions', '.zuzuu/instructions/inbox', '.zuzuu/instructions/proposals', '.zuzuu/guardrails', '.zuzuu/guardrails/inbox', '.zuzuu/guardrails/proposals', '.zuzuu/generations', '.zuzuu/generations/snapshots'],
   files: {
-    'agent/README.md': AGENT_README,
-    'agent/knowledge/README.md': KNOWLEDGE_README,
-    'agent/memory/README.md': MEMORY_README,
-    'agent/actions/README.md': ACTIONS_README,
-    'agent/instructions/README.md': INSTRUCTIONS_README,
-    'agent/instructions/project.md': PROJECT_SEED,
-    'agent/guardrails/README.md': GUARDRAILS_README,
-    'agent/guardrails/rules.json': RULES_SEED,
-    'agent/knowledge/registry/types.json': JSON.stringify(SEED_TYPES, null, 2) + '\n',
-    'agent/knowledge/registry/attributes.json': JSON.stringify(SEED_ATTRIBUTES, null, 2) + '\n',
-    'agent/knowledge/registry/relations.json': JSON.stringify(SEED_RELATIONS, null, 2) + '\n',
+    '.zuzuu/README.md': AGENT_README,
+    '.zuzuu/knowledge/README.md': KNOWLEDGE_README,
+    '.zuzuu/memory/README.md': MEMORY_README,
+    '.zuzuu/actions/README.md': ACTIONS_README,
+    '.zuzuu/instructions/README.md': INSTRUCTIONS_README,
+    '.zuzuu/instructions/project.md': PROJECT_SEED,
+    '.zuzuu/guardrails/README.md': GUARDRAILS_README,
+    '.zuzuu/guardrails/rules.json': RULES_SEED,
+    '.zuzuu/knowledge/registry/types.json': JSON.stringify(SEED_TYPES, null, 2) + '\n',
+    '.zuzuu/knowledge/registry/attributes.json': JSON.stringify(SEED_ATTRIBUTES, null, 2) + '\n',
+    '.zuzuu/knowledge/registry/relations.json': JSON.stringify(SEED_RELATIONS, null, 2) + '\n',
   },
 };
 
 /** Gitignore lines the project needs (trace blobs + liveness state stay local). */
-export const IGNORE_LINES = ['agent/.traces/', 'agent/.live/', 'agent/knowledge/.index.db', '.gemini/settings.json', '.codex/hooks.json', '.pi/extensions/zuzuu.ts'];
+export const IGNORE_LINES = ['.zuzuu/.traces/', '.zuzuu/.live/', '.zuzuu/knowledge/.index.db', '.gemini/settings.json', '.codex/hooks.json', '.pi/extensions/zuzuu.ts'];
 
 export function manifest(initializedAt) {
   return {
@@ -172,7 +177,7 @@ export function manifest(initializedAt) {
 export function planScaffold(cwd) {
   const dirs = LAYOUT.dirs.filter((d) => !existsSync(join(cwd, d)));
   const files = Object.keys(LAYOUT.files).filter((f) => !existsSync(join(cwd, f)));
-  const manifestMissing = !existsSync(join(cwd, 'agent', 'agent.json'));
+  const manifestMissing = !existsSync(join(cwd, '.zuzuu', 'agent.json'));
   return { dirs, files, manifestMissing };
 }
 
@@ -186,8 +191,8 @@ export function applyScaffold(cwd, { now = Date.now() } = {}) {
   for (const d of plan.dirs) mkdirSync(join(cwd, d), { recursive: true });
   for (const f of plan.files) writeFileSync(join(cwd, f), LAYOUT.files[f]);
   if (plan.manifestMissing) {
-    mkdirSync(join(cwd, 'agent'), { recursive: true });
-    writeFileSync(join(cwd, 'agent', 'agent.json'), JSON.stringify(manifest(new Date(now).toISOString()), null, 2) + '\n');
+    mkdirSync(join(cwd, '.zuzuu'), { recursive: true });
+    writeFileSync(join(cwd, '.zuzuu', 'agent.json'), JSON.stringify(manifest(new Date(now).toISOString()), null, 2) + '\n');
   }
   return plan;
 }
@@ -209,5 +214,5 @@ export function ensureGitignore(cwd) {
 
 /** Is there a zuzuu home here already? (the git-detect question) */
 export function homeExists(cwd) {
-  return existsSync(join(cwd, 'agent'));
+  return existsSync(join(cwd, '.zuzuu'));
 }

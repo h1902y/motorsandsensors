@@ -65,7 +65,7 @@ test('evaluate: severity wins — deny beats ask beats allow', () => {
 test('seeded force-push rule catches the real exp-8 bypass (git -C … --force-with-lease)', () => {
   // Pasted from a real live-fire session (exp-8): the agent ran this exact
   // command and the old adjacent `git\s+push` pattern let it through the gate.
-  withRulesFile(LAYOUT.files['agent/guardrails/rules.json'], (p) => {
+  withRulesFile(LAYOUT.files['.zuzuu/guardrails/rules.json'], (p) => {
     const { rules } = loadRules(p);
     const bypass = evaluate(rules, {
       tool: 'Bash',

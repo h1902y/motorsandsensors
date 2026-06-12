@@ -18,23 +18,23 @@ function withTempRepo(fn) {
 
 const sampleRequest = { resourceSpans: [{ resource: { attributes: [] }, scopeSpans: [{ scope: { name: 's' }, spans: [] }] }] };
 
-test('homeDir prefers agent/ when present', () => {
-  withTempRepo((cwd) => { mkdirSync(join(cwd, 'agent'), { recursive: true }); assert.equal(homeDir(cwd), join(cwd, 'agent')); });
+test('homeDir prefers .zuzuu/ when present', () => {
+  withTempRepo((cwd) => { mkdirSync(join(cwd, '.zuzuu'), { recursive: true }); assert.equal(homeDir(cwd), join(cwd, '.zuzuu')); });
 });
-test('homeDir defaults to agent/ for a fresh project', () => {
-  withTempRepo((cwd) => assert.equal(homeDir(cwd), join(cwd, 'agent')));
+test('homeDir defaults to .zuzuu/ for a fresh project', () => {
+  withTempRepo((cwd) => assert.equal(homeDir(cwd), join(cwd, '.zuzuu')));
 });
 test('paths exposes .traces + liveDir is .live', () => {
   withTempRepo((cwd) => {
-    assert.ok(paths(cwd).tracesDir.endsWith(join('agent', '.traces')));
-    assert.equal(liveDir(paths(cwd).dir), join(cwd, 'agent', '.live'));
+    assert.ok(paths(cwd).tracesDir.endsWith(join('.zuzuu', '.traces')));
+    assert.equal(liveDir(paths(cwd).dir), join(cwd, '.zuzuu', '.live'));
   });
 });
 
 test('writeTrace writes a gitignored-path blob and returns a repo-relative ref', () => {
   withTempRepo((cwd) => {
     const ref = writeTrace('claude-code', 'sess1', [sampleRequest], cwd);
-    assert.equal(ref, join('agent', '.traces', 'claude-code-sess1.otlp.jsonl'));
+    assert.equal(ref, join('.zuzuu', '.traces', 'claude-code-sess1.otlp.jsonl'));
     assert.ok(existsSync(resolveTrace(ref, cwd)));
   });
 });

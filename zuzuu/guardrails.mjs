@@ -1,6 +1,6 @@
 // The Guardrails faculty — v1 rule engine (pure; I/O lives in the hook command).
 //
-// Rules are DATA, not code: agent/guardrails/rules.json, ordered, declarative —
+// Rules are DATA, not code: .zuzuu/guardrails/rules.json, ordered, declarative —
 // a *definition* in the pin-definitions sense (versioned in git, graduates via
 // proposals like every faculty's contents).
 //

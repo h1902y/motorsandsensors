@@ -21,7 +21,7 @@ const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zu
  */
 function freshHome(facts) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-rev-gen-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
     mkdirSync(join(home, d), { recursive: true });
   }

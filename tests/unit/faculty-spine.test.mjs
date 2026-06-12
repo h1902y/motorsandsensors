@@ -18,9 +18,9 @@ import { register, get as getAdapter, all as allAdapters } from '../../zuzuu/fac
 // ---------------------------------------------------------------------------
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-faculty-'));
-  mkdirSync(join(root, 'agent'), { recursive: true });
+  mkdirSync(join(root, '.zuzuu'), { recursive: true });
   try {
-    return fn(join(root, 'agent'));
+    return fn(join(root, '.zuzuu'));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -34,11 +34,11 @@ test('FACULTIES lists all five faculty names', () => {
 });
 
 test('contract path helpers return expected sub-paths', () => {
-  const home = '/tmp/agent';
-  assert.equal(facultyDir(home, 'knowledge'), '/tmp/agent/knowledge');
-  assert.equal(inboxDir(home, 'knowledge'), '/tmp/agent/knowledge/inbox');
-  assert.equal(proposalsDir(home, 'knowledge'), '/tmp/agent/knowledge/proposals');
-  assert.equal(archiveDir(home, 'knowledge'), '/tmp/agent/knowledge/proposals/archive');
+  const home = '/tmp/.zuzuu';
+  assert.equal(facultyDir(home, 'knowledge'), '/tmp/.zuzuu/knowledge');
+  assert.equal(inboxDir(home, 'knowledge'), '/tmp/.zuzuu/knowledge/inbox');
+  assert.equal(proposalsDir(home, 'knowledge'), '/tmp/.zuzuu/knowledge/proposals');
+  assert.equal(archiveDir(home, 'knowledge'), '/tmp/.zuzuu/knowledge/proposals/archive');
 });
 
 // ---------------------------------------------------------------------------

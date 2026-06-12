@@ -59,9 +59,9 @@ function help() {
 usage: zuzuu <command> [options]
 
   code [dir]                launch OpenCode as the bundled default host (faculty home + capture + gate + digest)
-  init                      scaffold the faculty home (agent/) — git-style, idempotent
+  init                      scaffold the faculty home (.zuzuu/) — git-style, idempotent
   status                    detected hosts + recorded sessions
-  capture [--host NAME]     capture a session → agent/.traces + agent/sessions.json
+  capture [--host NAME]     capture a session → .zuzuu/.traces + .zuzuu/sessions.json
           [--session ID] [--file PATH]
   trace [--last | FILE]     print a captured trace's span tree
   remember "fact" [--type t] [--attr k=v] [--rel type=target]
@@ -88,7 +88,7 @@ usage: zuzuu <command> [options]
   enable                    background hooks: invisible live capture + guardrails gate
   disable                   remove the background hooks
   eval [--faculty f]        rank pending proposals by eval score, highest first
-  migrate                   one-time migrator: rewrite legacy candidate/er proposals to new shape
+  migrate [--home]          one-time migrators: proposal schema · --home moves agent/ → .zuzuu/
   doctor                    environment + session health (reconciles lost sessions)
   explain [topic]           the 5 faculties + how graduation works
   version                   print version

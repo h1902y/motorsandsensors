@@ -49,7 +49,7 @@ test('seed rule asks on force-push; benign call stays silent (normal flow)', () 
 
 test('fail-open: garbage stdin, and projects with no rules file, never block', () => {
   withProject((cwd) => {
-    rmSync(join(cwd, 'agent', 'guardrails', 'rules.json'));
+    rmSync(join(cwd, '.zuzuu', 'guardrails', 'rules.json'));
     const noRules = gate(cwd, { session_id: 's1', tool_name: 'Bash', tool_input: { command: 'rm -rf / ' } });
     assert.equal(noRules.stdout, '');
     assert.equal(noRules.status, 0);
@@ -67,7 +67,7 @@ test('fail-open: garbage stdin, and projects with no rules file, never block', (
 test('matched decisions are logged for the trace', () => {
   withProject((cwd) => {
     gate(cwd, { session_id: 'sess-log', tool_name: 'Bash', tool_input: { command: 'rm -rf / ' } });
-    const log = spawnSync('cat', [join(cwd, 'agent', '.live', 'guardrails-sess-log.jsonl')], { encoding: 'utf8' }).stdout;
+    const log = spawnSync('cat', [join(cwd, '.zuzuu', '.live', 'guardrails-sess-log.jsonl')], { encoding: 'utf8' }).stdout;
     const entry = JSON.parse(log.trim().split('\n')[0]);
     assert.equal(entry.action, 'deny');
     assert.equal(entry.rule, 'no-root-wipe');

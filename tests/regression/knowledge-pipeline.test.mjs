@@ -15,7 +15,7 @@ const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zu
 
 function withHome(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'zuzuu-pipe-'));
-  const agentDir = join(dir, 'agent');
+  const agentDir = join(dir, '.zuzuu');
   const reg = join(agentDir, 'knowledge', 'registry');
   mkdirSync(reg, { recursive: true });
   mkdirSync(join(agentDir, 'knowledge', 'inbox'), { recursive: true });
@@ -135,7 +135,7 @@ test('inbox: plain-text candidates become ER-verdicted proposals; files consumed
     writeFileSync(join(agentDir, 'knowledge', 'inbox', 'a.md'), 'Agents drop one fact per file here');
     const r = processInbox(agentDir);
     assert.equal(r.processed, 1);
-    assert.equal(r.proposals[0].source, 'agent');
+    assert.equal(r.proposals[0].source, 'agent'); // provenance label (who proposed), not a path
     assert.equal(r.proposals[0].er.verdict, 'new');
     assert.ok(!existsSync(join(agentDir, 'knowledge', 'inbox', 'a.md')));
   });

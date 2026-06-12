@@ -1,9 +1,10 @@
-// The git-native agent/ store (the visible faculty home).
+// The git-native .zuzuu/ store (the hidden faculty home — the .git model:
+// transparency via porcelain, not an un-dotted dir).
 //
 // Layout (entire.io-style split — linkage in git, blobs out of the diff):
-//   agent/sessions.json          tracked   — the session index (small, diff-friendly,
+//   .zuzuu/sessions.json         tracked   — the session index (small, diff-friendly,
 //                                            each entry links to a git commit)
-//   agent/.traces/<host>-<id>.otlp.jsonl   gitignored — the bulky OTLP blobs (dot-prefixed)
+//   .zuzuu/.traces/<host>-<id>.otlp.jsonl  gitignored — the bulky OTLP blobs (dot-prefixed)
 //
 // Trace blobs are git-ignored in Phase 1; Phase 2 moves them to an orphan branch.
 
@@ -24,10 +25,10 @@ export function repoRoot(cwd = process.cwd()) {
   return git(['rev-parse', '--show-toplevel'], cwd) || cwd;
 }
 
-/** Resolve the faculty home: the visible `agent/`. The single chokepoint for the
+/** Resolve the faculty home: the hidden `.zuzuu/`. The single chokepoint for the
  *  whole CLI. */
 export function homeDir(root = repoRoot()) {
-  return join(root, 'agent');
+  return join(root, '.zuzuu');
 }
 
 /** Internal liveness dir (git-ignored, dot-prefixed) under the home. */

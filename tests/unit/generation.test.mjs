@@ -19,7 +19,7 @@ import {
 // Build a minimal .home home with a couple knowledge items + a rules.json.
 function freshHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-gen-'));
-  const agentDir = join(root, 'agent');
+  const agentDir = join(root, '.zuzuu');
   mkdirSync(join(agentDir, 'knowledge', 'items'), { recursive: true });
   mkdirSync(join(agentDir, 'knowledge', 'registry'), { recursive: true });
   mkdirSync(join(agentDir, 'guardrails'), { recursive: true });

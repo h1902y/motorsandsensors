@@ -1,6 +1,6 @@
 // zuzuu/actions/adapter.mjs
 // The Actions faculty adapter (WS2-T3). Wraps the EXISTING Actions inbox gate
-// (proposed dirs under agent/actions/inbox/<slug>/) behind the faculty-spine
+// (proposed dirs under .zuzuu/actions/inbox/<slug>/) behind the faculty-spine
 // adapter contract — { name, ingest, validate, apply, render } — so the generic
 // `zuzuu review` gate can drive Actions the same way it drives Knowledge.
 //
@@ -42,7 +42,7 @@ function recordFor(a) {
 }
 
 /**
- * Pending action proposals (dirs in agent/actions/inbox/), surfaced as
+ * Pending action proposals (dirs in .zuzuu/actions/inbox/), surfaced as
  * spine-shaped records so the gate can render/approve/reject them uniformly.
  */
 function listProposals(agentDir) {

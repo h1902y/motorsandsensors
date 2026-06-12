@@ -30,8 +30,8 @@ test('real codex PreToolUse payload carries tool_name + tool_input for the gate'
 
 function withRules(rules, fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-gate-'));
-  mkdirSync(join(root, 'agent', 'guardrails'), { recursive: true });
-  writeFileSync(join(root, 'agent', 'guardrails', 'rules.json'), JSON.stringify({ version: 1, rules }));
+  mkdirSync(join(root, '.zuzuu', 'guardrails'), { recursive: true });
+  writeFileSync(join(root, '.zuzuu', 'guardrails', 'rules.json'), JSON.stringify({ version: 1, rules }));
   try { return fn(root); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 const SECRET_RULE = { id: 'no-secret-reads', action: 'deny', tool: '*', pattern: '\\.env', reason: 'secrets' };
@@ -41,11 +41,11 @@ test('gateDecision: a path-like session_id (pi) still writes the guardrails log 
     const sessPath = '/Users/x/.pi/agent/sessions/--Users-x--/2026_abc.jsonl';
     const d = gateDecision({ host: 'pi', payload: { session_id: sessPath, tool_name: 'bash', tool_input: { command: 'cat .env' } }, cwd });
     assert.equal(d.decision, 'deny');
-    const files = readdirSync(join(cwd, 'agent', '.live'));
+    const files = readdirSync(join(cwd, '.zuzuu', '.live'));
     const log = files.find((f) => f.startsWith('guardrails-') && f.endsWith('.jsonl'));
     assert.ok(log, `expected a guardrails log, got: ${files.join(',')}`);
     assert.ok(!log.includes('/'), `filename must have no path separators: ${log}`);
-    const line = JSON.parse(readFileSync(join(cwd, 'agent', '.live', log), 'utf8').trim());
+    const line = JSON.parse(readFileSync(join(cwd, '.zuzuu', '.live', log), 'utf8').trim());
     assert.equal(line.host, 'pi');
     assert.equal(line.rule, 'no-secret-reads');
   });

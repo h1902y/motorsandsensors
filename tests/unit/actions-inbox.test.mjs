@@ -7,7 +7,7 @@ import { listProposedActions, activateAction, rejectAction } from '../../zuzuu/a
 
 function withInbox(slug, fn, { manifest, run } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-inbox-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   const dir = join(home, 'actions', 'inbox', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'action.json'), manifest ?? JSON.stringify({ slug, promptSnippet: 'proposed thing' }));

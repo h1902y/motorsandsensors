@@ -5,14 +5,14 @@ import { addHooks, removeHooks, isInstalled, LIFECYCLE_EVENTS, SIGNATURE } from 
 const commandFor = (e) => `node /x/bin/zuzuu.mjs hook ${e} || true`;
 const hasSig = (s) => JSON.stringify(s).includes(SIGNATURE);
 
-const NARROW_DENIES = ['Read(./agent/.traces/**)', 'Read(./agent/.live/**)'];
+const NARROW_DENIES = ['Read(./.zuzuu/.traces/**)', 'Read(./.zuzuu/.live/**)'];
 
 test('addHooks installs all lifecycle events + the narrowed deny rules', () => {
   const s = addHooks({}, commandFor);
   for (const ev of LIFECYCLE_EVENTS) assert.ok(s.hooks[ev].some((m) => m.hooks[0].command.includes(SIGNATURE)));
   for (const rule of NARROW_DENIES) assert.ok(s.permissions.deny.includes(rule), rule);
-  // the faculty home must stay readable — no blanket agent/ deny
-  assert.ok(!s.permissions.deny.includes('Read(./agent/**)'));
+  // the faculty home must stay readable — no blanket .zuzuu/ deny
+  assert.ok(!s.permissions.deny.includes('Read(./.zuzuu/**)'));
   assert.ok(isInstalled(s));
 });
 
@@ -23,7 +23,7 @@ test('addHooks is idempotent (no duplicate entries / deny rules)', () => {
   for (const rule of NARROW_DENIES) assert.equal(twice.permissions.deny.filter((r) => r === rule).length, 1);
 });
 
-test('addHooks preserves the user’s existing deny rules and adds the agent/ rules', () => {
+test('addHooks preserves the user’s existing deny rules and adds the .zuzuu/ rules', () => {
   const existing = { permissions: { deny: ['Read(./secrets/**)'] } };
   const s = addHooks(existing, commandFor);
   for (const rule of NARROW_DENIES) assert.ok(s.permissions.deny.includes(rule));

@@ -6,7 +6,7 @@
 // An instructions proposal payload is a steering amendment:
 //   { text }  — a line or paragraph to append to project.md
 //
-// apply: appends the text as a line to agent/instructions/project.md (creates
+// apply: appends the text as a line to .zuzuu/instructions/project.md (creates
 //        the file if absent; never duplicates an already-present line).
 //
 // Registers itself on import.

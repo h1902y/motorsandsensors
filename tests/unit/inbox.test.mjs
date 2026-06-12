@@ -11,7 +11,7 @@ import { inbox } from '../../zuzuu/commands/inbox.mjs';
 
 function homeWithKnowledgeProposals(n) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-inbox-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   mkdirSync(join(home, 'knowledge', 'proposals'), { recursive: true });
   for (let i = 0; i < n; i++) {
     const id = `fact-${i}`;
@@ -33,7 +33,7 @@ function homeWithKnowledgeProposals(n) {
 
 function emptyHome() {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-inbox-'));
-  const home = join(root, 'agent');
+  const home = join(root, '.zuzuu');
   mkdirSync(join(home, 'knowledge', 'proposals'), { recursive: true });
   return { root, home };
 }

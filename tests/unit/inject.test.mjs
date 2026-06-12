@@ -55,15 +55,15 @@ test('a v3 block upgrades to v4 in place, user text intact', () => {
   assert.ok(v4.includes('## after'));
 });
 
-test('v8 block is the zuzuu marker + points to the digest + zuzuu commands', () => {
+test('v9 block is the zuzuu marker + points to the digest + zuzuu commands', () => {
   const out = injectBlock('# proj\n');
-  assert.ok(out.includes('zuzuu:faculties:v8'), 'is v8 zuzuu');
+  assert.ok(out.includes('zuzuu:faculties:v9'), 'is v9 zuzuu');
   assert.match(out, /zuzuu act propose/);
-  assert.match(out, /agent\/\.live\/digest\.md/, 'Ground bullet points to the digest file');
+  assert.match(out, /\.zuzuu\/\.live\/digest\.md/, 'Ground bullet points to the digest file');
 });
 
-test('a v8 zuzuu block re-injects in place (idempotent)', () => {
-  const once = injectBlock('# proj\n', facultiesBlock(8)) + '\n## after\n';
+test('a v9 zuzuu block re-injects in place (idempotent)', () => {
+  const once = injectBlock('# proj\n', facultiesBlock(9)) + '\n## after\n';
   const twice = injectBlock(once);
   assert.equal((twice.match(/zuzuu:faculties/g) || []).length, 2, 'one block = begin+end markers only');
   assert.ok(twice.includes('## after'));

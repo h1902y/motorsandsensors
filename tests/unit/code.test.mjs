@@ -26,12 +26,12 @@ function withDir(fn, withHome = false) {
   try { return fn(d); } finally { rmSync(d, { recursive: true, force: true }); }
 }
 
-test('launches opencode pre-wired: init (no agent/) + enable + launch with cwd', () => {
+test('launches opencode pre-wired: init (no .zuzuu/) + enable + launch with cwd', () => {
   withDir((d) => {
     const { calls, deps } = fakeDeps();
     const ex = code({ _: [d] }, deps);
     const kinds = calls.map((c) => c[0]);
-    assert.ok(kinds.includes('init'), 'init called when agent/ absent');
+    assert.ok(kinds.includes('init'), 'init called when .zuzuu/ absent');
     assert.ok(kinds.includes('enable'), 'enable called');
     const launch = calls.find((c) => c[0] === 'launch');
     assert.equal(launch[1], d, 'launch cwd = resolved dir');
@@ -39,11 +39,11 @@ test('launches opencode pre-wired: init (no agent/) + enable + launch with cwd',
   });
 });
 
-test('existing agent/ → init NOT called', () => {
+test('existing .zuzuu/ → init NOT called', () => {
   withDir((d) => {
     const { calls, deps } = fakeDeps();
     code({ _: [d] }, deps);
-    assert.ok(!calls.some((c) => c[0] === 'init'), 'init skipped when agent/ present');
+    assert.ok(!calls.some((c) => c[0] === 'init'), 'init skipped when .zuzuu/ present');
   }, true);
 });
 

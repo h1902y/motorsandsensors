@@ -10,7 +10,7 @@ import { cosine } from '../../zuzuu/knowledge/embed.mjs';
 
 function withHome(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'zuzuu-know-'));
-  const agentDir = join(dir, 'agent');
+  const agentDir = join(dir, '.zuzuu');
   const reg = join(agentDir, 'knowledge', 'registry');
   mkdirSync(reg, { recursive: true });
   writeFileSync(join(reg, 'types.json'), JSON.stringify(SEED_TYPES));
