@@ -64,7 +64,44 @@ function propose(agentDir, slug) {
   else console.log(`proposed action '${slug}' already complete — nothing to do`);
 }
 
-function inbox(agentDir) {
+/**
+ * Pure: data for `act inbox --json`.
+ * @param {string} agentDir
+ * @returns {{ pending: Array }}
+ */
+export function actInboxData(agentDir) {
+  return { pending: listProposedActions(agentDir) };
+}
+
+/**
+ * Pure: data for `act approve --json`.
+ * Calls activateAction and returns the printed object.
+ * @param {string} agentDir
+ * @param {string} slug
+ * @returns {{ ok: boolean, action: string, slug: string }}
+ */
+export function actApproveData(agentDir, slug) {
+  const r = activateAction(agentDir, slug);
+  return { ok: r.ok, action: r.ok ? `activated ${slug}` : r.error, slug };
+}
+
+/**
+ * Pure: data for `act reject --json`.
+ * Calls rejectAction and returns the printed object.
+ * @param {string} agentDir
+ * @param {string} slug
+ * @returns {{ ok: boolean, action: string, slug: string }}
+ */
+export function actRejectData(agentDir, slug) {
+  const r = rejectAction(agentDir, slug);
+  return { ok: r.ok, action: r.ok ? `rejected ${slug}` : r.error, slug };
+}
+
+function inbox(agentDir, args = {}) {
+  if (args.json) {
+    console.log(JSON.stringify(actInboxData(agentDir)));
+    return;
+  }
   const pending = listProposedActions(agentDir);
   if (!pending.length) return console.log('no proposed actions — inbox empty');
   for (const a of pending.sort((x, y) => x.slug.localeCompare(y.slug))) {
@@ -72,16 +109,24 @@ function inbox(agentDir) {
   }
 }
 
-function approve(agentDir, slug) {
-  const r = activateAction(agentDir, slug);
-  console.log(r.ok ? `✓ activated '${slug}'` : `✗ ${r.error}`);
-  process.exit(r.ok ? 0 : 1);
+function approve(agentDir, slug, args = {}) {
+  const result = actApproveData(agentDir, slug);
+  if (args.json) {
+    console.log(JSON.stringify(result));
+  } else {
+    console.log(result.ok ? `✓ activated '${slug}'` : `✗ ${result.action}`);
+  }
+  process.exit(result.ok ? 0 : 1);
 }
 
-function reject(agentDir, slug) {
-  const r = rejectAction(agentDir, slug);
-  console.log(r.ok ? `✓ rejected '${slug}'` : `✗ ${r.error}`);
-  process.exit(r.ok ? 0 : 1);
+function reject(agentDir, slug, args = {}) {
+  const result = actRejectData(agentDir, slug);
+  if (args.json) {
+    console.log(JSON.stringify(result));
+  } else {
+    console.log(result.ok ? `✓ rejected '${slug}'` : `✗ ${result.action}`);
+  }
+  process.exit(result.ok ? 0 : 1);
 }
 
 export function act(args) {
@@ -92,9 +137,9 @@ export function act(args) {
   if (sub === 'new') return newAction(agentDir, requireSlug(args._[1], 'usage: zuzuu act new <slug>'));
   if (sub === 'schema') return schemaCmd(agentDir, requireSlug(args._[1], 'usage: zuzuu act schema <slug> [--openai|--anthropic]'), args);
   if (sub === 'propose') return propose(agentDir, requireSlug(args._[1], 'usage: zuzuu act propose <slug>'));
-  if (sub === 'inbox') return inbox(agentDir);
-  if (sub === 'approve') return approve(agentDir, requireSlug(args._[1], 'usage: zuzuu act approve <slug>'));
-  if (sub === 'reject') return reject(agentDir, requireSlug(args._[1], 'usage: zuzuu act reject <slug>'));
+  if (sub === 'inbox') return inbox(agentDir, args);
+  if (sub === 'approve') return approve(agentDir, requireSlug(args._[1], 'usage: zuzuu act approve <slug>'), args);
+  if (sub === 'reject') return reject(agentDir, requireSlug(args._[1], 'usage: zuzuu act reject <slug>'), args);
   // future-reserved guard: extend RESERVED + add a handler above in tandem
   if (RESERVED.has(sub)) { console.error(`unknown: zuzuu act ${sub}`); process.exit(1); }
   return run(agentDir, requireSlug(sub, 'usage: zuzuu act <slug> [--args JSON]'), args);

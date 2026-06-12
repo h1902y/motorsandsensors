@@ -29,6 +29,7 @@ import { migrate } from '../zuzuu/commands/migrate.mjs';
 import { generation } from '../zuzuu/commands/generation.mjs';
 import { evalCmd } from '../zuzuu/commands/eval.mjs';
 import { code } from '../zuzuu/commands/code.mjs';
+import { web } from '../zuzuu/commands/web.mjs';
 import { explain } from '../zuzuu/commands/explain.mjs';
 import { inbox } from '../zuzuu/commands/inbox.mjs';
 
@@ -59,6 +60,7 @@ function help() {
 usage: zuzuu <command> [options]
 
   code [dir]                launch OpenCode as the bundled default host (faculty home + capture + gate + digest)
+  web [dir]                 launch the visual workbench (installs @zuzuucodes/web on demand)
   init                      scaffold the faculty home (.zuzuu/) — git-style, idempotent
   status                    detected hosts + recorded sessions
   capture [--host NAME]     capture a session → .zuzuu/.traces + .zuzuu/sessions.json
@@ -103,6 +105,7 @@ const args = parseArgs(rest);
 
 switch (cmd) {
   case 'code': process.exit(code(args)); break;
+  case 'web': web(args); break;
   case 'init': init(args); break;
   case 'remember': remember(args); break;
   case 'recall': await recall(args); break;

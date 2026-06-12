@@ -11,7 +11,7 @@ import { detectDrift } from './doctor.mjs';
 const fmtDur = (ms) => (ms < 60_000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 60_000).toFixed(1)}m`);
 
 /** Pure: structured status for a faculty home (the zuzuu-web /status source). Fail-soft per field. */
-export function statusData(agentDir) {
+export function statusData(agentDir, { hosts = detected().map((a) => ({ name: a.name })) } = {}) {
   let active = null, drift = { dirty: false, items: [] };
   const pending = {};
   try { active = activeGenerationFn(agentDir); } catch { active = null; }
@@ -23,7 +23,7 @@ export function statusData(agentDir) {
     const items = Array.isArray(d?.drifted) ? d.drifted : [];
     drift = { dirty: items.length > 0, items };
   } catch { /* fail-soft */ }
-  return { home: existsSync(agentDir), activeGeneration: active, pending, drift };
+  return { home: existsSync(agentDir), activeGeneration: active, pending, drift, hosts };
 }
 
 /**

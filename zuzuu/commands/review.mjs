@@ -246,12 +246,70 @@ function facultyOf(agentDir, id, only) {
   return 'knowledge';
 }
 
+/**
+ * Pure: the structured object for `proposals approve --json`.
+ * Calls gate.approve and returns the result object the branch prints.
+ * @param {string} agentDir
+ * @param {string} id
+ * @param {string} faculty
+ * @returns {object}  the gate result (contains ok, action, etc.)
+ */
+export function approveData(agentDir, id, faculty) {
+  return gate.approve(agentDir, faculty, id);
+}
+
+/**
+ * Pure: the structured object for `proposals reject --json`.
+ * Calls gate.reject and returns the result object the branch prints.
+ * @param {string} agentDir
+ * @param {string} id
+ * @param {string} faculty
+ * @param {string} [reason]
+ * @returns {object}  { ok, id, ... }
+ */
+export function rejectData(agentDir, id, faculty, reason = '') {
+  const r = gate.reject(agentDir, faculty, id, reason);
+  return { ...r, id };
+}
+
+/**
+ * Pure: list pending proposals as structured data — the zuzuu-web /proposals source.
+ * @param {string} agentDir
+ * @param {string} [only]  optional faculty filter
+ * @returns {{ pending: Array<{id, faculty, title}> }}
+ */
+export function proposalsListData(agentDir, only) {
+  const groups = pendingByFaculty(agentDir).filter((g) => !only || g.adapter.name === only);
+  const pending = [];
+  for (const { adapter, proposals } of groups) {
+    for (const p of proposals) {
+      // derive a human title the same way the table does
+      let title;
+      if (adapter.name === 'knowledge') {
+        title = p.kind === 'registry'
+          ? `register ${p.registry?.slice(0, -1) ?? ''} '${p.key ?? ''}'`
+          : (p.candidate?.body ?? p.payload?.body ?? p.id)?.slice(0, 80);
+      } else {
+        title = p.title ?? adapter.render(p).line;
+      }
+      pending.push({ id: p.id, faculty: adapter.name, title: title ?? p.id });
+    }
+  }
+  return { pending };
+}
+
 /** Non-interactive: zuzuu proposals list|show <id>|approve <id>|reject <id> [--reason r] [--faculty f] */
 export function proposals(args) {
   const agentDir = paths().dir;
   const sub = args._[0] || 'list';
   const only = args.faculty; // optional filter; default = all
   if (sub === 'list') {
+    if (args.json) {
+      processInbox(agentDir);  // promote plain-text inbox candidates, same as text path
+      const d = proposalsListData(agentDir, only);
+      console.log(JSON.stringify(d));
+      return;
+    }
     const inbox = processInbox(agentDir);
     if (inbox.processed) console.log(`(processed ${inbox.processed} inbox candidate(s))`);
     const groups = pendingByFaculty(agentDir).filter((g) => !only || g.adapter.name === only);
@@ -278,20 +336,29 @@ export function proposals(args) {
     const a = registry.get(faculty);
     const p = (a && typeof a.getProposal === 'function') ? a.getProposal(agentDir, id) : getProposal(agentDir, id);
     if (!p) return console.error('not found');
+    // show always prints JSON (both with and without --json flag)
     console.log(JSON.stringify(p, null, 2));
     return;
   }
   if (sub === 'approve') {
     const faculty = facultyOf(agentDir, id, only);
-    const r = gate.approve(agentDir, faculty, id);
-    console.log(r.ok ? `✓ ${r.action}` : `✗ ${(r.errors ?? [r.action]).join('; ')}`);
-    for (const w of r.warnings ?? []) console.log(`⚠ ${w}`);
+    const r = approveData(agentDir, id, faculty);
+    if (args.json) {
+      console.log(JSON.stringify(r));
+    } else {
+      console.log(r.ok ? `✓ ${r.action}` : `✗ ${(r.errors ?? [r.action]).join('; ')}`);
+      for (const w of r.warnings ?? []) console.log(`⚠ ${w}`);
+    }
     process.exit(r.ok ? 0 : 1);
   }
   if (sub === 'reject') {
     const faculty = facultyOf(agentDir, id, only);
-    const r = gate.reject(agentDir, faculty, id, args.reason || '');
-    console.log(r.ok ? '✓ rejected' : '✗ not found');
+    const r = rejectData(agentDir, id, faculty, args.reason || '');
+    if (args.json) {
+      console.log(JSON.stringify(r));
+    } else {
+      console.log(r.ok ? '✓ rejected' : '✗ not found');
+    }
     process.exit(r.ok ? 0 : 1);
   }
   console.error('usage: zuzuu proposals list|show <id>|approve <id>|reject <id> [--reason r] [--faculty f]');
