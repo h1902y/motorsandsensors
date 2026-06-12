@@ -13,7 +13,7 @@ Your host agent — Claude Code, Codex, Gemini CLI, OpenCode — supplies the *b
 ## What works today
 
 ```bash
-npm install -g @zuzuucodes/cli   # zero dependencies — installs the `zuzuu` command
+npm install -g @zuzuucodes/cli   # zero dependencies — installs the `zuzuu` command (short alias: `zz`)
 
 # no coding agent yet? one command gives you a fully faculty-equipped one:
 zuzuu code        # scaffold the faculty home, install + wire OpenCode, launch it (capture + gate + grounding)
