@@ -25,9 +25,39 @@ function list(dir) {
   }
 }
 
-function mint(dir) {
+/**
+ * Pure: mint a new generation and return structured data.
+ * @param {string} dir
+ * @param {object} [opts]
+ * @param {string[]} [opts.mintedFrom]  proposal ids this generation is built from
+ * @returns {{ id: string, mintedFrom: string[], forkedFrom: string|null }}
+ */
+export function mintGenerationData(dir, { mintedFrom = [] } = {}) {
   const forkedFrom = activeGeneration(dir);
-  const lf = mintGeneration(dir, { forkedFrom });
+  const lf = mintGeneration(dir, { forkedFrom, mintedFrom });
+  return { id: lf.id, mintedFrom: lf.mintedFrom ?? [], forkedFrom: lf.forkedFrom ?? null };
+}
+
+/**
+ * Pure: rollback to a generation and return structured data.
+ * @param {string} dir
+ * @param {string} id
+ * @returns {{ ok: boolean, restored: number, active: string }}
+ */
+export function rollbackData(dir, id) {
+  const r = rollback(dir, id);
+  return { ok: r.ok, restored: r.restored, active: id };
+}
+
+function mint(dir, args = {}) {
+  const mintedFrom = args.from ? String(args.from).split(',').map((s) => s.trim()).filter(Boolean) : [];
+  if (args.json) {
+    const d = mintGenerationData(dir, { mintedFrom });
+    console.log(JSON.stringify(d));
+    return;
+  }
+  const forkedFrom = activeGeneration(dir);
+  const lf = mintGeneration(dir, { forkedFrom, mintedFrom });
   console.log(`✓ minted ${lf.id}${forkedFrom ? ` (forkedFrom ${forkedFrom})` : ''} — now active`);
 }
 
@@ -78,9 +108,14 @@ function show(dir, id) {
   console.log(out);
 }
 
-function doRollback(dir, id) {
+function doRollback(dir, id, args = {}) {
   if (!id) { console.error('usage: zuzuu generation rollback <id>'); process.exit(1); }
   if (!readGeneration(dir, id)) { console.error(`no generation '${id}'`); process.exit(1); }
+  if (args.json) {
+    const d = rollbackData(dir, id);
+    console.log(JSON.stringify(d));
+    return;
+  }
   const r = rollback(dir, id);
   console.log(`✓ rolled back to ${id} — restored ${r.restored} item(s); active=${id}`);
 }
@@ -92,7 +127,7 @@ export function generation(args) {
     if (args.json) { console.log(JSON.stringify(generationListData(dir))); return; }
     return list(dir);
   }
-  if (sub === 'mint') return mint(dir);
+  if (sub === 'mint') return mint(dir, args);
   if (sub === 'show') {
     if (args.json) {
       const d = generationShowData(dir, args._[1]);
@@ -101,7 +136,7 @@ export function generation(args) {
     }
     return show(dir, args._[1]);
   }
-  if (sub === 'rollback') return doRollback(dir, args._[1]);
+  if (sub === 'rollback') return doRollback(dir, args._[1], args);
   console.error(`unknown: zuzuu generation ${sub}\nusage: zuzuu generation [list|show <id>|mint|rollback <id>]`);
   process.exit(1);
 }
