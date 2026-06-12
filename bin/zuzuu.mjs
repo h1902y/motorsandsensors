@@ -32,6 +32,7 @@ import { code } from '../zuzuu/commands/code.mjs';
 import { web } from '../zuzuu/commands/web.mjs';
 import { explain } from '../zuzuu/commands/explain.mjs';
 import { inbox } from '../zuzuu/commands/inbox.mjs';
+import { session } from '../zuzuu/commands/session.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -89,6 +90,8 @@ usage: zuzuu <command> [options]
                             pin/list/show/roll back faculty generations (lockfiles)
   enable                    background hooks: invisible live capture + guardrails gate
   disable                   remove the background hooks
+  session [status|merge|continue|discard]
+                            the invisible session branch (one per agent session)
   eval [--faculty f]        rank pending proposals by eval score, highest first
   migrate [--home]          one-time migrators: proposal schema · --home moves agent/ → .zuzuu/
   doctor                    environment + session health (reconciles lost sessions)
@@ -122,6 +125,7 @@ switch (cmd) {
   case 'enable': enable(args); break;
   case 'disable': disable(args); break;
   case 'hook': runHook(args._[0], { host: args.host, session: args.session }); break;
+  case 'session': session(args); break;
   case 'eval': evalCmd(args); break;
   case 'migrate': migrate(args); break;
   case 'generation': generation(args); break;

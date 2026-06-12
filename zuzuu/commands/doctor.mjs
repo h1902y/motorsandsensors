@@ -12,6 +12,8 @@ import { allItems } from '../knowledge/items.mjs';
 import { listProposals } from '../knowledge/proposals.mjs';
 import { detectEmbedder } from '../knowledge/embed.mjs';
 import { activeGeneration, readGeneration, snapshotFaculties } from '../faculty/generation.mjs';
+import { sessionStatus } from '../session-git.mjs';
+import { leftoverLine } from './session.mjs';
 
 /**
  * Pure drift checker (WS3-T3). Compares the current faculty hashes against the
@@ -183,6 +185,14 @@ export async function doctor() {
   } catch {
     /* drift check must never break doctor — fail-open */
   }
+
+  // leftover session branch (a crashed session's zz/session-*) — surface the recovery path
+  try {
+    const ss = sessionStatus(process.cwd());
+    const leftover = leftoverLine(ss);
+    if (leftover) warn(leftover);
+    else if (ss.active) info(`session branch ${ss.active.branch} checked out (${ss.active.checkpoints} checkpoint(s)) — squashes to ${ss.mainBranch ?? 'main'} at session end`);
+  } catch { /* session-git check must never break doctor — fail-open */ }
 
   // live-session reconciliation: close out lost/killed sessions (no SessionEnd).
   const before = listLive().length;
