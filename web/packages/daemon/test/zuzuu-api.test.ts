@@ -11,6 +11,12 @@ let root: string;
 beforeEach(() => { root = realpathSync(mkdtempSync(path.join(tmpdir(), "zw-"))); });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
 
+/** A Faculty Standard envelope item (strict frontmatter + prose body). */
+function envelope(fields: Record<string, string>, body = ""): string {
+  const fm = Object.entries(fields).map(([k, v]) => `${k}: ${v}`).join("\n");
+  return `---\n${fm}\n---\n${body}`;
+}
+
 function fixtureHome(r: string) {
   const agent = path.join(r, ".zuzuu");
   for (const f of ["knowledge", "memory", "actions", "instructions", "guardrails"])
@@ -19,7 +25,8 @@ function fixtureHome(r: string) {
   mkdirSync(path.join(agent, "generations"), { recursive: true });
   mkdirSync(path.join(agent, ".live"), { recursive: true });
   writeFileSync(path.join(agent, "sessions.json"), JSON.stringify({ version: 1, sessions: [{ id: "s1", host: "claude-code" }] }));
-  writeFileSync(path.join(agent, "knowledge", "items", "k1.json"), JSON.stringify({ id: "k1", body: "fact one" }));
+  writeFileSync(path.join(agent, "knowledge", "items", "k1.md"),
+    envelope({ id: "k1", faculty: "knowledge", kind: "fact", title: '"fact one"', status: "active", created_at: "2026-06-12T00:00:00Z" }, "fact one\n"));
   writeFileSync(path.join(agent, "knowledge", "proposals", "p1.json"),
     JSON.stringify({ id: "p1", candidate: { body: "use node:sqlite" } }));
   writeFileSync(path.join(agent, ".live", "digest.md"), "# zuzuu faculty digest\n");
@@ -113,22 +120,73 @@ describe("createZuzuuApi file routes", () => {
     const app = createZuzuuApi(() => root, { binary: "x" });
     expect((await (await app.request("/health")).json()).home).toBe(false);
   });
-  it("GET /faculties lists the five with counts", async () => {
+  it("GET /faculties lists the five with counts (CLI absent → envelope peek)", async () => {
     fixtureHome(root);
-    const app = createZuzuuApi(() => root, { binary: "x" });
+    const app = createZuzuuApi(() => root, { binary: "definitely-not-a-real-binary-zzz" });
     const body = await (await app.request("/faculties")).json();
     expect(body.faculties).toHaveLength(5);
     const k = body.faculties.find((f: { key: string }) => f.key === "knowledge");
     expect(k.count).toBe(1);
     expect(k.pending).toBe(1);
   });
-  it("GET /faculty/:key returns items + proposals; rejects unknown", async () => {
+  it("GET /faculties counts dir-shaped actions (ACTION.md) in the peek", async () => {
+    const agent = fixtureHome(root);
+    mkdirSync(path.join(agent, "actions", "deploy"), { recursive: true });
+    mkdirSync(path.join(agent, "actions", "inbox"), { recursive: true }); // never an item
+    writeFileSync(path.join(agent, "actions", "deploy", "ACTION.md"),
+      envelope({ id: "deploy", faculty: "actions", kind: "runbook", title: "Deploy it" }));
+    const app = createZuzuuApi(() => root, { binary: "definitely-not-a-real-binary-zzz" });
+    const body = await (await app.request("/faculties")).json();
+    expect(body.faculties.find((f: { key: string }) => f.key === "actions").count).toBe(1);
+  });
+  it("GET /faculty/:key peek degrades to frontmatter fields; rejects unknown", async () => {
     fixtureHome(root);
-    const app = createZuzuuApi(() => root, { binary: "x" });
+    const app = createZuzuuApi(() => root, { binary: "definitely-not-a-real-binary-zzz" });
     const body = await (await app.request("/faculty/knowledge")).json();
-    expect(body.items[0].id).toBe("k1");
+    expect(body.degraded).toBe(true);
+    expect(body.items[0]).toMatchObject({ id: "k1", faculty: "knowledge", kind: "fact", title: "fact one", status: "active" });
+    expect(body.items[0].payload).toBeUndefined(); // detail degrades, counts survive
     expect(body.proposals[0].title).toMatch(/node:sqlite/);
     expect((await app.request("/faculty/bogus")).status).toBe(404);
+  });
+  it("GET /faculty/:key passes the CLI's envelopes through whole (payload + body)", async () => {
+    fixtureHome(root);
+    const item = {
+      id: "k1", faculty: "knowledge", kind: "command", title: "Test command",
+      status: "active", created_at: "2026-06-12T00:00:00Z",
+      provenance: [{ session: "ses_abc", ref: "occurrences=12" }],
+      payload: { type: "command", attributes: { command: "npm test" } },
+      body: "Run the suite.",
+    };
+    const stub = jsonStub(root, JSON.stringify({ faculty: "knowledge", count: 1, items: [item], errors: [] }));
+    const app = createZuzuuApi(() => root, { binary: stub });
+    const body = await (await app.request("/faculty/knowledge")).json();
+    expect(body.degraded).toBeUndefined();
+    expect(body.items[0]).toEqual(item); // THE ENVELOPE, untouched
+    expect(body.errors).toEqual([]);
+  });
+  it("GET /faculties uses the CLI envelope listing when available", async () => {
+    fixtureHome(root);
+    const stub = jsonStub(root, JSON.stringify({ faculty: "x", count: 2, items: [{ id: "a" }, { id: "b" }], errors: [] }));
+    const app = createZuzuuApi(() => root, { binary: stub });
+    const body = await (await app.request("/faculties")).json();
+    for (const f of body.faculties) expect(f.count).toBe(2);
+  });
+  it("GET /faculty/:key/schema: CLI → builtin/home schema; absent CLI → seeded file; else null", async () => {
+    const agent = fixtureHome(root);
+    const schema = { type: "object", required: ["type"] };
+    const viaCli = createZuzuuApi(() => root, { binary: jsonStub(root, JSON.stringify(schema)) });
+    expect(await (await viaCli.request("/faculty/knowledge/schema")).json())
+      .toEqual({ key: "knowledge", schema, source: "cli" });
+
+    const absent = createZuzuuApi(() => root, { binary: "definitely-not-a-real-binary-zzz" });
+    expect(await (await absent.request("/faculty/knowledge/schema")).json())
+      .toEqual({ key: "knowledge", schema: null, source: "absent" });
+
+    writeFileSync(path.join(agent, "knowledge", "schema.json"), JSON.stringify(schema));
+    expect(await (await absent.request("/faculty/knowledge/schema")).json())
+      .toEqual({ key: "knowledge", schema, source: "home" });
+    expect((await absent.request("/faculty/bogus/schema")).status).toBe(404);
   });
   it("GET /sessions returns the index", async () => {
     fixtureHome(root);

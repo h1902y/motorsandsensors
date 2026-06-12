@@ -107,12 +107,89 @@ function binAvailable(binary: string): boolean {
   } catch { return false; }
 }
 
-/** Count item FILES in a faculty dir — knowledge items are .md, others .json/.md. */
-async function countItemFiles(dir: string): Promise<{ count: number; names: string[] }> {
-  try {
-    const names = (await fsp.readdir(dir)).filter((n) => n.endsWith(".json") || n.endsWith(".md"));
-    return { count: names.length, names };
-  } catch { return { count: 0, names: [] }; }
+// ── Faculty Standard envelope listing ────────────────────────────────────
+// The CLI is the parser of record (`zuzuu faculty items <f> --json` returns
+// the full envelopes incl. payload/body). When it's absent we degrade to a
+// count-only frontmatter PEEK: read the items dir, lift the tiny top-level
+// scalar lines (title:/status:/kind:) best-effort — counts still render,
+// detail degrades. Never a re-implementation of the envelope grammar.
+
+/** Flat envelope item dirs per faculty; actions are dir-shaped (ACTION.md). */
+const ITEM_DIRS: Record<string, string[]> = {
+  knowledge: ["knowledge", "items"],
+  memory: ["memory", "entries"],
+  instructions: ["instructions", "items"],
+  guardrails: ["guardrails", "items"],
+};
+
+const PEEK_KEYS = new Set(["id", "faculty", "kind", "title", "status", "created_at", "updated_at"]);
+
+function unquoteScalar(s: string): string {
+  const t = s.trim();
+  if (t.startsWith('"') && t.endsWith('"') && t.length >= 2) {
+    try { return JSON.parse(t) as string; } catch { return t.slice(1, -1); }
+  }
+  if (t.startsWith("'") && t.endsWith("'") && t.length >= 2) return t.slice(1, -1);
+  return t;
+}
+
+/** Best-effort peek at an envelope's top-level frontmatter scalars. */
+function peekFrontmatter(text: string): Record<string, string> {
+  const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!m) return {};
+  const out: Record<string, string> = {};
+  for (const raw of (m[1] ?? "").split("\n")) {
+    if (/^\s/.test(raw)) continue; // indented = provenance/payload children
+    const kv = raw.match(/^([A-Za-z_][\w-]*):\s*(.*)$/);
+    if (kv && PEEK_KEYS.has(kv[1]!)) out[kv[1]!] = unquoteScalar(kv[2] ?? "");
+  }
+  return out;
+}
+
+/** CLI-less fallback: degraded envelope items (no payload/body) from disk. */
+async function peekFacultyItems(agent: string, key: string): Promise<Record<string, string>[]> {
+  const files: { id: string; file: string }[] = [];
+  if (key === "actions") {
+    const base = path.join(agent, "actions");
+    let names: string[] = [];
+    try { names = (await fsp.readdir(base)).sort(); } catch { return []; }
+    for (const n of names) {
+      if (n === "inbox" || n === "proposals" || n === "_rolledback") continue;
+      files.push({ id: n, file: path.join(base, n, "ACTION.md") });
+    }
+  } else {
+    const rel = ITEM_DIRS[key];
+    if (!rel) return [];
+    const dir = path.join(agent, ...rel);
+    let names: string[] = [];
+    try { names = (await fsp.readdir(dir)).sort(); } catch { return []; }
+    for (const n of names) {
+      if (!n.endsWith(".md") || n === "README.md") continue;
+      files.push({ id: n.replace(/\.md$/, ""), file: path.join(dir, n) });
+    }
+  }
+  const items: Record<string, string>[] = [];
+  for (const { id, file } of files) {
+    let fm: Record<string, string>;
+    try { fm = peekFrontmatter(await fsp.readFile(file, "utf8")); } catch { continue; }
+    items.push({ kind: "?", ...fm, id: fm.id ?? id, faculty: key, title: fm.title ?? id });
+  }
+  return items;
+}
+
+interface EnvelopeListing {
+  items: unknown[];
+  errors: { file: string; error: string }[];
+  degraded: boolean;
+}
+
+/** One faculty's envelope items: CLI first (full envelopes), peek fallback. */
+async function facultyEnvelopeItems(root: string, agent: string, key: string, binary?: string): Promise<EnvelopeListing> {
+  const viaCli = await runZuzuu(root, ["faculty", "items", key], { binary }) as
+    { items?: unknown[]; errors?: { file: string; error: string }[] } | null;
+  if (viaCli && Array.isArray(viaCli.items))
+    return { items: viaCli.items, errors: Array.isArray(viaCli.errors) ? viaCli.errors : [], degraded: false };
+  return { items: await peekFacultyItems(agent, key), errors: [], degraded: true };
 }
 
 /** Read every *.json in a dir into objects; missing dir → [], corrupt file → skipped. */
@@ -135,13 +212,6 @@ function proposalTitle(p: Record<string, unknown>): string {
   return firstLine(cand?.body ?? payload?.body ?? p.id);
 }
 
-/** The conventional item dir for a faculty, or null (heterogeneous faculties → counted as 0 for the MVP). */
-function itemsDirOf(agent: string, key: string): string | null {
-  if (key === "knowledge") return path.join(agent, "knowledge", "items");
-  if (key === "memory") return path.join(agent, "memory", "entries");
-  return null;
-}
-
 export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono {
   const app = new Hono();
   let root = getRoot();
@@ -161,13 +231,13 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
 
   app.get("/faculties", async (c) => {
     const agent = await agentDir();
-    const faculties = [];
-    for (const key of FACULTIES) {
-      const itemsDir = itemsDirOf(agent, key);
-      const count = itemsDir ? (await countItemFiles(itemsDir)).count : 0;
-      const pending = (await proposalsOf(agent, key)).length;
-      faculties.push({ key, count, pending });
-    }
+    const faculties = await Promise.all(FACULTIES.map(async (key) => {
+      const [{ items }, proposals] = await Promise.all([
+        facultyEnvelopeItems(root, agent, key, opts.binary),
+        proposalsOf(agent, key),
+      ]);
+      return { key, count: items.length, pending: proposals.length };
+    }));
     return c.json({ faculties });
   });
 
@@ -175,12 +245,24 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
     const key = c.req.param("key");
     if (!FACULTIES.includes(key as typeof FACULTIES[number])) return c.json({ error: "unknown faculty" }, 404);
     const agent = await agentDir();
-    const itemsDir = itemsDirOf(agent, key);
-    const items = itemsDir
-      ? (await countItemFiles(itemsDir)).names.map((n) => ({ id: n.replace(/\.(json|md)$/, ""), title: n.replace(/\.(json|md)$/, "") }))
-      : [];
+    const { items, errors, degraded } = await facultyEnvelopeItems(root, agent, key, opts.binary);
     const proposals = (await proposalsOf(agent, key)).map((p) => ({ id: String(p.id ?? "?"), faculty: key, title: proposalTitle(p) }));
-    return c.json({ key, items, proposals });
+    return c.json({ key, items, proposals, errors, ...(degraded ? { degraded: true } : {}) });
+  });
+
+  app.get("/faculty/:key/schema", async (c) => {
+    const key = c.req.param("key");
+    if (!FACULTIES.includes(key as typeof FACULTIES[number])) return c.json({ error: "unknown faculty" }, 404);
+    const viaCli = await runZuzuu(root, ["faculty", "schema", key], { binary: opts.binary });
+    if (viaCli) return c.json({ key, schema: viaCli, source: "cli" });
+    // CLI absent → the seeded payload schema in the home (zuzuu init writes it)
+    const agent = await agentDir();
+    try {
+      const schema: unknown = JSON.parse(await fsp.readFile(path.join(agent, key, "schema.json"), "utf8"));
+      return c.json({ key, schema, source: "home" });
+    } catch {
+      return c.json({ key, schema: null, source: "absent" });
+    }
   });
 
   app.get("/generations", async (c) => {

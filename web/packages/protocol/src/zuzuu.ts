@@ -20,9 +20,30 @@ export interface FacultySummary {
   pending: number;
 }
 
+/** One Faculty Standard envelope item (one .md per item: strict frontmatter +
+ *  prose body). The daemon passes the CLI's parsed envelope through whole;
+ *  when the CLI is absent it degrades to a frontmatter peek — id/kind/title/
+ *  status survive, payload/body/provenance may be missing. */
 export interface FacultyItem {
   id: string;
+  faculty: string;
+  /** per-faculty kinds: fact|entity|command|… (knowledge is an open set),
+   *  episode, runbook|script, steering|amendment, rule */
+  kind: string;
   title: string;
+  /** active | archived */
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+  provenance?: Record<string, string>[];
+  payload?: Record<string, unknown>;
+  body?: string;
+}
+
+/** An envelope file the CLI could not parse (fail-soft listing). */
+export interface FacultyItemError {
+  file: string;
+  error: string;
 }
 
 export interface ProposalSummary {
@@ -35,6 +56,18 @@ export interface FacultyDetail {
   key: string;
   items: FacultyItem[];
   proposals: ProposalSummary[];
+  errors?: FacultyItemError[];
+  /** true = zuzuu CLI absent; items are a best-effort frontmatter peek */
+  degraded?: boolean;
+}
+
+/** GET /faculty/:key/schema — the faculty's payload schema (JSON-Schema
+ *  subset) via `zuzuu faculty schema`, falling back to the seeded
+ *  .zuzuu/<faculty>/schema.json when the CLI is absent. */
+export interface FacultySchema {
+  key: string;
+  schema: unknown;
+  source: "cli" | "home" | "absent";
 }
 
 export interface InboxResponse {

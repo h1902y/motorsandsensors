@@ -1,6 +1,6 @@
 // REST client for the /api/zuzuu/* observe + act routes (mirrors lib/api.ts).
 import type {
-  ZuzuuHealth, ZuzuuStatus, FacultySummary, FacultyDetail, InboxResponse,
+  ZuzuuHealth, ZuzuuStatus, FacultySummary, FacultyDetail, FacultySchema, InboxResponse,
   GenerationList, GenerationDiff, SessionsResponse, DigestResponse,
   EvalResponse, HostsResponse, ApproveResult, RejectResult, MintResult, RollbackResult,
   SessionGitStatus, SessionMergeResult,
@@ -51,6 +51,7 @@ export const zuzuuApi = {
   status: () => request<ZuzuuStatus>("/status"),
   faculties: () => request<{ faculties: FacultySummary[] }>("/faculties"),
   faculty: (key: string) => request<FacultyDetail>(`/faculty/${encodeURIComponent(key)}`),
+  facultySchema: (key: string) => request<FacultySchema>(`/faculty/${encodeURIComponent(key)}/schema`),
   inbox: () => request<InboxResponse>("/inbox"),
   generations: () => request<GenerationList>("/generations"),
   generation: (id: string) => request<GenerationDiff>(`/generation/${encodeURIComponent(id)}`),
