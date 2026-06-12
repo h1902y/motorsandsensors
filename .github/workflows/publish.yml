@@ -1,0 +1,43 @@
+name: publish
+# Version-bump-driven: push to main with a bumped packages/daemon version
+# → root build (protocol → web → daemon, vendors protocol + web-dist) → tests
+# → npm publish via TRUSTED PUBLISHING (OIDC — no token, no secret, no expiry;
+# provenance attestation comes with it). Requires the one-time trusted-publisher
+# registration on npmjs.com (package @zuzuucodes/web, repo h1902y/zuzuu-web,
+# workflow publish.yml). Unchanged version = clean no-op.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write # OIDC: trusted publishing + provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: skip if version already published
+        id: check
+        run: |
+          LOCAL=$(node -p "require('./packages/daemon/package.json').version")
+          PUBLISHED=$(npm view @zuzuucodes/web version 2>/dev/null || echo "none")
+          echo "local=$LOCAL published=$PUBLISHED"
+          [ "$LOCAL" != "$PUBLISHED" ] && echo "publish=true" >> "$GITHUB_OUTPUT" || echo "publish=false" >> "$GITHUB_OUTPUT"
+      - if: steps.check.outputs.publish == 'true'
+        run: npm ci
+      # the root build orders protocol → web → daemon and stages web-dist + vendored protocol
+      - if: steps.check.outputs.publish == 'true'
+        run: npm run build
+      - if: steps.check.outputs.publish == 'true'
+        run: npm test
+      # trusted publishing needs npm >= 11.5.1 (node 22 ships an older npm)
+      - if: steps.check.outputs.publish == 'true'
+        run: npm install -g npm@latest
+      - if: steps.check.outputs.publish == 'true'
+        run: npm publish -w packages/daemon
