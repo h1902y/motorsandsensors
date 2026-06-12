@@ -1,13 +1,12 @@
 // Launch paths for the terminal pane.
 //
-// Agent sessions spawn the host CLI DIRECTLY on the PTY (POST /api/sessions
+// All sessions spawn a CLI DIRECTLY on the PTY (POST /api/sessions
 // {type:'agent', command, args} — argv, no shell, no stdin injection), so the
-// daemon can run the session-git auto-merge when the host exits. The old
-// text-injection path survives ONLY for the plain-shell onboarding CTAs
-// ("zuzuu init" / "zuzuu enable" in FacultiesView).
+// daemon can run the session-git auto-merge when a host exits. There is no
+// plain-terminal path: the workbench surfaces host sessions and zuzuu utility
+// runs only.
 import { useSessions } from "../state/sessions";
 import { useView } from "../state/view";
-import { termRegistry } from "../term/registry";
 import type { AgentSpawnSpec } from "../faculties/host-launch";
 
 /**
@@ -28,16 +27,13 @@ export async function startAgentSession(spec: AgentSpawnSpec): Promise<void> {
 }
 
 /**
- * Legacy path: create a SHELL session and type a command into it (\x15
- * kill-line, the command, ⏎). Onboarding-only — never for agent sessions.
+ * Run the zuzuu CLI itself as a short-lived utility session (onboarding:
+ * `zuzuu init` / `zuzuu enable`). Bypasses startAgentSession's focus-existing
+ * rule on purpose — a utility run must always spawn, even while a host
+ * session is alive. host:'zuzuu' marks the tab so it gets the plain
+ * "Session finished" end card instead of the merge story.
  */
-export async function launchInTerminal(command: string): Promise<void> {
-  await useSessions.getState().create(); // appends a tab and makes it active
-  const id = useSessions.getState().activeId;
-  if (!id) return;
-  // TermView instances only mount in the IDE view — switch first so the new
-  // session's connection gets created, then wait for its socket to open.
+export async function startUtilityRun(args: string[]): Promise<void> {
+  await useSessions.getState().create({ type: "agent", command: "zuzuu", args, host: "zuzuu" });
   useView.getState().setMode("ide");
-  const conn = await termRegistry.whenReady(id);
-  conn.sendInput(`\x15${command}\r`);
 }

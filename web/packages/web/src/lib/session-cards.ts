@@ -35,6 +35,7 @@ export const hasAliveAgent = (tabs: { type: string; alive: boolean }[]): boolean
 
 export type EndCard =
   | { kind: "banner" } // shell sessions (and unknown outcomes) keep the plain exit banner
+  | { kind: "utility" } // zuzuu utility runs (init / enable) — "Session finished", no merge story
   | { kind: "merged"; commits: number }
   | { kind: "no-changes" } // session ended cleanly with nothing to merge
   | { kind: "cli-absent" }
@@ -43,13 +44,17 @@ export type EndCard =
   | { kind: "failed"; message: string };
 
 /**
- * Map an exited session's type + the daemon-recorded auto-merge outcome
+ * Map an exited session's type + host + the daemon-recorded auto-merge outcome
  * (GET /api/sessions/:id → closeResult) onto the end-of-session card.
+ * `host === "zuzuu"` marks a utility run (init / enable) — those always get
+ * the plain "Session finished" card, regardless of any merge outcome.
  */
 export function endCard(
   type: string | undefined,
+  host: string | undefined,
   closeResult: SessionCloseResult | undefined,
 ): EndCard {
+  if (host === "zuzuu") return { kind: "utility" };
   if (type !== "agent" || closeResult === undefined) return { kind: "banner" };
   if ("cliAbsent" in closeResult) return { kind: "cli-absent" };
   if (closeResult.ok) {

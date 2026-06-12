@@ -64,45 +64,45 @@ describe("endCard (agent exit outcome → card variant)", () => {
   };
 
   it("keeps the plain banner for shell sessions and unknown outcomes", () => {
-    expect(endCard("shell", merged)).toEqual({ kind: "banner" });
-    expect(endCard(undefined, merged)).toEqual({ kind: "banner" });
-    expect(endCard("agent", undefined)).toEqual({ kind: "banner" });
+    expect(endCard("shell", undefined, merged)).toEqual({ kind: "banner" });
+    expect(endCard(undefined, undefined, merged)).toEqual({ kind: "banner" });
+    expect(endCard("agent", "claude", undefined)).toEqual({ kind: "banner" });
   });
 
   it("merged → checkpoint count from the merge result", () => {
-    expect(endCard("agent", merged)).toEqual({ kind: "merged", commits: 4 });
+    expect(endCard("agent", "claude", merged)).toEqual({ kind: "merged", commits: 4 });
   });
 
   it("merged with no commit count defaults to 1", () => {
     expect(
-      endCard("agent", { ok: true, merge: { ok: true, mergedAs: "abc123" } }),
+      endCard("agent", "claude", { ok: true, merge: { ok: true, mergedAs: "abc123" } }),
     ).toEqual({ kind: "merged", commits: 1 });
   });
 
   it("clean exit with nothing to merge → no-changes", () => {
     expect(
-      endCard("agent", { ok: true, merge: { ok: true, mergedAs: null } }),
+      endCard("agent", "claude", { ok: true, merge: { ok: true, mergedAs: null } }),
     ).toEqual({ kind: "no-changes" });
   });
 
   it("absent CLI → install hint", () => {
-    expect(endCard("agent", { cliAbsent: true })).toEqual({ kind: "cli-absent" });
+    expect(endCard("agent", "claude", { cliAbsent: true })).toEqual({ kind: "cli-absent" });
   });
 
   it("empty-squash refusal → no-net-changes with retained checkpoint count", () => {
     expect(
-      endCard("agent", {
+      endCard("agent", "claude", {
         ok: false,
         refusal: { reason: "empty-squash-with-checkpoints", commits: 3 },
       }),
     ).toEqual({ kind: "no-net-changes", checkpoints: 3 });
     // count may be absent from the refusal payload
     expect(
-      endCard("agent", { ok: false, refusal: { reason: "empty-squash-with-checkpoints" } }),
+      endCard("agent", "claude", { ok: false, refusal: { reason: "empty-squash-with-checkpoints" } }),
     ).toEqual({ kind: "no-net-changes", checkpoints: null });
     // ...or arrive inside an exit-0 merge result
     expect(
-      endCard("agent", {
+      endCard("agent", "claude", {
         ok: true,
         merge: { ok: false, reason: "empty-squash-with-checkpoints", commits: 2 },
       }),
@@ -111,29 +111,42 @@ describe("endCard (agent exit outcome → card variant)", () => {
 
   it("no-session-branch refusal reads as a plain clean end", () => {
     expect(
-      endCard("agent", { ok: false, refusal: { reason: "no-session-branch" } }),
+      endCard("agent", "claude", { ok: false, refusal: { reason: "no-session-branch" } }),
     ).toEqual({ kind: "no-changes" });
   });
 
   it("conflicts → conflict card (both refusal and merge-result shapes)", () => {
-    expect(endCard("agent", { ok: false, refusal: { conflict: true } })).toEqual({ kind: "conflict" });
+    expect(endCard("agent", "claude", { ok: false, refusal: { conflict: true } })).toEqual({ kind: "conflict" });
     expect(
-      endCard("agent", { ok: true, merge: { ok: false, conflict: true } }),
+      endCard("agent", "claude", { ok: true, merge: { ok: false, conflict: true } }),
     ).toEqual({ kind: "conflict" });
   });
 
   it("other failures carry an honest message (stderr preferred)", () => {
-    expect(endCard("agent", { ok: false, stderr: "fatal: boom\n" })).toEqual({
+    expect(endCard("agent", "claude", { ok: false, stderr: "fatal: boom\n" })).toEqual({
       kind: "failed",
       message: "fatal: boom",
     });
-    expect(endCard("agent", { ok: false, refusal: { reason: "weird" } })).toEqual({
+    expect(endCard("agent", "claude", { ok: false, refusal: { reason: "weird" } })).toEqual({
       kind: "failed",
       message: "weird",
     });
-    expect(endCard("agent", { ok: false })).toEqual({
+    expect(endCard("agent", "claude", { ok: false })).toEqual({
       kind: "failed",
       message: "session merge failed",
     });
+  });
+
+  it("host 'zuzuu' (utility run: init / enable) → utility card, unconditionally", () => {
+    // outcome pending (closeResult not fetched yet) — still utility, no spinner story
+    expect(endCard("agent", "zuzuu", undefined)).toEqual({ kind: "utility" });
+    // any merge outcome is irrelevant for utility runs
+    expect(endCard("agent", "zuzuu", merged)).toEqual({ kind: "utility" });
+    expect(endCard("agent", "zuzuu", { cliAbsent: true })).toEqual({ kind: "utility" });
+    expect(
+      endCard("agent", "zuzuu", { ok: false, refusal: { reason: "no-session-branch" } }),
+    ).toEqual({ kind: "utility" });
+    // other hosts spawned via the zuzuu CLI (host 'opencode') keep the merge story
+    expect(endCard("agent", "opencode", merged)).toEqual({ kind: "merged", commits: 4 });
   });
 });

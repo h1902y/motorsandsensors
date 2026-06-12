@@ -55,6 +55,7 @@ export function TermView({
   sessionId,
   active,
   sessionType = "shell",
+  host,
   onStartNew,
   onCloseTab,
 }: {
@@ -62,6 +63,8 @@ export function TermView({
   active: boolean;
   /** agent sessions get the end-of-session card instead of the exit banner */
   sessionType?: SessionType;
+  /** host CLI name; host==="zuzuu" marks a utility run (init / enable) */
+  host?: string;
   /** open the start-a-session card (end-card CTA) */
   onStartNew?: () => void;
   onCloseTab?: () => void;
@@ -247,7 +250,15 @@ export function TermView({
     // the merge already ran server-side at PTY exit — pull the SPA caches up
     if (closeResult !== undefined) refreshSessionGit(queryClient);
   }, [closeResult, queryClient]);
-  const end = endCard(sessionType, closeResult);
+  const end = endCard(sessionType, host, closeResult);
+  const isUtility = end.kind === "utility";
+  useEffect(() => {
+    // utility run finished (zuzuu init / enable) — refresh the zuzuu queries
+    // so onboarding flips to the faculties dashboard without a reload
+    if (isUtility && exitCode !== null) {
+      void queryClient.invalidateQueries({ queryKey: ["zuzuu"] });
+    }
+  }, [isUtility, exitCode, queryClient]);
   const showEndCard = isAgent && exitCode !== null && !endDismissed;
 
   return (
@@ -290,14 +301,15 @@ export function TermView({
           process exited with code {exitCode}
         </div>
       )}
-      {showEndCard && detail.isPending && (
+      {/* utility runs never merge — skip the spinner, show their card at once */}
+      {showEndCard && detail.isPending && !isUtility && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink-950/70 p-6">
           <div className="flex items-center gap-2 text-ui text-ink-300">
             <Spinner /> session ended — merging checkpoints…
           </div>
         </div>
       )}
-      {showEndCard && !detail.isPending && end.kind !== "banner" && (
+      {showEndCard && (isUtility || !detail.isPending) && end.kind !== "banner" && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-ink-950/70 p-6">
           <SessionEndCard
             state={end}

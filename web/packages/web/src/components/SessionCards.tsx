@@ -31,16 +31,14 @@ function Card({ children, onDismiss }: { children: ReactNode; onDismiss?: () => 
   );
 }
 
-/** "Start a session" — host buttons (detected enabled, others greyed) + a quiet plain-terminal escape hatch. */
+/** "Start a session" — host buttons (detected enabled, others greyed). Hosts only, no plain terminal. */
 export function StartSessionCard({
   onHost,
-  onPlainTerminal,
   onDismiss,
 }: {
   /** row command from buildHostRows (e.g. "claude", "zuzuu code") */
   onHost: (rowCommand: string) => void;
-  onPlainTerminal: () => void;
-  /** present when the card overlays existing terminals (the + menu path) */
+  /** present when the card overlays existing terminals (the + button path) */
   onDismiss?: () => void;
 }) {
   const hostsQ = useQuery({ queryKey: ["zuzuu", "hosts"], queryFn: zuzuuApi.hosts, refetchInterval: 8000 });
@@ -68,12 +66,6 @@ export function StartSessionCard({
           </button>
         ))}
       </div>
-      <button
-        onClick={onPlainTerminal}
-        className="mt-4 text-meta text-ink-500 underline decoration-dotted underline-offset-2 hover:text-ink-300"
-      >
-        or open a plain terminal
-      </button>
     </Card>
   );
 }
@@ -157,6 +149,16 @@ export function SessionEndCard({
   );
 
   switch (state.kind) {
+    case "utility":
+      // zuzuu utility runs (init / enable) — no checkpoints, no merge story
+      return (
+        <Card>
+          <div className="text-base font-medium text-ink-100">Session finished</div>
+          <div className="mt-4 flex items-center gap-2">
+            <Button onClick={onCloseTab}>Close</Button>
+          </div>
+        </Card>
+      );
     case "merged":
       return (
         <Card>

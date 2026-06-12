@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { zuzuuApi } from "../lib/zuzuu-api";
-import { launchInTerminal } from "../lib/agent-launch";
+import { startUtilityRun } from "../lib/agent-launch";
 import { Button } from "../components/ui";
 import { StatusHeader } from "./StatusHeader";
 import { HomeCtas } from "./HomeCtas";
@@ -45,8 +45,9 @@ export function FacultiesView() {
   );
 }
 
-/** No-home onboarding: one card that sets up the zuzuu home in a terminal —
- *  or, with no CLI on PATH, the install banner instead of dead buttons. */
+/** No-home onboarding: one card that sets up the zuzuu home via a zuzuu
+ *  utility session — or, with no CLI on PATH, the install banner instead of
+ *  dead buttons. */
 function OnboardingCard({ zuzuuBin }: { zuzuuBin: boolean }) {
   return (
     <div className="mx-auto mt-12 w-full max-w-md rounded-ui border border-border bg-surface p-6">
@@ -58,14 +59,14 @@ function OnboardingCard({ zuzuuBin }: { zuzuuBin: boolean }) {
       </p>
       {zuzuuBin ? (
         <div className="mt-5 flex flex-col items-start gap-3">
-          <Button variant="primary" onClick={() => void launchInTerminal("zuzuu init")}>
+          <Button variant="primary" onClick={() => void startUtilityRun(["init"])}>
             Set up zuzuu
           </Button>
           <div className="text-meta text-ink-500">
             then{" "}
             <button
               className="text-accent-dim underline decoration-dotted underline-offset-2 hover:text-accent"
-              onClick={() => void launchInTerminal("zuzuu enable")}
+              onClick={() => void startUtilityRun(["enable"])}
             >
               Enable live capture
             </button>{" "}

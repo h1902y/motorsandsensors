@@ -23,7 +23,7 @@ import { VaultPicker } from "./onboarding/VaultPicker";
 import { Bar, ModeTabs, Tab, TabBar, IconButton, StatusDot, DialogHost, prompt, ActionMenu, type MenuItem } from "./components/ui";
 import { SessionIndicator } from "./components/SessionIndicator";
 import { StartSessionCard, RecoveryCard } from "./components/SessionCards";
-import { centerCard, hasAliveAgent } from "./lib/session-cards";
+import { centerCard } from "./lib/session-cards";
 import { agentTabTitle, hostSpawnSpec } from "./faculties/host-launch";
 import { startAgentSession } from "./lib/agent-launch";
 import { useView } from "./state/view";
@@ -48,7 +48,7 @@ const fmtMB = (bytes: number) => `${Math.round(bytes / 1024 / 1024)} MB`;
 
 export default function App() {
   const queryClient = useQueryClient();
-  const { tabs, activeId, loaded: sessionsLoaded, init, create, close, setActive } = useSessions();
+  const { tabs, activeId, loaded: sessionsLoaded, init, close, setActive } = useSessions();
   const [initError, setInitError] = useState<string | null>(null);
 
   const workspace = useQuery({ queryKey: ["workspace"], queryFn: api.workspace });
@@ -127,8 +127,8 @@ export default function App() {
   const [runWorkflow, setRunWorkflow] = useState<Workflow | null>(null);
 
   // ── session-surface cards (Phase ④) ─────────────────────────────────
-  // startOverlay = the user asked for an agent session while terminals exist
-  // (+ menu / end-card CTA); with zero sessions the start card is the default.
+  // startOverlay = the user asked for an agent session while sessions exist
+  // (+ button / end-card CTA); with zero sessions the start card is the default.
   const [startOverlay, setStartOverlay] = useState(false);
   // hold the boot-time card until health + session-git have answered once, so
   // a leftover branch renders recovery directly instead of flashing the start card
@@ -138,21 +138,13 @@ export default function App() {
     sessionsLoaded && !recoveryUnknown
       ? centerCard(tabs.length, startOverlay, sessionGit.data)
       : { kind: "none" as const };
-  const agentAlive = hasAliveAgent(tabs);
   const startHost = (rowCommand: string) => {
     setStartOverlay(false);
     const spec = hostSpawnSpec(rowCommand);
+    // single-active-agent rule lives in startAgentSession: while one is
+    // alive, picking a host focuses it instead of spawning a second one
     if (spec) void startAgentSession(spec).catch((err: Error) => window.alert(err.message));
   };
-  const addMenu: MenuItem[] = [
-    {
-      label: "Agent session",
-      disabled: agentAlive,
-      hint: agentAlive ? "one already running" : undefined,
-      onClick: () => setStartOverlay(true),
-    },
-    { label: "Terminal", onClick: () => void create() },
-  ];
 
   // global shortcuts: ⌘K palette, ⌘R run-recent, ⌘F workspace search, ⌘S save
   useEffect(() => {
@@ -345,12 +337,11 @@ export default function App() {
                 );
               })}
             </TabBar>
-            <ActionMenu
-              items={addMenu}
-              title="New session"
+            <IconButton
+              title="New agent session"
               iconPath="M8 3v10M3 8h10"
-              align="left"
               className="mx-1"
+              onClick={() => setStartOverlay(true)}
             />
           </Bar>
           {/* terminals — all kept mounted so sessions survive tab switches */}
@@ -365,6 +356,7 @@ export default function App() {
                   sessionId={tab.id}
                   active={tab.id === activeId}
                   sessionType={tab.type}
+                  host={tab.host}
                   onStartNew={() => setStartOverlay(true)}
                   onCloseTab={() => void close(tab.id)}
                 />
@@ -379,10 +371,6 @@ export default function App() {
                 ) : (
                   <StartSessionCard
                     onHost={startHost}
-                    onPlainTerminal={() => {
-                      setStartOverlay(false);
-                      void create();
-                    }}
                     {...(tabs.length > 0 ? { onDismiss: () => setStartOverlay(false) } : {})}
                   />
                 )}
