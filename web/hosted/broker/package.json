@@ -1,0 +1,21 @@
+{
+  "name": "@webcode/broker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Control plane that provisions a per-user webcode sandbox VM and hands the browser a session URL",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.0.4",
+    "hono": "^4.12.25"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.2",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3"
+  }
+}

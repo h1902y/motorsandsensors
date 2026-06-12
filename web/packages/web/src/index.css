@@ -1,0 +1,190 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "@fontsource-variable/jetbrains-mono";
+@import "@xterm/xterm/css/xterm.css";
+
+@theme {
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* ── ink ramp (tuned for crisper contrast + elevation) ─────────────── */
+  --color-ink-950: #0a0d12; /* app background (deepest) */
+  --color-ink-900: #0e121a; /* panel surface */
+  --color-ink-850: #1c2434; /* elevated: menus, dialogs, raised hover */
+  --color-ink-800: #232c3d; /* hover */
+  --color-ink-700: #2a3343; /* hairline border */
+  --color-ink-600: #3a465c; /* strong border / faint text */
+  --color-ink-500: #5a6678; /* muted text */
+  --color-ink-300: #97a3b6; /* secondary text */
+  --color-ink-100: #dde4ee; /* primary text */
+  --color-accent: #5be6c4;
+  --color-accent-dim: #2f9a80;
+  --color-danger: #f0726a;
+  --color-warn: #e0a23a;
+
+  /* ── semantic surface/line aliases (used by the ui kit) ────────────── */
+  --color-app: var(--color-ink-950);
+  --color-surface: var(--color-ink-900);
+  --color-elevated: var(--color-ink-850);
+  --color-hover: var(--color-ink-800);
+  --color-border: var(--color-ink-700);
+  --color-border-strong: var(--color-ink-600);
+  --color-muted: var(--color-ink-500);
+  --color-subtle: var(--color-ink-300);
+
+  /* ── type scale (three sizes only) ─────────────────────────────────── */
+  --text-meta: 0.6875rem; /* 11px — labels, meta, badges */
+  --text-meta--line-height: 1.45;
+  --text-ui: 0.75rem; /* 12px — default UI text */
+  --text-ui--line-height: 1.4;
+  --text-body: 0.8125rem; /* 13px — editor/terminal/body */
+  --text-body--line-height: 1.5;
+
+  /* ── radii (one curvature per tier) ────────────────────────────────── */
+  --radius-sm: 4px; /* small controls */
+  --radius-ui: 6px; /* cards, menus, chips */
+  --radius-dialog: 10px; /* overlays, dialogs, command palette */
+
+  /* ── elevation ─────────────────────────────────────────────────────── */
+  --shadow-menu: 0 6px 20px -6px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);
+  --shadow-dialog: 0 24px 64px -16px rgb(0 0 0 / 0.6), 0 8px 24px -8px rgb(0 0 0 / 0.45);
+
+  /* canonical bar height — every header / footer / tab strip */
+  --height-bar: 34px;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  @apply bg-app text-ink-100 font-mono antialiased;
+  font-size: var(--text-body);
+}
+
+/* ── one canonical bar: fixed height, centered, standard padding ─────── */
+.wc-bar {
+  display: flex;
+  align-items: center;
+  height: var(--height-bar);
+  min-height: var(--height-bar);
+  flex-shrink: 0;
+  padding-inline: 10px;
+  gap: 8px;
+}
+
+/* ── one focus-ring everywhere ──────────────────────────────────────── */
+.wc-focus:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 55%, transparent);
+}
+.wc-input {
+  background: var(--color-app);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-ink-100);
+  font-size: var(--text-ui);
+}
+.wc-input::placeholder {
+  color: var(--color-muted);
+}
+.wc-input:focus {
+  outline: none;
+  border-color: var(--color-accent-dim);
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--color-accent) 35%, transparent);
+}
+
+/* xterm fills its pane */
+.term-host,
+.term-host .xterm,
+.term-host .xterm .xterm-screen {
+  height: 100%;
+}
+.term-host .xterm {
+  padding: 8px 0 0 10px;
+}
+
+/* ── preview pane: prose + GFM tables tuned to the ink/accent palette ── */
+.prose {
+  --tw-prose-invert-body: var(--color-ink-100);
+  --tw-prose-invert-headings: #fff;
+  --tw-prose-invert-links: var(--color-accent);
+  --tw-prose-invert-code: var(--color-accent);
+  --tw-prose-invert-quotes: var(--color-ink-300);
+  --tw-prose-invert-quote-borders: var(--color-ink-700);
+  --tw-prose-invert-hr: var(--color-ink-700);
+  --tw-prose-invert-th-borders: var(--color-ink-500);
+  --tw-prose-invert-td-borders: var(--color-ink-700);
+}
+.prose table {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+.prose thead th {
+  background: var(--color-ink-800);
+  border: 1px solid var(--color-ink-700);
+  padding: 5px 10px;
+}
+.prose tbody td {
+  border: 1px solid var(--color-ink-700);
+  padding: 5px 10px;
+}
+.prose tbody tr:nth-child(even) {
+  background: var(--color-ink-850);
+}
+.prose :not(pre) > code {
+  background: var(--color-ink-800);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 400;
+}
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+.prose input[type="checkbox"] {
+  accent-color: var(--color-accent);
+}
+
+/* shiki emits its own inline-styled <pre> */
+.shiki-block pre {
+  background: var(--color-ink-950) !important;
+  border: 1px solid var(--color-ink-700);
+  border-radius: 6px;
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+
+/* command palette group headings */
+[cmdk-group-heading] {
+  padding: 6px 8px 2px;
+  font-size: var(--text-meta);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-500);
+}
+
+::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink-700);
+  border-radius: 6px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-ink-600);
+  background-clip: content-box;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-700) transparent;
+}
