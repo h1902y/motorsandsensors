@@ -17,7 +17,7 @@ function freshHome() {
   mkdirSync(join(mns, 'knowledge', 'proposals'), { recursive: true });
   mkdirSync(join(mns, 'knowledge', 'registry'), { recursive: true });
   mkdirSync(join(mns, 'generations', 'snapshots'), { recursive: true });
-  writeFileSync(join(mns, 'mns.json'), JSON.stringify({ version: 1 }) + '\n');
+  writeFileSync(join(mns, 'agent.json'), JSON.stringify({ version: 1 }) + '\n');
   return { root, mns };
 }
 

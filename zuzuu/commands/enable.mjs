@@ -48,19 +48,17 @@ function writeSettings(path, obj) {
   writeFileSync(path, JSON.stringify(obj, null, 2) + '\n');
 }
 
-// --- OpenCode: install a project plugin (.opencode/plugins/mns.js) that fires the
-// mns hook on lifecycle events + gates tools. Spawns the real node (with node:sqlite), not bun.
-// plural dir (.opencode/plugins/) is the documented default; singular (.opencode/plugin/) also loads
-// but we migrate to plural on enable and clean both on disable.
+// --- OpenCode: install a project plugin (.opencode/plugins/zuzuu.js) that fires the
+// zuzuu hook on lifecycle events + gates tools. Spawns the real node (with node:sqlite), not bun.
+// plural dir (.opencode/plugins/) is the documented default.
 const NODE = process.execPath;
-const opencodePluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugins', 'mns.js');
-const opencodeLegacyPluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugin', 'mns.js'); // pre-2026-06 singular
+const opencodePluginPath = (cwd) => join(repoRoot(cwd), '.opencode', 'plugins', 'zuzuu.js');
 const opencodePlugin = () => `// installed by \`zuzuu enable --host opencode\` — live capture + guardrails gate (graceful: never breaks OpenCode).
 import { spawn, spawnSync } from "node:child_process";
 const NODE = ${JSON.stringify(NODE)};
 const MNS = ${JSON.stringify(BIN)};
 const fire = (event, id) => { try { spawn(NODE, [MNS, "hook", event, "--host", "opencode", "--session", id], { stdio: "ignore", detached: true }).unref(); } catch {} };
-export const Mns = async () => ({
+export const Zuzuu = async () => ({
   event: async ({ event }) => {
     try {
       const id = event?.properties?.sessionID;
@@ -88,7 +86,7 @@ export const Mns = async () => ({
 });
 `;
 
-const piExtPath = (cwd) => join(repoRoot(cwd), '.pi', 'extensions', 'mns.ts');
+const piExtPath = (cwd) => join(repoRoot(cwd), '.pi', 'extensions', 'zuzuu.ts');
 const piExtension = () => `// installed by \`zuzuu enable --host pi\` — live capture + guardrails gate (graceful: never breaks pi).
 import { spawn, spawnSync } from "node:child_process";
 const NODE = ${JSON.stringify(NODE)};
@@ -137,8 +135,6 @@ export function enable(args = {}) {
     const path = opencodePluginPath();
     mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, opencodePlugin());
-    const legacy = opencodeLegacyPluginPath();
-    if (existsSync(legacy)) rmSync(legacy, { force: true }); // migrate singular → plural
     say('zuzuu enabled for OpenCode — live capture + guardrails gate installed');
     say(`  plugin : ${path}`);
     say('  events : session.created/idle/deleted (capture) · tool.execute.before (gate)');
@@ -175,10 +171,9 @@ export function disable(args = {}) {
     return;
   }
   if ((args.host || 'claude-code') === 'opencode') {
-    let removed = false;
-    for (const p of [opencodePluginPath(), opencodeLegacyPluginPath()]) {
-      if (existsSync(p)) { rmSync(p, { force: true }); removed = true; }
-    }
+    const p = opencodePluginPath();
+    const removed = existsSync(p);
+    if (removed) rmSync(p, { force: true });
     console.log(removed ? 'zuzuu disabled for OpenCode — plugin removed' : 'nothing to disable (no OpenCode plugin)');
     return;
   }

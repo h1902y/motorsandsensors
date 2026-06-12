@@ -155,7 +155,7 @@ export const LAYOUT = {
 };
 
 /** Gitignore lines the project needs (trace blobs + liveness state stay local). */
-export const IGNORE_LINES = ['agent/.traces/', 'agent/.live/', 'agent/knowledge/.index.db', '.gemini/settings.json', '.codex/hooks.json', '.pi/extensions/mns.ts'];
+export const IGNORE_LINES = ['agent/.traces/', 'agent/.live/', 'agent/knowledge/.index.db', '.gemini/settings.json', '.codex/hooks.json', '.pi/extensions/zuzuu.ts'];
 
 export function manifest(initializedAt) {
   return {

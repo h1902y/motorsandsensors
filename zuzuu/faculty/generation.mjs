@@ -37,7 +37,7 @@ const generationsDir = (mnsDir) => join(mnsDir, 'generations');
 const snapshotsDir = (mnsDir) => join(generationsDir(mnsDir), 'snapshots');
 const activePath = (mnsDir) => join(generationsDir(mnsDir), 'active');
 const lockfilePath = (mnsDir, id) => join(generationsDir(mnsDir), `${id}.json`);
-const mnsJsonPath = (mnsDir) => join(mnsDir, 'mns.json');
+const agentJsonPath = (mnsDir) => join(mnsDir, 'agent.json');
 
 // --- faculty file enumeration (the pinned set) ------------------------------
 // Each entry: { id, faculty, src (absolute live path), rel (path under the
@@ -131,9 +131,9 @@ export function agentId(mnsDir) {
   return 'agt_' + sha256(root).slice(0, 12);
 }
 
-/** Add/repair the agent block in mns.json (bump to v2), preserving other fields. */
+/** Add/repair the agent block in agent.json (bump to v2), preserving other fields. */
 export function ensureAgent(mnsDir) {
-  const path = mnsJsonPath(mnsDir);
+  const path = agentJsonPath(mnsDir);
   const m = existsSync(path) ? readJson(path) : {};
   const id = agentId(mnsDir);
   if (!m.agent || !m.agent.id) {

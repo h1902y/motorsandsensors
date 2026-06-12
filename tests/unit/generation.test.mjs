@@ -24,7 +24,7 @@ function freshHome(fn) {
   mkdirSync(join(mnsDir, 'knowledge', 'registry'), { recursive: true });
   mkdirSync(join(mnsDir, 'guardrails'), { recursive: true });
   mkdirSync(join(mnsDir, 'generations', 'snapshots'), { recursive: true });
-  writeFileSync(join(mnsDir, 'mns.json'), JSON.stringify({ version: 1, initializedAt: '2026-01-01T00:00:00.000Z', layout: [] }, null, 2) + '\n');
+  writeFileSync(join(mnsDir, 'agent.json'), JSON.stringify({ version: 1, initializedAt: '2026-01-01T00:00:00.000Z', layout: [] }, null, 2) + '\n');
   writeFileSync(join(mnsDir, 'knowledge', 'items', 'alpha.md'), '---\nid: alpha\ntype: fact\n---\nAlpha body.\n');
   writeFileSync(join(mnsDir, 'knowledge', 'items', 'beta.md'), '---\nid: beta\ntype: fact\n---\nBeta body.\n');
   writeFileSync(join(mnsDir, 'knowledge', 'registry', 'types.json'), JSON.stringify([{ name: 'fact' }]) + '\n');
@@ -93,14 +93,14 @@ test('rollback archives active items not present in the target (no delete)', () 
   });
 });
 
-test('agentId stable across calls; mns.json bumped to v2 with agent block', () => {
+test('agentId stable across calls; agent.json bumped to v2 with agent block', () => {
   freshHome((mnsDir) => {
     const a1 = agentId(mnsDir);
     const a2 = agentId(mnsDir);
     assert.equal(a1, a2);
     assert.ok(a1.startsWith('agt_'));
     ensureAgent(mnsDir);
-    const m = JSON.parse(readFileSync(join(mnsDir, 'mns.json'), 'utf8'));
+    const m = JSON.parse(readFileSync(join(mnsDir, 'agent.json'), 'utf8'));
     assert.equal(m.version, 2);
     assert.equal(m.agent.id, a1);
     assert.ok(m.agent.createdAt);
