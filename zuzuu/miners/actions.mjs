@@ -9,6 +9,7 @@ import { join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { slugify } from '../knowledge/items.mjs';
 import { isSafeSlug, actionsDir, inboxDir } from '../actions/manifest.mjs';
+import { serializeEnvelope } from '../faculty/envelope.mjs';
 import { register } from './registry.mjs';
 
 // Must match the constant in knowledge/distill.mjs (adjacent Bash separator).
@@ -86,27 +87,20 @@ export function propose(agentDir, aggregated) {
 
     mkdirSync(inboxSlug, { recursive: true });
 
-    // action.json — minimal manifest (no run.mjs; this is a runbook action).
-    const manifest = {
-      slug,
-      title,
-      description: `Recurring command sequence detected from session traces: ${steps.join(' → ')}.`,
-      promptSnippet,
-    };
-    writeFileSync(join(inboxSlug, 'action.json'), JSON.stringify(manifest, null, 2) + '\n');
-
-    // SKILL.md — numbered runbook steps.
+    // ACTION.md — a runbook envelope (no run.mjs; the body IS the procedure).
+    // The body's first line is the digest one-liner (promptSnippet).
     const stepsBlock = steps.map((cmd, i) => `${i + 1}. \`${cmd}\``).join('\n');
-    const skillMd = `---
-name: ${title}
-description: ${manifest.description}
----
-
-## Steps
-
-${stepsBlock}
-`;
-    writeFileSync(join(inboxSlug, 'SKILL.md'), skillMd);
+    writeFileSync(join(inboxSlug, 'ACTION.md'), serializeEnvelope({
+      id: slug,
+      faculty: 'actions',
+      kind: 'runbook',
+      title,
+      status: 'active',
+      created_at: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+      provenance: [],
+      payload: {},
+      body: `${promptSnippet}\n\nRecurring command sequence detected from session traces.\n\n## Steps\n\n${stepsBlock}`,
+    }));
 
     count++;
   }

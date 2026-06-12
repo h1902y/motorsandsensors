@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { join, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
-import { loadManifest, actionsDir } from './manifest.mjs';
+import { loadManifest, execOf, actionsDir } from './manifest.mjs';
 import { MARKER } from './marker.mjs';
 
 const MAX_DEPTH = 8;
@@ -51,16 +51,21 @@ export function runAction(agentDir, slug, callerArgs = {}, { timeoutMs = ACTION_
   if (depth >= MAX_DEPTH) return { ok: false, error: 'depth_exceeded', detail: `depth ${depth} ≥ ${MAX_DEPTH}`, logs: '' };
 
   const manifest = loadManifest(agentDir, slug);
-  if (!manifest) return { ok: false, error: 'not_found', detail: `no action '${slug}' (missing action.json)`, logs: '' };
+  if (!manifest) return { ok: false, error: 'not_found', detail: `no action '${slug}' (missing ACTION.md)`, logs: '' };
 
-  const runPath = join(actionsDir(agentDir), slug, 'run.mjs');
-  if (!existsSync(runPath)) return { ok: false, error: 'not_runnable', detail: `'${slug}' has no run.mjs`, logs: '' };
+  const exec = execOf(manifest);
+  if (!exec) return { ok: false, error: 'not_runnable', detail: `'${slug}' has an unsafe exec entry`, logs: '' };
+  const runPath = join(actionsDir(agentDir), slug, exec);
+  if (!existsSync(runPath)) return { ok: false, error: 'not_runnable', detail: `'${slug}' has no ${exec}`, logs: '' };
 
+  // The envelope carries no inputs/outputs JSON-schemas (clean break, W24) —
+  // the runner validates against the permissive object schema; payload.args
+  // are the default args (caller args win).
   const payload = JSON.stringify({
     runPath,
-    inputs: manifest.inputs ?? { type: 'object' },
-    outputs: manifest.outputs ?? { type: 'object' },
-    default_args: manifest.default_args ?? {},
+    inputs: { type: 'object' },
+    outputs: { type: 'object' },
+    default_args: manifest.payload?.args ?? {},
     args: callerArgs ?? {},
   });
 

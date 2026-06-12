@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scaffoldAction } from '../../zuzuu/commands/act-author.mjs';
+import { parseEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-new-'));
@@ -13,15 +14,19 @@ function withHome(fn) {
   try { return fn(join(root, '.zuzuu')); } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
-test('scaffoldAction creates manifest + run.mjs; manifest is valid JSON with the slug', () => {
+test('scaffoldAction creates ACTION.md + run.mjs; ACTION.md is a valid envelope with the slug', () => {
   withHome((home) => {
     const r = scaffoldAction(home, 'deploy-thing');
     assert.equal(r.created.length, 2);
     const dir = join(home, 'actions', 'deploy-thing');
-    assert.ok(existsSync(join(dir, 'action.json')));
+    assert.ok(existsSync(join(dir, 'ACTION.md')));
     assert.ok(existsSync(join(dir, 'run.mjs')));
-    const man = JSON.parse(readFileSync(join(dir, 'action.json'), 'utf8'));
-    assert.equal(man.slug, 'deploy-thing');
+    const { ok, item } = parseEnvelope(readFileSync(join(dir, 'ACTION.md'), 'utf8'));
+    assert.ok(ok, 'ACTION.md parses as an envelope');
+    assert.equal(item.id, 'deploy-thing');
+    assert.equal(item.faculty, 'actions');
+    assert.equal(item.kind, 'script');
+    assert.equal(item.payload.exec, 'run.mjs');
     assert.ok(readFileSync(join(dir, 'run.mjs'), 'utf8').includes('export async function main'));
   });
 });
@@ -33,7 +38,7 @@ test('scaffoldAction is no-clobber: existing files survive', () => {
     writeFileSync(join(dir, 'run.mjs'), 'export async function main(){ return { mine: true }; }');
     const r = scaffoldAction(home, 'keep');
     assert.ok(readFileSync(join(dir, 'run.mjs'), 'utf8').includes('mine: true'), 'user run.mjs untouched');
-    assert.ok(r.created.includes('action.json'));
+    assert.ok(r.created.includes('ACTION.md'));
     assert.ok(!r.created.includes('run.mjs'));
   });
 });

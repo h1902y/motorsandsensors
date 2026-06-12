@@ -7,6 +7,7 @@
 import { join } from 'node:path';
 import { existsSync, readFileSync, renameSync, mkdirSync, rmSync } from 'node:fs';
 import { actionsDir, inboxDir, listActions, isSafeSlug } from './manifest.mjs';
+import { parseEnvelope } from '../faculty/envelope.mjs';
 
 /** Archive dir for rejected action proposals: .zuzuu/actions/proposals/archive/. */
 const archiveBaseDir = (agentDir) => join(actionsDir(agentDir), 'proposals', 'archive');
@@ -26,12 +27,11 @@ export function activateAction(agentDir, slug) {
   const to = join(actionsDir(agentDir), slug);
   if (!existsSync(from)) return { ok: false, error: `no proposed action '${slug}'` };
   if (existsSync(to)) return { ok: false, error: `an active action '${slug}' already exists — reject or rename first` };
-  const manPath = join(from, 'action.json');
+  const manPath = join(from, 'ACTION.md');
   if (existsSync(manPath)) {
-    let man;
-    try { man = JSON.parse(readFileSync(manPath, 'utf8')); }
-    catch { return { ok: false, error: `manifest is not valid JSON` }; }
-    if (man.slug && man.slug !== slug) return { ok: false, error: `manifest slug '${man.slug}' ≠ dir '${slug}'` };
+    const { ok, item } = parseEnvelope(readFileSync(manPath, 'utf8'));
+    if (!ok) return { ok: false, error: 'ACTION.md is not a valid envelope' };
+    if (item.id && item.id !== slug) return { ok: false, error: `ACTION.md id '${item.id}' ≠ dir '${slug}'` };
   }
   renameSync(from, to);
   return { ok: true };

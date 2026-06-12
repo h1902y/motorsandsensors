@@ -1,7 +1,9 @@
 // zuzuu/actions/convert.mjs
 // Pure manifest → tool-definition converters (the _labs tool-definition pattern).
-// The manifest's `inputs` JSON Schema is already the right shape for each format,
-// so conversion is a thin re-wrap.
+// Manifests are ACTION.md envelopes (W24): name = the envelope id, description =
+// the prompt snippet (body first line) or title. The envelope carries no
+// inputs/outputs JSON-schemas (clean break) — tool definitions expose the
+// permissive object schema; the runner validates the same way.
 //
 // STATUS (2026-06-11): used today only by `zuzuu act schema <slug> [--mcp|--openai|
 // --anthropic]` for inspection. There is NO runtime MCP/native-tool *serving* yet —
@@ -9,19 +11,18 @@
 // agent in the digest. Live "Actions over MCP" serving is DEFERRED (DESIGN §6 /
 // Stage 2 / OpenCode bundle); these converters are the seam for it, not the thing.
 
-const desc = (m) => m.description ?? m.title ?? m.slug;
-const inputs = (m) => m.inputs ?? { type: 'object' };
+const name = (m) => m.id ?? m.slug;
+const desc = (m) => m.promptSnippet ?? m.title ?? name(m);
+const inputs = () => ({ type: 'object' });
 
 export function toMcpTool(m) {
-  const t = { name: m.slug, description: desc(m), inputSchema: inputs(m) };
-  if (m.outputs) t.outputSchema = m.outputs;
-  return t;
+  return { name: name(m), description: desc(m), inputSchema: inputs() };
 }
 
 export function toOpenAITool(m) {
-  return { type: 'function', function: { name: m.slug, description: desc(m), parameters: inputs(m) } };
+  return { type: 'function', function: { name: name(m), description: desc(m), parameters: inputs() } };
 }
 
 export function toAnthropicTool(m) {
-  return { name: m.slug, description: desc(m), input_schema: inputs(m) };
+  return { name: name(m), description: desc(m), input_schema: inputs() };
 }

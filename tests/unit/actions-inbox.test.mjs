@@ -4,13 +4,19 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync } from 'node:
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { listProposedActions, activateAction, rejectAction } from '../../zuzuu/actions/inbox.mjs';
+import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+
+const actionMd = (slug, body = 'proposed thing') => serializeEnvelope({
+  id: slug, faculty: 'actions', kind: 'script', title: slug, status: 'active',
+  created_at: '2026-06-12T00:00:00Z', payload: { exec: 'run.mjs' }, body,
+});
 
 function withInbox(slug, fn, { manifest, run } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-inbox-'));
   const home = join(root, '.zuzuu');
   const dir = join(home, 'actions', 'inbox', slug);
   mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'action.json'), manifest ?? JSON.stringify({ slug, promptSnippet: 'proposed thing' }));
+  writeFileSync(join(dir, 'ACTION.md'), manifest ?? actionMd(slug));
   writeFileSync(join(dir, 'run.mjs'), run ?? 'export async function main(){ return { ok: true }; }');
   try { return fn(home); } finally { rmSync(root, { recursive: true, force: true }); }
 }
@@ -45,13 +51,21 @@ test('activateAction refuses when an active action of that slug already exists',
   });
 });
 
-test('activateAction refuses a malformed manifest', () => {
+test('activateAction refuses a malformed ACTION.md', () => {
   withInbox('bad', (home) => {
     const r = activateAction(home, 'bad');
     assert.equal(r.ok, false);
-    assert.match(r.error, /manifest/i);
+    assert.match(r.error, /envelope/i);
     assert.ok(!existsSync(join(home, 'actions', 'bad')), 'not activated');
-  }, { manifest: '{ not json' });
+  }, { manifest: '{ not an envelope' });
+});
+
+test('activateAction refuses an id ≠ dir mismatch', () => {
+  withInbox('mismatch', (home) => {
+    const r = activateAction(home, 'mismatch');
+    assert.equal(r.ok, false);
+    assert.match(r.error, /≠ dir/);
+  }, { manifest: actionMd('other-slug') });
 });
 
 test('rejectAction archives the inbox entry instead of deleting it', () => {

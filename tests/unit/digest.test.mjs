@@ -146,7 +146,10 @@ test('digest Actions section lists slug · snippet (progressive disclosure)', ()
   withHome((home) => {
     const a = join(home, 'actions', 'run-tests');
     _mkdirA(a, { recursive: true });
-    _writeA(join(a, 'action.json'), JSON.stringify({ slug: 'run-tests', promptSnippet: 'run the suite', inputs: { type: 'object' }, outputs: { type: 'object' } }));
+    _writeA(join(a, 'ACTION.md'), serializeEnvelope({
+      id: 'run-tests', faculty: 'actions', kind: 'script', title: 'Run tests', status: 'active',
+      created_at: '2026-06-12T00:00:00Z', payload: { exec: 'run.mjs' }, body: 'run the suite',
+    }));
     _writeA(join(a, 'run.mjs'), 'export async function main(){ return {}; }');
     const d = computeDigest(home);
     assert.match(d.text, /## Actions/);

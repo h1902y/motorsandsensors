@@ -9,6 +9,7 @@ import { tmpdir } from 'node:os';
 
 import { miner, aggregate, propose } from '../../zuzuu/miners/actions.mjs';
 import * as registry from '../../zuzuu/miners/registry.mjs';
+import { parseEnvelope } from '../../zuzuu/faculty/envelope.mjs';
 
 // ---------------------------------------------------------------------------
 // Helpers — build the mineTranscript output shape directly (deterministic).
@@ -89,9 +90,9 @@ test('aggregate: exactly at threshold → one candidate', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Test 4: propose writes inbox/<slug>/{action.json,SKILL.md}; idempotent.
+// Test 4: propose writes inbox/<slug>/ACTION.md (runbook envelope); idempotent.
 
-test('propose: scaffolds actions/inbox/<slug>/ with action.json + SKILL.md', () => {
+test('propose: scaffolds actions/inbox/<slug>/ with a runbook ACTION.md', () => {
   const agentDir = mkdtempSync(join(tmpdir(), 'zuzuu-actions-miner-'));
   const pair = seq('npm ci', 'npm test');
   const sessions = [
@@ -108,19 +109,18 @@ test('propose: scaffolds actions/inbox/<slug>/ with action.json + SKILL.md', () 
   const inboxSlug = join(agentDir, 'actions', 'inbox', slug);
   assert.ok(existsSync(inboxSlug), `inbox dir exists: ${inboxSlug}`);
 
-  const actionJson = join(inboxSlug, 'action.json');
-  assert.ok(existsSync(actionJson), 'action.json exists');
-  const man = JSON.parse(readFileSync(actionJson, 'utf8'));
-  assert.equal(man.slug, slug);
-  assert.ok(typeof man.title === 'string' && man.title.length > 0);
-
-  const skillMd = join(inboxSlug, 'SKILL.md');
-  assert.ok(existsSync(skillMd), 'SKILL.md exists');
-  const md = readFileSync(skillMd, 'utf8');
-  // numbered steps must be present
-  assert.ok(md.includes('1.'), 'SKILL.md has step 1');
-  assert.ok(md.includes('npm ci'), 'SKILL.md mentions npm ci');
-  assert.ok(md.includes('npm test'), 'SKILL.md mentions npm test');
+  const actionMd = join(inboxSlug, 'ACTION.md');
+  assert.ok(existsSync(actionMd), 'ACTION.md exists');
+  const { ok, item } = parseEnvelope(readFileSync(actionMd, 'utf8'));
+  assert.ok(ok, 'ACTION.md is a valid envelope');
+  assert.equal(item.id, slug);
+  assert.equal(item.faculty, 'actions');
+  assert.equal(item.kind, 'runbook');
+  assert.ok(typeof item.title === 'string' && item.title.length > 0);
+  // numbered steps must be present in the body
+  assert.ok(item.body.includes('1.'), 'body has step 1');
+  assert.ok(item.body.includes('npm ci'), 'body mentions npm ci');
+  assert.ok(item.body.includes('npm test'), 'body mentions npm test');
 });
 
 // ---------------------------------------------------------------------------
