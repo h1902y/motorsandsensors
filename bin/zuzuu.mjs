@@ -34,6 +34,7 @@ import { web } from '../zuzuu/commands/web.mjs';
 import { explain } from '../zuzuu/commands/explain.mjs';
 import { inbox } from '../zuzuu/commands/inbox.mjs';
 import { session } from '../zuzuu/commands/session.mjs';
+import { sessions } from '../zuzuu/commands/sessions.mjs';
 import { faculty } from '../zuzuu/commands/faculty.mjs';
 
 function parseArgs(argv) {
@@ -80,6 +81,9 @@ usage: zuzuu <command> [options]
                             list a faculty's envelope items (one doc · one line per item)
   faculty schema <f> [--json]
                             print a faculty's payload schema (JSON-Schema subset)
+  faculty manifest <f> [--json]
+                            print a faculty's module manifest (faculty.json)
+  faculty overview [--json] every faculty in one shot: ui + counts + top items + pending
   digest [--json] [--budget N]
                             print the session-start grounding brief
   act [list|show <slug>|new <slug>|schema <slug>]
@@ -100,6 +104,9 @@ usage: zuzuu <command> [options]
   disable                   remove the background hooks
   session [status|merge|continue|discard]
                             the invisible session branch (one per agent session)
+  sessions [--json]         recorded sessions with lifecycle state labels
+  session inspect <id> [--json]
+                            one session: trace summary + per-faculty mined signals
   eval [--faculty f]        rank pending proposals by eval score, highest first
   migrate [--home|--items]  one-time migrators: proposal schema · --home moves agent/ → .zuzuu/
                             · --items rewrites legacy faculty shapes → the envelope standard
@@ -135,6 +142,7 @@ switch (cmd) {
   case 'disable': disable(args); break;
   case 'hook': runHook(args._[0], { host: args.host, session: args.session }); break;
   case 'session': session(args); break;
+  case 'sessions': sessions(args); break;
   case 'faculty': faculty(args); break;
   case 'eval': evalCmd(args); break;
   case 'migrate': migrate(args); break;
