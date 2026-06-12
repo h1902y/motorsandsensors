@@ -12,7 +12,7 @@ function fakeDeps(over = {}) {
     detect: () => over.detect ?? true,
     install: () => { calls.push(['install']); return over.install ?? true; },
     prompt: () => over.prompt ?? 'y',
-    launch: (dir) => { calls.push(['launch', dir]); },
+    launch: ({ cwd }) => { calls.push(['launch', cwd]); },
     log: () => {},
   };
   return { calls, deps };
@@ -64,4 +64,16 @@ test('args._[0] dir is resolved absolute and passed to launch', () => {
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test('absent + prompt accepted + install fails → launch NOT called, failure logged', () => {
+  const logs = [];
+  const { calls, deps } = fakeDeps({ detect: false, install: false });
+  deps.detect = () => false;
+  deps.install = () => { calls.push(['install']); return false; };
+  deps.log = (...m) => logs.push(m.join(' '));
+  web({}, deps);
+  assert.ok(calls.some((c) => c[0] === 'install'), 'install was attempted');
+  assert.ok(!calls.some((c) => c[0] === 'launch'), 'launch NOT called after failed install');
+  assert.ok(logs.some((l) => l.includes('install failed')), 'failure message logged');
 });

@@ -22,8 +22,8 @@ const realInstall = () => {
   try { return spawnSync('npm', ['install', '-g', '@zuzuucodes/web'], { stdio: 'inherit' }).status === 0; }
   catch { return false; }
 };
-const realLaunch = (dir) => {
-  spawn('zuzuu-web', [dir], { detached: true, stdio: 'ignore' }).unref();
+const realLaunch = ({ cwd }) => {
+  spawn('zuzuu-web', [cwd], { detached: true, stdio: 'ignore' }).unref();
 };
 // Synchronous y/n. Only reached when zuzuu-web is missing; the deps seam means
 // tests never call this. Default to 'n' (safe — 'n' is the listed default [y/N]).
@@ -62,11 +62,14 @@ export function web(args = {}, deps = {}) {
       d.log('aborted — install with: npm i -g @zuzuucodes/web');
       return;
     }
-    d.install();
+    if (!d.install()) {
+      d.log('install failed — try: npm i -g @zuzuucodes/web');
+      return;
+    }
   }
 
   // 3. launch — zuzuu-web opens the browser and prints its URL
   d.log(`zuzuu web → launching visual workbench in ${dir} …`);
   d.log('  zuzuu-web will open your browser and print its URL.');
-  d.launch(dir);
+  d.launch({ cwd: dir });
 }
