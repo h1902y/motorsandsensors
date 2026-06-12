@@ -7,8 +7,9 @@ import { FacultyDetail } from "./FacultyDetail";
 import { GenerationsTimeline } from "./GenerationsTimeline";
 import { SessionsList } from "./SessionsList";
 import { DigestPanel } from "./DigestPanel";
+import { ReviewFlow } from "./ReviewFlow";
 
-/** The full-pane zuzuu faculties dashboard (read-only observe). */
+/** The full-pane zuzuu faculties dashboard (observe + review). */
 export function FacultiesView() {
   const [active, setActive] = useState<string | null>(null);
   const faculties = useQuery({ queryKey: ["zuzuu", "faculties"], queryFn: zuzuuApi.faculties, refetchInterval: 4000 });
@@ -33,6 +34,7 @@ export function FacultiesView() {
           </div>
         </>
       )}
+      <ReviewFlow />
     </div>
   );
 }

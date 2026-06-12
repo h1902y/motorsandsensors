@@ -1,12 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { zuzuuApi } from "../lib/zuzuu-api";
-import { StatusDot } from "../components/ui";
+import { Button, StatusDot } from "../components/ui";
+import { useReviewOpen } from "../state/review";
 
-/** The dashboard's top line: active generation · pending total · drift, plus the
- *  no-home and CLI-absent notices. */
+/** The dashboard's top line: active generation · pending total · drift · the
+ *  Review entry point, plus the no-home and CLI-absent notices. */
 export function StatusHeader() {
   const status = useQuery({ queryKey: ["zuzuu", "status"], queryFn: zuzuuApi.status, refetchInterval: 4000 });
   const health = useQuery({ queryKey: ["zuzuu", "health"], queryFn: zuzuuApi.health, refetchInterval: 8000 });
+  const evalQ = useQuery({ queryKey: ["zuzuu", "eval"], queryFn: zuzuuApi.evalRanked, refetchInterval: 8000 });
+  const openReview = useReviewOpen((s) => s.setOpen);
+  const rankedCount = evalQ.data?.ranked.length ?? 0;
 
   if (status.data && status.data.home === false) {
     return (
@@ -29,6 +33,11 @@ export function StatusHeader() {
         <span className="text-ink-500">·</span>
         <span className="text-ink-300">{pendingTotal} pending your approval</span>
         {drift && <span className="text-warn">· ⚠ drift (run zuzuu doctor)</span>}
+        {rankedCount > 0 && (
+          <Button size="sm" variant="primary" className="ml-auto" onClick={() => openReview(true)}>
+            Review {rankedCount}
+          </Button>
+        )}
       </div>
       {health.data && health.data.zuzuuBin === false && (
         <div className="text-meta text-ink-500">showing file data only (zuzuu CLI not found on PATH)</div>
