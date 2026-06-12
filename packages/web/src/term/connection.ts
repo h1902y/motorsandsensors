@@ -31,6 +31,8 @@ export class TermConnection {
   private retries = 0;
   private closedByUser = false;
   private firstReplayDone = false;
+  private everOpened = false;
+  private openWaiters: (() => void)[] = [];
 
   constructor(
     private readonly sessionId: string,
@@ -46,6 +48,8 @@ export class TermConnection {
 
     ws.onopen = () => {
       this.retries = 0;
+      this.everOpened = true;
+      for (const resolve of this.openWaiters.splice(0)) resolve();
       this.events.onStatus("open");
       // tell the daemon our true size before anything renders
       this.sendResize(this.term.cols, this.term.rows);
@@ -100,6 +104,13 @@ export class TermConnection {
         if (!this.closedByUser) this.connect();
       }, delay);
     };
+  }
+
+  /** Resolves once the socket has opened (immediately if it ever has) —
+   *  lets non-terminal UI inject input right after creating a session. */
+  whenOpen(): Promise<void> {
+    if (this.everOpened) return Promise.resolve();
+    return new Promise((resolve) => this.openWaiters.push(resolve));
   }
 
   sendInput(data: string): void {

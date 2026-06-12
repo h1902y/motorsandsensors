@@ -8,6 +8,10 @@ export interface MenuItem {
   danger?: boolean;
   /** render a divider above this item */
   separated?: boolean;
+  /** greyed and non-clickable (e.g. a host that isn't installed) */
+  disabled?: boolean;
+  /** right-aligned meta text (e.g. "not installed") */
+  hint?: string;
 }
 
 /**
@@ -105,13 +109,17 @@ export function MenuPopover({
         <div key={item.label}>
           {item.separated && i > 0 && <div className="my-1 border-t border-border" />}
           <button
+            disabled={item.disabled}
             onClick={(e) => {
               e.stopPropagation();
+              if (item.disabled) return;
               item.onClick();
               onClose();
             }}
-            className={`flex w-full items-center gap-2 px-3 py-1 text-left text-ui hover:bg-hover ${
-              item.danger ? "text-danger hover:text-danger" : "text-ink-200 hover:text-ink-100"
+            className={`flex w-full items-center gap-2 px-3 py-1 text-left text-ui ${
+              item.disabled
+                ? "cursor-default text-ink-600"
+                : `hover:bg-hover ${item.danger ? "text-danger hover:text-danger" : "text-ink-200 hover:text-ink-100"}`
             }`}
           >
             {item.iconPath ? (
@@ -122,6 +130,7 @@ export function MenuPopover({
               <span className="w-3.5 shrink-0" />
             )}
             {item.label}
+            {item.hint && <span className="ml-auto pl-4 text-meta text-ink-600">{item.hint}</span>}
           </button>
         </div>
       ))}
