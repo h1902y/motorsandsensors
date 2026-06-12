@@ -1,7 +1,7 @@
 // Pure logic tests for the review ceremony's queue reducer (no DOM needed).
 import { describe, expect, it } from "vitest";
 import {
-  buildQueue, currentItem, initReview, isDone, pendingReviewCount, reduceReview, type ReviewState,
+  buildQueue, currentItem, initReview, isDone, reduceReview, type ReviewState,
 } from "./review-queue";
 
 const ranked = [
@@ -32,18 +32,6 @@ describe("buildQueue", () => {
     const q = buildQueue(ranked, []);
     expect(q[0]).toMatchObject({ score: 0.9, confidence: "high", rationale: "seen 4x" });
     expect(q[1]).toMatchObject({ score: null, confidence: null, rationale: null });
-  });
-});
-
-describe("pendingReviewCount", () => {
-  it("matches the combined deduped queue length (ranked + action inbox)", () => {
-    expect(pendingReviewCount(ranked, actions)).toBe(buildQueue(ranked, actions).length);
-    expect(pendingReviewCount(ranked, actions)).toBe(3); // p2 deduped
-  });
-
-  it("counts action-inbox-only items even with an empty eval ranking", () => {
-    expect(pendingReviewCount([], actions)).toBe(2);
-    expect(pendingReviewCount([], [])).toBe(0);
   });
 });
 

@@ -5,7 +5,7 @@ import type { FacultyOverviewEntry, ZuzuuStatus } from "@zuzuu-web/protocol";
 import { Button } from "../components/ui";
 import { useRightPanel } from "../state/right-panel";
 import { useReviewOpen } from "../state/review";
-import { Section, facultyDisplay } from "./kit";
+import { MetricChip, Section, facultyDisplay } from "./kit";
 import { needsYouGroups, pendingTotal } from "./sections";
 
 export function NeedsYou({
@@ -28,11 +28,15 @@ export function NeedsYou({
     <Section
       label="needs you"
       trailing={
-        total > 0 ? (
-          <Button size="sm" variant="primary" onClick={() => openReview(true)}>
-            Review {total}
-          </Button>
-        ) : undefined
+        <>
+          {/* the ⟡ generation chip — moved here from the footer */}
+          <MetricChip label="⟡" value={status?.activeGeneration ?? "no gen"} title="active generation" />
+          {total > 0 && (
+            <Button size="sm" variant="primary" onClick={() => openReview(true)}>
+              Review {total}
+            </Button>
+          )}
+        </>
       }
     >
       {!zuzuuBin && (
