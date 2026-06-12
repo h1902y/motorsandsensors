@@ -93,8 +93,72 @@ export interface GenerationDiff {
   faculties: Record<string, { added?: string[]; changed?: string[] | boolean; removed?: string[] }>;
 }
 
+// ── Faculty overview (ONE CLI spawn for the whole panel root) ──────────
+
+/** The manifest `ui` block — the card descriptor the workbench renders from
+ *  (no per-faculty frontend code needed for a new faculty). */
+export interface FacultyUiDescriptor {
+  /** icon name (book | clock | play | compass | shield | …) */
+  icon: string;
+  /** accent name (info | neutral | success | warning | danger) */
+  accent: string;
+  /** the ONE teaching sentence for empty states */
+  teaching: string;
+}
+
+/** One faculty in GET /overview (`zuzuu faculty overview --json`). The peek
+ *  fallback (CLI absent) omits ui/tagline/kinds — counts and top survive. */
+export interface FacultyOverviewEntry {
+  id: string;
+  title: string;
+  tagline?: string;
+  ui?: FacultyUiDescriptor;
+  kinds?: string[];
+  declarative?: boolean;
+  counts: { items: number; pending: number; errors: number };
+  /** up to 3 top item titles */
+  top: string[];
+}
+
+export interface FacultyOverviewResponse {
+  faculties: FacultyOverviewEntry[];
+  /** true = zuzuu CLI absent; counts come from a frontmatter peek */
+  degraded?: boolean;
+}
+
+// ── Sessions observability (GET /sessions + /session-inspect/:id) ──────
+
+/** Session lifecycle states (`zuzuu sessions --json`); post-hoc = captured. */
+export type ZuzuuSessionState =
+  | "opening" | "active" | "completed" | "abandoned" | "crashed" | "captured";
+
+/** One recorded session. The file-read fallback (CLI absent) may lack the
+ *  state label and the derived fields — id/host survive. */
+export interface ZuzuuSessionEntry {
+  id: string;
+  host?: string;
+  state?: ZuzuuSessionState | string;
+  startedAt?: string | null;
+  endedAt?: string | null;
+  durationMs?: number;
+  counts?: { turns: number; tools: number; errors: number };
+  generation?: string | null;
+  git?: { commit: string | null; branch: string | null };
+  traceRef?: string | null;
+}
+
 export interface SessionsResponse {
-  sessions: unknown[];
+  sessions: ZuzuuSessionEntry[];
+}
+
+/** GET /session-inspect/:id — `zuzuu session inspect <id> --json`. Fail-soft:
+ *  a gone trace blob / host transcript degrades to warnings, never an error. */
+export interface SessionInspectResponse {
+  session: ZuzuuSessionEntry;
+  trace: { spans: number | null; tools: number | null; duration: number | null };
+  /** per-faculty mined signal counts, e.g. {knowledge: {commands: 3, …}} */
+  signals: Record<string, Record<string, number>>;
+  warnings: string[];
 }
 
 export interface DigestResponse {

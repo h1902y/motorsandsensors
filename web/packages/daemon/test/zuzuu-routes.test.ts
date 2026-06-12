@@ -94,11 +94,18 @@ describe("createZuzuuApi file routes", () => {
       .toEqual({ key: "knowledge", schema, source: "home" });
     expect((await absent.request("/faculty/bogus/schema")).status).toBe(404);
   });
-  it("GET /sessions returns the index", async () => {
+  it("GET /sessions falls back to the raw index when the CLI is absent", async () => {
     fixtureHome(root);
-    const app = createZuzuuApi(() => root, { binary: "x" });
+    const app = createZuzuuApi(() => root, { binary: "definitely-not-real-zzz" });
     const body = await (await app.request("/sessions")).json();
     expect(body.sessions[0].id).toBe("s1");
+  });
+  it("GET /sessions prefers the CLI's state-labelled list", async () => {
+    fixtureHome(root);
+    const labelled = { sessions: [{ id: "s1", host: "claude-code", state: "captured", durationMs: 12, counts: { turns: 1, tools: 2, errors: 0 } }] };
+    const app = createZuzuuApi(() => root, { binary: jsonStub(root, JSON.stringify(labelled)) });
+    const body = await (await app.request("/sessions")).json();
+    expect(body).toEqual(labelled);
   });
   it("GET /generations reads lockfiles + active pointer", async () => {
     const agent = fixtureHome(root);
@@ -118,6 +125,71 @@ describe("createZuzuuApi file routes", () => {
     fixtureHome(root);
     const app = createZuzuuApi(() => root, { binary: "x" });
     expect((await app.request("/faculty/..%2f..%2fetc")).status).toBe(404);
+  });
+});
+
+describe("createZuzuuApi overview + session-inspect", () => {
+  it("GET /overview passes the CLI's batched payload through whole", async () => {
+    fixtureHome(root);
+    const payload = {
+      faculties: [{
+        id: "knowledge", title: "Knowledge", tagline: "what is TRUE",
+        ui: { icon: "book", accent: "info", teaching: "Facts land here." },
+        kinds: ["fact"], declarative: false,
+        counts: { items: 1, pending: 3, errors: 0 }, top: ["Hot file"],
+      }],
+    };
+    const app = createZuzuuApi(() => root, { binary: jsonStub(root, JSON.stringify(payload)) });
+    const res = await app.request("/overview");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(payload);
+  });
+  it("GET /overview degrades to a peek (counts survive, no ui) when the CLI is absent", async () => {
+    fixtureHome(root);
+    const app = createZuzuuApi(() => root, { binary: "definitely-not-a-real-binary-zzz" });
+    const body = await (await app.request("/overview")).json();
+    expect(body.degraded).toBe(true);
+    expect(body.faculties).toHaveLength(5);
+    const k = body.faculties.find((f: { id: string }) => f.id === "knowledge");
+    expect(k).toMatchObject({ title: "Knowledge", counts: { items: 1, pending: 1, errors: 0 } });
+    expect(k.top).toEqual(["fact one"]);
+    expect(k.ui).toBeUndefined();
+  });
+  it("GET /session-inspect/:id proxies zuzuu session inspect --json", async () => {
+    fixtureHome(root);
+    const payload = {
+      session: { id: "s1", host: "claude-code", state: "captured", durationMs: 12 },
+      trace: { spans: 4, tools: 2, duration: 12 },
+      signals: { knowledge: { commands: 3, files: 1, failures: 0 } },
+      warnings: [],
+    };
+    const app = createZuzuuApi(() => root, { binary: jsonStub(root, JSON.stringify(payload)) });
+    const res = await app.request("/session-inspect/s1");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(payload);
+  });
+  it("GET /session-inspect/:id → 503 absent CLI, 502 failed, 400 unsafe id (no spawn)", async () => {
+    fixtureHome(root);
+    const absent = createZuzuuApi(() => root, { binary: "definitely-not-a-real-binary-zzz" });
+    expect((await absent.request("/session-inspect/s1")).status).toBe(503);
+
+    const failed = createZuzuuApi(() => root, { binary: failStub(root, "no such session") });
+    const res = await failed.request("/session-inspect/s1");
+    expect(res.status).toBe(502);
+    expect((await res.json()).stderr).toMatch(/no such session/);
+
+    const { stub, marker } = markerStub(root);
+    const gated = createZuzuuApi(() => root, { binary: stub });
+    expect((await gated.request("/session-inspect/..%2fetc")).status).toBe(400);
+    expect((await gated.request("/session-inspect/a;rm")).status).toBe(400);
+    expect(existsSync(marker)).toBe(false);
+  });
+  it("GET /session-inspect accepts real id shapes (ses_*, uuid)", async () => {
+    fixtureHome(root);
+    const app = createZuzuuApi(() => root, { binary: jsonStub(root, '{"session":{"id":"x"},"trace":{},"signals":{},"warnings":[]}') });
+    for (const id of ["ses_1535700f9ffe3OKC6scrQYySU9", "20410eef-3e0b-43c3-878f-5a15c016d2a5"]) {
+      expect((await app.request(`/session-inspect/${id}`)).status).toBe(200);
+    }
   });
 });
 

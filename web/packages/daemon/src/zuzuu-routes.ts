@@ -156,6 +156,29 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
     return c.json({ faculties });
   });
 
+  // The batched faculty surface: ONE `zuzuu faculty overview --json` spawn
+  // covers all faculties (manifest ui descriptors + counts + top titles +
+  // pending) — replaces the 5-spawn-per-cycle /faculties pattern for the
+  // panel root. CLI absent → peek fallback (counts survive, ui descriptors
+  // degrade to the web kit's built-in metadata).
+  app.get("/overview", async (c) => {
+    const viaCli = await runZuzuu(root, ["faculty", "overview"], { binary: opts.binary }) as
+      { faculties?: unknown[] } | null;
+    if (viaCli && Array.isArray(viaCli.faculties)) return c.json(viaCli);
+    const agent = await agentDir();
+    const faculties = await Promise.all(FACULTIES.map(async (id) => {
+      const [items, proposals] = await Promise.all([peekFacultyItems(agent, id), proposalsOf(agent, id)]);
+      return {
+        id,
+        title: id.charAt(0).toUpperCase() + id.slice(1),
+        counts: { items: items.length, pending: proposals.length, errors: 0 },
+        top: items.slice(0, 3).map((it) => String(it.title ?? it.id)),
+        declarative: false,
+      };
+    }));
+    return c.json({ faculties, degraded: true });
+  });
+
   app.get("/faculty/:key", async (c) => {
     const key = c.req.param("key");
     if (!FACULTIES.includes(key as typeof FACULTIES[number])) return c.json({ error: "unknown faculty" }, 404);
@@ -192,12 +215,33 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
     });
   });
 
+  // Sessions list: CLI-first (`zuzuu sessions --json` — state-labelled:
+  // active|completed|abandoned|crashed|captured); falls back to the raw
+  // sessions.json index (no state labels) when the CLI is absent.
   app.get("/sessions", async (c) => {
+    const viaCli = await runZuzuu(root, ["sessions"], { binary: opts.binary }) as
+      { sessions?: unknown[] } | null;
+    if (viaCli && Array.isArray(viaCli.sessions)) return c.json(viaCli);
     const agent = await agentDir();
     try {
       const idx = JSON.parse(await fsp.readFile(path.join(agent, "sessions.json"), "utf8"));
       return c.json({ sessions: idx.sessions ?? [] });
     } catch { return c.json({ sessions: [] }); }
+  });
+
+  // One session's observability document (`zuzuu session inspect <id> --json`:
+  // trace summary + per-faculty mined signals + warnings). CLI-only — the
+  // daemon never re-mines transcripts; absent → 503, failed → 502.
+  app.get("/session-inspect/:id", async (c) => {
+    const id = c.req.param("id");
+    if (!SAFE_ID.test(id)) return c.json({ error: "bad id" }, 400);
+    const r = await runZuzuuMut(root, ["session", "inspect", id], { binary: opts.binary });
+    if (!r.ok) {
+      return r.code === "absent"
+        ? c.json({ error: "zuzuu CLI required" }, 503)
+        : c.json({ error: "zuzuu command failed", stderr: r.stderr ?? "", data: r.data ?? null }, 502);
+    }
+    return c.json(r.data as Record<string, unknown>);
   });
 
   app.get("/digest", async (c) => {
