@@ -39,6 +39,15 @@
   --text-body: 0.8125rem; /* 13px — editor/terminal/body */
   --text-body--line-height: 1.5;
 
+  /* ── status accents (faculty cards: ok / pending / empty) ──────────── */
+  --color-status-ok: var(--color-accent);
+  --color-status-pending: var(--color-warn);
+  --color-status-empty: var(--color-ink-600);
+
+  /* ── card paddings (panel kit) ─────────────────────────────────────── */
+  --spacing-card: 12px;
+  --spacing-card-sm: 8px;
+
   /* ── radii (one curvature per tier) ────────────────────────────────── */
   --radius-sm: 4px; /* small controls */
   --radius-ui: 6px; /* cards, menus, chips */
@@ -73,6 +82,21 @@ body {
   flex-shrink: 0;
   padding-inline: 10px;
   gap: 8px;
+}
+
+/* ── faculty drill-in: slides over the dashboard ────────────────────── */
+@keyframes wc-slide-in {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.wc-slide-in {
+  animation: wc-slide-in 160ms ease-out;
 }
 
 /* ── one focus-ring everywhere ──────────────────────────────────────── */
