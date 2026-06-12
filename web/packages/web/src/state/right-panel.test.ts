@@ -1,6 +1,7 @@
-// The right-panel mode rules, tested through the REAL stores (the subscription
-// in right-panel.ts is the wiring under test, not a re-implementation).
-// diff:true tabs are used so open() never touches the network in node.
+// The right-panel mode + drill-in rules, tested through the REAL stores (the
+// subscription in right-panel.ts is the wiring under test, not a
+// re-implementation). diff:true tabs are used so open() never touches the
+// network in node.
 import { beforeEach, describe, expect, it } from "vitest";
 import { useEditor, editorTabId } from "./editor";
 import { useRightPanel } from "./right-panel";
@@ -11,13 +12,13 @@ const closeTab = (path: string) => useEditor.getState().close(editorTabId({ path
 
 beforeEach(() => {
   useEditor.getState().resetAll();
-  useRightPanel.setState({ mode: "faculties", facultyTab: "pulse" });
+  useRightPanel.setState({ mode: "faculties", drillIn: null });
 });
 
 describe("right-panel mode rules", () => {
-  it("rests in faculty mode on the pulse tab", () => {
+  it("rests in faculty mode on the dashboard root", () => {
     expect(useRightPanel.getState().mode).toBe("faculties");
-    expect(useRightPanel.getState().facultyTab).toBe("pulse");
+    expect(useRightPanel.getState().drillIn).toBeNull();
   });
 
   it("opening a file forces files mode", () => {
@@ -71,17 +72,38 @@ describe("right-panel mode rules", () => {
     useRightPanel.getState().showFiles();
     expect(useRightPanel.getState().mode).toBe("faculties");
   });
+});
 
-  it("picking a faculty tab pins the tab and faculty mode", () => {
-    open("src/a.ts");
-    useRightPanel.getState().setFacultyTab("guardrails");
-    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", facultyTab: "guardrails" });
+describe("faculty drill-in rules", () => {
+  it("a card click opens the drill-in (and pins faculty mode)", () => {
+    open("src/a.ts"); // files mode
+    useRightPanel.getState().openFaculty("guardrails");
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drillIn: "guardrails" });
   });
 
-  it("the faculty tab is sticky across a files round-trip", () => {
-    useRightPanel.getState().setFacultyTab("knowledge");
+  it("‹ All faculties returns to the dashboard root", () => {
+    useRightPanel.getState().openFaculty("knowledge");
+    useRightPanel.getState().closeFaculty();
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drillIn: null });
+  });
+
+  it("‹ faculties from files mode lands on the dashboard ROOT (drill-in cleared)", () => {
+    useRightPanel.getState().openFaculty("knowledge");
+    open("src/a.ts"); // e.g. clicked an item file
+    useRightPanel.getState().showFaculties();
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drillIn: null });
+  });
+
+  it("closing the LAST editor tab also lands on the dashboard root", () => {
+    useRightPanel.getState().openFaculty("memory");
     open("src/a.ts");
     closeTab("src/a.ts");
-    expect(useRightPanel.getState().facultyTab).toBe("knowledge");
+    expect(useRightPanel.getState()).toMatchObject({ mode: "faculties", drillIn: null });
+  });
+
+  it("opening an item file from a drill-in flips to files mode", () => {
+    useRightPanel.getState().openFaculty("actions");
+    open(".zuzuu/actions/run-tests/ACTION.md");
+    expect(useRightPanel.getState().mode).toBe("files");
   });
 });
