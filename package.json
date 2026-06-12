@@ -34,6 +34,7 @@
     "node": ">=22"
   },
   "bin": {
+    "zz": "bin/zuzuu.mjs",
     "zuzuu": "bin/zuzuu.mjs"
   },
   "files": [
