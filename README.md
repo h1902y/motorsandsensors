@@ -18,6 +18,8 @@ npm install -g @zuzuucodes/cli   # zero dependencies — installs the `zuzuu` co
 # no coding agent yet? one command gives you a fully faculty-equipped one:
 zuzuu code        # scaffold the faculty home, install + wire OpenCode, launch it (capture + gate + grounding)
 
+zuzuu web         # prefer a visual app? the workbench: Home → review ceremony → embedded-terminal agent sessions
+
 # already run Claude Code / Gemini / Codex / OpenCode / pi? wrap the one you have:
 zuzuu init        # scaffold your project's agent home (.zuzuu/) — git-style, hidden like .git
 zuzuu explain     # the 5 faculties + how graduation works (you're always in the loop)

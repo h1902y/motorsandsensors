@@ -19,7 +19,7 @@ npm run playground                         # real-data smoke checks (pass/skip/f
 node tests/playground/run.mjs 4                  # one playground by number
 node bin/zuzuu.mjs <cmd>                   # the CLI (or `zz`/`zuzuu` after npm link)
 #   observe: status · capture [--host h] · trace [--last] · enable|disable · doctor
-#   serve:   init · code · digest · remember/recall · knowledge · act · explain
+#   serve:   init · code · web · digest · remember/recall · knowledge · act · explain
 #   evolve:  distill · inbox · review · proposals · eval · generation [mint|rollback]
 ```
 
