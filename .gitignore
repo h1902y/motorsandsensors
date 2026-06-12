@@ -31,4 +31,4 @@ experiments/**/out/
 agent/.traces/
 agent/.live/
 agent/knowledge/.index.db
-.pi/extensions/mns.ts
+.pi/extensions/zuzuu.ts
