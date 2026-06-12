@@ -58,6 +58,48 @@ function collectProposals(agentDir, adapter) {
 }
 
 /**
+ * Pure: gather + rank all pending proposals, returning structured data for JSON output.
+ * The zuzuu-web /eval source.
+ *
+ * @param {string} agentDir   Resolved .zuzuu/ path.
+ * @param {object} [opts]
+ * @param {string} [opts.faculty]  Filter to a single faculty name.
+ * @returns {{ ranked: Array<{id,faculty,title,score,confidence,rationale}> }}
+ */
+export function evalData(agentDir, { faculty: onlyFaculty = null } = {}) {
+  const adapters = registry.all();
+  const sessionMtimes = buildSessionMtimes();
+  const now = Date.now();
+  const scorer = getScorer();
+
+  const allEntries = [];
+  for (const adapter of adapters) {
+    if (onlyFaculty && adapter.name !== onlyFaculty) continue;
+    const proposals = collectProposals(agentDir, adapter);
+    for (const proposal of proposals) {
+      allEntries.push({ proposal, faculty: adapter.name });
+    }
+  }
+
+  if (!allEntries.length) return { ranked: [] };
+
+  const rawProposals = allEntries.map((e) => e.proposal);
+  const rankResults = rank(rawProposals, scorer, { now, sessionMtimes });
+  const facultyByProposalId = new Map(allEntries.map((e) => [e.proposal.id, e.faculty]));
+
+  const ranked = rankResults.map(({ proposal, score, confidence, rationale }) => {
+    const fac = facultyByProposalId.get(proposal.id) ?? '?';
+    const title = proposal.title
+      ?? proposal.candidate?.body?.slice(0, 80)
+      ?? proposal.payload?.body?.slice(0, 80)
+      ?? proposal.id;
+    return { id: proposal.id, faculty: fac, title, score, confidence, rationale };
+  });
+
+  return { ranked };
+}
+
+/**
  * Core of `zuzuu eval` — exported so tests can inject a custom log fn.
  *
  * @param {object}   args            Parsed CLI args.
@@ -66,6 +108,13 @@ function collectProposals(agentDir, adapter) {
 export function evalCmd(args, log = console.log) {
   const agentDir = paths().dir;
   const onlyFaculty = args?.faculty ?? null;
+
+  if (args?.json) {
+    const d = evalData(agentDir, { faculty: onlyFaculty });
+    console.log(JSON.stringify(d));
+    return;
+  }
+
   const adapters = registry.all();
   const sessionMtimes = buildSessionMtimes();
   const now = Date.now();
