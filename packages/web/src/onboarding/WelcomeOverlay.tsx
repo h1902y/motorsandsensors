@@ -14,7 +14,7 @@ export function WelcomeOverlay({
     <Overlay onClose={onDismiss}>
       <Dialog className="p-7">
         <div className="mb-1 text-3xl text-accent">❯_</div>
-        <h1 className="text-base font-semibold text-ink-100">Welcome to webcode</h1>
+        <h1 className="text-base font-semibold text-ink-100">Welcome to zuzuu-web</h1>
         <p className="mt-1.5 text-body leading-relaxed text-ink-300">
           A native-feeling terminal, file explorer, and editor for your machine — in the browser.
           You're working in{" "}

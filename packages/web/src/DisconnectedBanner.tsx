@@ -15,7 +15,7 @@ export function DisconnectedBanner({ state }: { state: ConnState }) {
       }`}
     >
       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-app/70" />
-      {disconnected ? "Lost connection to the webcode daemon — retrying…" : "Reconnecting…"}
+      {disconnected ? "Lost connection to the zuzuu-web daemon — retrying…" : "Reconnecting…"}
       {disconnected && (
         <button
           onClick={() => window.location.reload()}

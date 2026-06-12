@@ -199,7 +199,7 @@ export default function App() {
     }
   };
   useEffect(() => {
-    const name = workspace.data?.name ?? "webcode";
+    const name = workspace.data?.name ?? "zuzuu-web";
     document.title = activeTab ? `${activeTab.title} — ${name}` : name;
   }, [activeTab, workspace.data]);
 
