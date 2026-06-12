@@ -10,7 +10,7 @@ const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zu
 
 function withProposed(slug, fn) {
   const root = mkdtempSync(join(tmpdir(), 'mns-rev-'));
-  const mns = join(root, '.mns');
+  const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox/' + slug]) {
     mkdirSync(join(mns, d), { recursive: true });
   }
@@ -38,7 +38,7 @@ test('piped review: n rejects a proposed action', () => {
 
 test('piped review: one stdin drives BOTH the actions pass and the knowledge pass', () => {
   const root = mkdtempSync(join(tmpdir(), 'mns-rev-combo-'));
-  const mns = join(root, '.mns');
+  const mns = join(root, 'agent');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox/deploy']) {
     mkdirSync(join(mns, d), { recursive: true });
   }
