@@ -92,10 +92,22 @@ export function mintModuleGeneration(agentDir, module, { forkedFrom = undefined,
 
 // --- rollback ---------------------------------------------------------------
 
-/** Park (never delete) a displaced live item under <module>/_rolledback/<basename>. */
+/** Park (never delete) a displaced live item under <module>/_rolledback/<basename>.
+ *  If a prior rollback already parked something by that name (a file overwrite is
+ *  fine, but a non-empty dir rename would throw), suffix to a fresh name so we
+ *  never lose bytes and never crash mid-rollback. */
 function archive(agentDir, module, src) {
-  const dest = join(agentDir, module, '_rolledback', src.slice(dirname(src).length + 1));
-  mkdirSync(dirname(dest), { recursive: true });
+  const base = src.slice(dirname(src).length + 1);
+  const parkDir = join(agentDir, module, '_rolledback');
+  mkdirSync(parkDir, { recursive: true });
+  let dest = join(parkDir, base);
+  if (existsSync(dest)) {
+    // collision: keep both — append a short timestamp before any extension.
+    const dot = base.indexOf('.');
+    const stem = dot > 0 ? base.slice(0, dot) : base;
+    const ext = dot > 0 ? base.slice(dot) : '';
+    dest = join(parkDir, `${stem}.${Date.now().toString(36)}${ext}`);
+  }
   renameSync(src, dest);
 }
 

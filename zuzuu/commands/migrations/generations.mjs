@@ -115,10 +115,12 @@ export function migrateGenerations(agentDir) {
   for (const module of MODULES) {
     const sec = sections[module];
     if (!sec) continue; // module not pinned by the global gen → no per-module gen
-    // skip if this module already has its own generations (idempotent / partial re-run)
-    if (existsSync(join(agentDir, module, 'generations'))) {
-      // already migrated this module; still pin it if a gen_001 exists
-      if (existsSync(join(agentDir, module, 'generations', 'gen_001.json'))) pins[module] = 'gen_001';
+    // Idempotency / partial-re-run: the lockfile is the COMPLETION marker. If a
+    // gen_001.json already exists, this module is done — just pin it (don't
+    // re-copy). A bare generations/ dir with no lockfile is an incomplete prior
+    // run → fall through and (re)complete it; writeJson overwrites cleanly.
+    if (existsSync(join(agentDir, module, 'generations', 'gen_001.json'))) {
+      pins[module] = 'gen_001';
       continue;
     }
     const items = Array.isArray(sec.items) ? sec.items.map(({ id, hash }) => ({ id, hash })) : [];

@@ -160,6 +160,21 @@ test('fail-soft: a corrupt global lockfile leaves the old dir in place, never cr
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
+test('re-completes a partial run: a bare <module>/generations/ dir with no lockfile is redone', () => {
+  const { dir, home } = seedGlobalGenHome();
+  try {
+    // simulate a prior partial run: knowledge has a generations/ dir but NO lockfile
+    mkdirSync(join(home, 'knowledge', 'generations', 'snapshots', 'gen_001'), { recursive: true });
+    const r = migrateGenerations(home);
+    assert.equal(r.errors.length, 0);
+    // knowledge gen_001 lockfile now exists (completion), and is pinned
+    assert.ok(readModuleGeneration(home, 'knowledge', 'gen_001'), 'incomplete knowledge re-completed');
+    const cp = readCheckpoint(home, 'cp_001');
+    assert.equal(cp.pins.knowledge, 'gen_001');
+    assert.equal(existsSync(join(home, 'generations')), false, 'global dir removed');
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('no global generations/ → migrateGenerations is a clean no-op', () => {
   const dir = mkdtempSync(join(tmpdir(), 'zz-genmig-clean-'));
   const home = join(dir, '.zuzuu');

@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -205,6 +205,22 @@ test('actions module: dir-shaped snapshot + rollback round-trip', () => {
     mintModuleGeneration(agentDir, 'actions'); // gen_002
     rollbackModule(agentDir, 'actions', 'gen_001');
     assert.equal(readFileSync(join(slug, 'run.mjs'), 'utf8'), 'export default () => {};\n');
+  });
+});
+
+test('double rollback with the same displaced item never crashes and keeps both parked copies', () => {
+  freshHome((agentDir) => {
+    mintModuleGeneration(agentDir, 'knowledge'); // gen_001: alpha, beta
+    // add gamma, mint gen_002; rollback to gen_001 archives gamma
+    writeFileSync(join(agentDir, 'knowledge', 'items', 'gamma.md'), KITEM('gamma', 'G1.'));
+    mintModuleGeneration(agentDir, 'knowledge');
+    rollbackModule(agentDir, 'knowledge', 'gen_001');
+    // re-create gamma, mint gen_003, roll back AGAIN → second gamma must not clobber the parked one
+    writeFileSync(join(agentDir, 'knowledge', 'items', 'gamma.md'), KITEM('gamma', 'G2.'));
+    mintModuleGeneration(agentDir, 'knowledge');
+    assert.doesNotThrow(() => rollbackModule(agentDir, 'knowledge', 'gen_001'));
+    const parked = readdirSync(join(agentDir, 'knowledge', '_rolledback'));
+    assert.ok(parked.length >= 2, 'both displaced gamma copies are parked, none lost');
   });
 });
 

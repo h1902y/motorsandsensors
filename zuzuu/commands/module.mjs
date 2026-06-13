@@ -26,7 +26,7 @@ import { MODULES } from '../module/contract.mjs';
 import {
   moduleGenerations, readModuleGeneration, diffModuleGenerations,
 } from '../module/generation/read.mjs';
-import { rollbackModule } from '../module/generation/write.mjs';
+import { rollbackModule, mintModuleGeneration } from '../module/generation/write.mjs';
 
 /** Pure: one module's envelope items + parse errors (the --json document). */
 export function moduleItemsData(agentDir, module, manifest = null) {
@@ -167,7 +167,16 @@ function moduleGenerationCmd(agentDir, module, rest, args, log) {
     log(`✓ rolled back ${module} to ${id} — restored ${r.restored} item(s); active=${id}`);
     return;
   }
-  console.error(`usage: zuzuu module ${module} generation [show <id>|rollback <id>]`);
+  if (op === 'mint') {
+    // freeze this module's current items into its next generation (the ceremony
+    // does this automatically on review; this is the explicit/web surface).
+    const mintedFrom = args.from ? String(args.from).split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const lf = mintModuleGeneration(agentDir, module, { mintedFrom });
+    if (args.json) { log(JSON.stringify({ id: lf.id, module, mintedFrom: lf.mintedFrom, forkedFrom: lf.forkedFrom })); return; }
+    log(`✓ minted ${module} ${lf.id}${lf.forkedFrom ? ` (forkedFrom ${lf.forkedFrom})` : ''} — now active`);
+    return;
+  }
+  console.error(`usage: zuzuu module ${module} generation [show <id>|rollback <id>|mint]`);
   process.exitCode = 1;
 }
 
