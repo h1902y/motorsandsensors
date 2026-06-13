@@ -1,0 +1,11 @@
+{
+  "id": "gen_001",
+  "module": "instructions",
+  "agent": "agt_2f237aa8f3e5",
+  "mintedAt": "2026-06-12T10:47:36.447Z",
+  "forkedFrom": null,
+  "mintedFrom": [
+    "file-commands-hook-mjs-a5c28c"
+  ],
+  "items": []
+}
