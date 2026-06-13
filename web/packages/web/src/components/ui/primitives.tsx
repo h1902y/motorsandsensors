@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from "react";
 
 /** Tiny classname joiner. */
@@ -26,7 +27,7 @@ export function Bar({
 }
 
 // ── Button ────────────────────────────────────────────────────────────
-type ButtonVariant = "primary" | "ghost" | "subtle" | "danger";
+type ButtonVariant = "primary" | "ghost" | "subtle" | "danger" | "secondary";
 type ButtonSize = "sm" | "md";
 
 const BTN_BASE =
@@ -36,6 +37,7 @@ const BTN_VARIANT: Record<ButtonVariant, string> = {
   ghost: "text-ink-300 hover:bg-hover hover:text-ink-100",
   subtle: "border border-border text-ink-200 hover:border-border-strong hover:text-ink-100",
   danger: "text-danger hover:bg-[color-mix(in_oklab,var(--color-danger)_16%,transparent)]",
+  secondary: "border border-border text-ink-200 hover:bg-hover hover:text-ink-100",
 };
 const BTN_SIZE: Record<ButtonSize, string> = {
   sm: "h-6 px-2 text-meta",
@@ -140,5 +142,118 @@ export function Spinner({ className }: { className?: string }) {
       <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="2" strokeOpacity="0.25" />
       <path d="M14 8a6 6 0 00-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
+  );
+}
+
+// ── Receipt — a one-line tool/event record, expandable to detail ───────
+export function Receipt({
+  icon, label, meta, tone = "default", children,
+}: {
+  icon: string; label: ReactNode; meta?: ReactNode;
+  tone?: "default" | "ok" | "warn" | "bad";
+  children?: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const dot = tone === "ok" ? "text-success" : tone === "warn" ? "text-warn" : tone === "bad" ? "text-error" : "text-ink-400";
+  const headerContent = (
+    <>
+      <svg viewBox="0 0 16 16" className={cx("h-3.5 w-3.5 shrink-0", dot)} fill="none" stroke="currentColor" strokeWidth="1.4">
+        <path d={icon} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+      <span className="min-w-0 flex-1 truncate text-ui text-ink-100">{label}</span>
+      {meta && <span className="wc-mono shrink-0 text-meta text-ink-500">{meta}</span>}
+      <svg viewBox="0 0 16 16" className={cx("h-3 w-3 shrink-0 text-ink-500 transition-transform", open && "rotate-90")} fill="none" stroke="currentColor" strokeWidth="1.4">
+        <path d="M6 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </>
+  );
+  return (
+    <div className="rounded-[var(--radius-ui)]">
+      {children ? (
+        <button
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className="wc-focus flex w-full items-center gap-2 rounded-[var(--radius-ui)] px-2 py-1.5 text-left hover:bg-hover"
+        >
+          {headerContent}
+        </button>
+      ) : (
+        <div className="flex w-full items-center gap-2 px-2 py-1.5 hover:bg-hover">
+          <svg viewBox="0 0 16 16" className={cx("h-3.5 w-3.5 shrink-0", dot)} fill="none" stroke="currentColor" strokeWidth="1.4">
+            <path d={icon} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="min-w-0 flex-1 truncate text-ui text-ink-100">{label}</span>
+          {meta && <span className="wc-mono shrink-0 text-meta text-ink-500">{meta}</span>}
+        </div>
+      )}
+      {open && children && <div className="wc-receipt-expand px-3 pb-2 pl-9">{children}</div>}
+    </div>
+  );
+}
+
+// ── PropertyRow — label · value, for the detail rail ───────────────────
+export function PropertyRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-1.5">
+      <span className="shrink-0 text-meta text-ink-500">{label}</span>
+      <span className="min-w-0 truncate text-right text-ui text-ink-200">{children}</span>
+    </div>
+  );
+}
+
+// ── StatusPill / Count ─────────────────────────────────────────────────
+const PILL_TONE: Record<string, string> = {
+  ok: "text-success bg-[color-mix(in_oklab,var(--color-success)_14%,transparent)]",
+  warn: "text-warn bg-[color-mix(in_oklab,var(--color-warn)_14%,transparent)]",
+  bad: "text-error bg-[color-mix(in_oklab,var(--color-error)_14%,transparent)]",
+  info: "text-info bg-[color-mix(in_oklab,var(--color-info)_14%,transparent)]",
+  neutral: "text-ink-300 bg-hover",
+};
+export function StatusPill({ tone = "neutral", children }: { tone?: keyof typeof PILL_TONE; children: ReactNode }) {
+  return <span className={cx("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-meta font-medium", PILL_TONE[tone])}>{children}</span>;
+}
+export function Count({ children }: { children: ReactNode }) {
+  return <span className="inline-flex min-w-4 items-center justify-center rounded-full bg-hover px-1.5 text-meta text-ink-300">{children}</span>;
+}
+
+// ── HeroNumber — the one-large-numeral-per-card treatment ──────────────
+export function HeroNumber({ value, unit }: { value: ReactNode; unit?: string }) {
+  return (
+    <div className="flex items-baseline gap-1">
+      <span className="text-hero font-semibold tracking-tight text-ink-100 tabular-nums">{value}</span>
+      {unit && <span className="text-meta text-ink-500">{unit}</span>}
+    </div>
+  );
+}
+
+// ── ProgressBar ────────────────────────────────────────────────────────
+export function ProgressBar({ value, tone = "neutral" }: { value: number; tone?: "neutral" | "ok" | "warn" | "bad" }) {
+  const fill = tone === "ok" ? "bg-success" : tone === "warn" ? "bg-warn" : tone === "bad" ? "bg-error" : "bg-ink-500";
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-hover">
+      <div className={cx("h-full rounded-full transition-[width] duration-500", fill)} style={{ width: `${Math.max(0, Math.min(100, value * 100))}%` }} />
+    </div>
+  );
+}
+
+// ── Toast — quiet auto-dismissing confirmation ─────────────────────────
+export function Toast({ children }: { children: ReactNode }) {
+  return (
+    <div className="wc-toast-in fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-[var(--radius-ui)] border border-border bg-elevated px-3 py-2 text-ui text-ink-100 shadow-[var(--shadow-menu)]">
+      {children}
+    </div>
+  );
+}
+
+// ── CoachMark — anchored, dismissible, N of M ──────────────────────────
+export function CoachMark({ step, total, children, onDismiss }: { step: number; total: number; children: ReactNode; onDismiss: () => void }) {
+  return (
+    <div className="wc-pop-in max-w-xs rounded-[var(--radius-ui)] border border-border bg-elevated p-3 shadow-[var(--shadow-menu)]">
+      <div className="text-ui text-ink-100">{children}</div>
+      <div className="mt-2 flex items-center justify-between">
+        <span className="text-meta text-ink-500">{step} of {total}</span>
+        <Button size="sm" variant="ghost" onClick={onDismiss}>Got it</Button>
+      </div>
+    </div>
   );
 }

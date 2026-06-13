@@ -59,6 +59,8 @@
   --text-title--line-height: 1.3;
   --text-display: 1.3125rem; /* 21px — module detail hero, section heroes (sans) */
   --text-display--line-height: 1.2;
+  --text-hero: 2rem; /* 32px — single large numeral per card (HeroNumber) */
+  --text-hero--line-height: 1;
 
   /* ── per-module accent hues (OKLCH, desaturated-for-dark) ──────────
      One identity hue per module — used on the tile icon, a subtle left
