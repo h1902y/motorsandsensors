@@ -34,7 +34,7 @@ export const SessionComposer = forwardRef<HTMLDivElement>(function SessionCompos
       }}
     >
       <Bar border="t" surface="surface" className="!h-auto !min-h-[var(--height-bar)] flex-wrap !gap-1.5 py-1.5">
-        <span className="shrink-0 text-meta text-ink-500">Start a session with</span>
+        <span className="wc-sans shrink-0 text-meta text-ink-500">Start a session with</span>
         {rows.map((row) => {
           const isDefault = row.command === dflt?.command;
           return (
@@ -43,7 +43,7 @@ export const SessionComposer = forwardRef<HTMLDivElement>(function SessionCompos
               disabled={!row.detected}
               onClick={() => startHostRow(row.command)}
               className={cx(
-                "wc-focus flex shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] border px-2 py-0.5 text-meta transition-colors",
+                "wc-sans wc-focus flex shrink-0 items-center gap-1.5 rounded-[var(--radius-sm)] border px-2 py-0.5 text-meta font-medium transition-colors",
                 row.detected
                   ? "border-border text-ink-100 hover:border-accent-dim hover:bg-hover"
                   : "cursor-default border-border/60 text-ink-600",

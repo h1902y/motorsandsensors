@@ -27,6 +27,7 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
   const closeDrill = useRightPanel((s) => s.closeDrill);
   const [err, setErr] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [hintDismissed, setHintDismissed] = useState(readHintDismissed);
   // display = the manifest ui descriptor when the overview has it (the
   // shared cache), built-in MODULE_META as the fallback
@@ -53,8 +54,13 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
 
   // The actions module's pending list is its inbox — those go through act
   // approve/reject by slug; every other module through the proposal routes.
-  const approve = (p: ProposalSummary) =>
-    void run(p.id, () => (moduleKey === "actions" ? zuzuuApi.approveAction(p.id) : zuzuuApi.approveProposal(p.id, p.module)));
+  const approve = (p: ProposalSummary) => {
+    // play the dissolve before the refetch drops the row (kept brief so the
+    // list never feels laggy); reduced-motion collapses it to ~0ms via CSS
+    setApprovingId(p.id);
+    void run(p.id, () => (moduleKey === "actions" ? zuzuuApi.approveAction(p.id) : zuzuuApi.approveProposal(p.id, p.module)))
+      .finally(() => setApprovingId(null));
+  };
   const reject = async (p: ProposalSummary) => {
     const ok = await confirm({ title: "Reject proposal?", message: p.title, okLabel: "Reject", danger: true });
     if (!ok) return;
@@ -122,6 +128,7 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
                     data={p}
                     isAction={moduleKey === "actions"}
                     busy={busyId === p.id}
+                    approving={approvingId === p.id}
                     onApprove={() => approve(p)}
                     onReject={() => void reject(p)}
                   />

@@ -19,18 +19,21 @@ export function ProposalRow({
   onReject,
   isAction = false,
   busy = false,
+  approving = false,
 }: {
   data: ProposalSummary;
   onApprove?: () => void;
   onReject?: () => void;
   isAction?: boolean;
   busy?: boolean;
+  /** true while this proposal's approval is in flight — plays the dissolve */
+  approving?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const pill = confidencePill(data.confidence, data.score);
 
   return (
-    <div className="border-b border-border last:border-0">
+    <div className={`border-b border-border last:border-0 ${approving ? "wc-approve-out" : ""}`}>
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex w-full items-center gap-2 py-1.5 text-left text-ui"
