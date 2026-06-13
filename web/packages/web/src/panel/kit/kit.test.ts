@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import type { ModuleOverviewEntry } from "@zuzuu-web/protocol";
 import {
   ALL_ENVELOPE_KINDS, DEFAULT_KIND_ICON, MODULE_META, MODULE_ORDER,
-  KIND_ICONS, UI_ICON_PATHS, cardStatus, moduleDisplay, kindIcon, latestUpdate, relativeTime,
+  KIND_ICONS, UI_ICON_PATHS, cardStatus, moduleDisplay, moduleHue, kindIcon, latestUpdate, relativeTime,
 } from "./kit";
 
 describe("moduleDisplay (manifest ui descriptors first, MODULE_META fallback)", () => {
@@ -57,6 +57,21 @@ describe("moduleDisplay (manifest ui descriptors first, MODULE_META fallback)", 
     for (const name of ["book", "clock", "play", "compass", "shield"]) {
       expect(UI_ICON_PATHS[name], `missing ui icon '${name}'`).toBeTruthy();
     }
+  });
+});
+
+describe("moduleHue (per-module identity color)", () => {
+  it("resolves each built-in module to its own CSS hue var", () => {
+    for (const key of MODULE_ORDER) {
+      expect(moduleHue(key)).toBe(`var(--color-module-${key})`);
+    }
+  });
+  it("gives the five modules five distinct hues", () => {
+    const hues = new Set(MODULE_ORDER.map(moduleHue));
+    expect(hues.size).toBe(MODULE_ORDER.length);
+  });
+  it("falls back to the cyan accent for unknown (declarative) modules", () => {
+    expect(moduleHue("todo")).toBe("var(--color-accent)");
   });
 });
 

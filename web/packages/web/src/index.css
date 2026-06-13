@@ -1,21 +1,32 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 @import "@fontsource-variable/jetbrains-mono";
+@import "@fontsource-variable/geist";
 @import "@xterm/xterm/css/xterm.css";
 
 @theme {
+  /* ── type families ─────────────────────────────────────────────────
+     Duotype system: a humanist sans (Geist) carries headings, prose,
+     module names and section labels; JetBrains Mono stays for everything
+     that is *data* — ids, paths, counts, scores, code, the terminal.
+     This contrast is the single biggest "less terminal" lever. */
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* ── ink ramp (tuned for crisper contrast + elevation) ─────────────── */
-  --color-ink-950: #0a0d12; /* app background (deepest) */
-  --color-ink-900: #0e121a; /* panel surface */
-  --color-ink-850: #1c2434; /* elevated: menus, dialogs, raised hover */
-  --color-ink-800: #232c3d; /* hover */
-  --color-ink-700: #2a3343; /* hairline border */
-  --color-ink-600: #3a465c; /* strong border / faint text */
-  --color-ink-500: #5a6678; /* muted text */
-  --color-ink-300: #97a3b6; /* secondary text */
-  --color-ink-100: #dde4ee; /* primary text */
+  /* ── ink ramp — warmed a few degrees off the old cool blue-grey ─────
+     Old ramp sat near hue 220 (cool, clinical). These are nudged toward
+     a warm near-black (a touch of violet/taupe) so surfaces feel less
+     like raw DevTools while staying genuinely dark. Text rungs hold
+     WCAG-AA contrast on the app background. */
+  --color-ink-950: #0b0c10; /* app background (deepest, warm near-black) */
+  --color-ink-900: #111219; /* panel surface */
+  --color-ink-850: #1e2030; /* elevated: menus, dialogs, raised hover */
+  --color-ink-800: #262838; /* hover */
+  --color-ink-700: #2d2f3e; /* hairline border */
+  --color-ink-600: #3f4155; /* strong border / faint text */
+  --color-ink-500: #62657a; /* muted text */
+  --color-ink-300: #9ba2b4; /* secondary text */
+  --color-ink-100: #e2e5ee; /* primary text */
   --color-accent: #5be6c4;
   --color-accent-dim: #2f9a80;
   --color-danger: #f0726a;
@@ -31,17 +42,41 @@
   --color-muted: var(--color-ink-500);
   --color-subtle: var(--color-ink-300);
 
-  /* ── type scale (three sizes only) ─────────────────────────────────── */
+  /* ── type scale ────────────────────────────────────────────────────
+     Data sizes (meta/ui/body) are unchanged — the terminal & item rows
+     keep their density. The new display/title/label rungs give headings
+     and section eyebrows real hierarchy (paired with --font-sans). */
+  --text-label: 0.65625rem; /* 10.5px — tracked uppercase section eyebrows (sans) */
+  --text-label--line-height: 1.4;
   --text-meta: 0.6875rem; /* 11px — labels, meta, badges */
   --text-meta--line-height: 1.45;
   --text-ui: 0.75rem; /* 12px — default UI text */
   --text-ui--line-height: 1.4;
   --text-body: 0.8125rem; /* 13px — editor/terminal/body */
   --text-body--line-height: 1.5;
+  --text-title: 0.9375rem; /* 15px — module tile names, dialog/header titles (sans) */
+  --text-title--line-height: 1.3;
+  --text-display: 1.3125rem; /* 21px — module detail hero, section heroes (sans) */
+  --text-display--line-height: 1.2;
 
-  /* ── status accents (faculty cards: ok / pending / empty) ──────────── */
-  --color-status-ok: var(--color-accent);
-  --color-status-pending: var(--color-warn);
+  /* ── per-module accent hues (OKLCH, desaturated-for-dark) ──────────
+     One identity hue per module — used on the tile icon, a subtle left
+     accent / hover glow, and the module's section header in its detail
+     view. Tasteful, not neon: chroma is held low so they read as
+     branding, not alerts. Components tint these via color-mix. */
+  --color-module-knowledge: oklch(0.72 0.11 245); /* blue */
+  --color-module-memory: oklch(0.71 0.12 300); /* violet */
+  --color-module-actions: oklch(0.74 0.12 155); /* green */
+  --color-module-instructions: oklch(0.78 0.11 75); /* amber */
+  --color-module-guardrails: oklch(0.7 0.13 20); /* rose */
+
+  /* ── semantic status (distinct from the per-module hues) ────────────
+     Proper success/pending/danger so confidence pills & status touches
+     stop borrowing the single cyan accent. */
+  --color-success: oklch(0.74 0.13 155); /* green — ok / high confidence */
+  --color-pending: oklch(0.78 0.12 75); /* amber — awaiting review */
+  --color-status-ok: var(--color-success);
+  --color-status-pending: var(--color-pending);
   --color-status-empty: var(--color-ink-600);
 
   /* ── card paddings (panel kit) ─────────────────────────────────────── */
@@ -73,6 +108,26 @@ body {
   font-size: var(--text-body);
 }
 
+/* ── duotype helpers ─────────────────────────────────────────────────
+   The app default is mono (terminal/data DNA). Headings, module names,
+   teaching prose and labels opt INTO the humanist sans for warmth and a
+   real type hierarchy. */
+.wc-sans {
+  font-family: var(--font-sans);
+  font-feature-settings: "cv01", "ss03";
+  letter-spacing: -0.005em;
+}
+/* Section eyebrow: small, tracked, uppercase, sans — the section rhythm. */
+.wc-eyebrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  font-weight: 560;
+  color: var(--color-ink-500);
+}
+
 /* ── one canonical bar: fixed height, centered, standard padding ─────── */
 .wc-bar {
   display: flex;
@@ -84,7 +139,9 @@ body {
   gap: 8px;
 }
 
-/* ── faculty drill-in: slides over the dashboard ────────────────────── */
+/* ── motion system (CSS-first; all ≤200ms, all reduced-motion-aware) ──
+   Drill-in slide, dashboard panel fade/rise, card-stagger entrance,
+   count-change pulse, proposal approve→dissolve, confidence-pill rise. */
 @keyframes wc-slide-in {
   from {
     transform: translateX(16px);
@@ -97,6 +154,65 @@ body {
 }
 .wc-slide-in {
   animation: wc-slide-in 160ms ease-out;
+}
+@keyframes wc-rise-in {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.wc-rise-in {
+  animation: wc-rise-in 180ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+@keyframes wc-pop-in {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.wc-pop-in {
+  animation: wc-pop-in 150ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+@keyframes wc-pulse-once {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.wc-pulse-once {
+  animation: wc-pulse-once 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes wc-approve-out {
+  to {
+    transform: translateX(14px);
+    opacity: 0;
+  }
+}
+.wc-approve-out {
+  animation: wc-approve-out 200ms ease-in forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wc-slide-in,
+  .wc-rise-in,
+  .wc-pop-in,
+  .wc-pulse-once,
+  .wc-approve-out {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 /* ── one focus-ring everywhere ──────────────────────────────────────── */
@@ -132,6 +248,7 @@ body {
 
 /* ── preview pane: prose + GFM tables tuned to the ink/accent palette ── */
 .prose {
+  font-family: var(--font-sans);
   --tw-prose-invert-body: var(--color-ink-100);
   --tw-prose-invert-headings: #fff;
   --tw-prose-invert-links: var(--color-accent);
