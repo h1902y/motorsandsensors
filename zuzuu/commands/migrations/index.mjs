@@ -15,13 +15,26 @@ import { migrateProposals } from './proposals.mjs';
 import { migrateHome, reinjectHostBlocks } from './home.mjs';
 import { migrateItems, needsItemsMigration } from './items.mjs';
 import { migrateModules, needsModulesMigration } from './modules.mjs';
+import { migrateGenerations, needsGenerationsMigration } from './generations.mjs';
 
 export { migrateProposals } from './proposals.mjs';
 export { migrateHome } from './home.mjs';
 export { migrateItems, needsItemsMigration } from './items.mjs';
 export { migrateModules, needsModulesMigration } from './modules.mjs';
+export { migrateGenerations, needsGenerationsMigration } from './generations.mjs';
 
 export function migrate(args = {}) {
+  if (args.generations) {
+    const agentDir = paths().dir;
+    const r = migrateGenerations(agentDir);
+    if (!r.migrated && !r.errors.length) { console.log('migrate --generations: nothing to migrate (generations are already per-module)'); return; }
+    const mods = r.modules.map((m) => `${m.module}→${m.generation} (${m.items} item${m.items === 1 ? '' : 's'})`).join(' · ');
+    console.log(`migrate --generations: global → per-module — ${r.modules.length} module(s): ${mods || '(none)'}`);
+    if (r.checkpoint) console.log(`  checkpoint ${r.checkpoint} pins every migrated module`);
+    if (r.removedGlobal) console.log('  removed the old global .zuzuu/generations/');
+    for (const e of r.errors) console.log(`  ✗ ${e.file}: ${e.error} — left in place; old generations/ kept, rerun \`zuzuu migrate --generations\``);
+    return;
+  }
   if (args.modules) {
     const agentDir = paths().dir;
     const r = migrateModules(agentDir);

@@ -72,7 +72,7 @@ export function computeDigest(agentDir, { knowledgeLimit = 5, budget = 1500 } = 
   sections.proposals = proposals;
   if (proposals.pending > 0) {
     lines.push('## Proposals');
-    lines.push(`${proposals.pending} proposal(s) await your approval — run \`zuzuu review\`; approving mints a generation (your checkpoint).`);
+    lines.push(`${proposals.pending} proposal(s) await your approval — run \`zuzuu review\`; approving mints a per-module generation (compose them with \`zuzuu checkpoint mint\`).`);
     lines.push('');
   }
 

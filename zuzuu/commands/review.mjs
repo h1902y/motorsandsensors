@@ -13,27 +13,42 @@ import { getProposal, proposalsDir } from '../knowledge/proposals.mjs';
 import * as gate from '../module/gate.mjs';
 import { pendingByModule, buildSessionMtimes } from '../module/pending.mjs';
 import { knowledgeCard } from '../module/render.mjs';
-import { activeGeneration } from '../module/generation/read.mjs';
-import { mintGeneration } from '../module/generation/write.mjs';
+import { mintModuleGeneration } from '../module/generation/write.mjs';
 import { getScorer } from '../eval/score.mjs';
 import { evalLine } from './eval.mjs';
 
 /**
- * Pure: the graduation ceremony block shown when a generation is minted.
- * @param {string} genId
- * @param {string[]} approvedIds
- * @param {Object<string,number>} byModule  module → approval count
+ * Pure: mint a per-module generation for each module with ≥1 approved proposal.
+ * The old single global mint is gone — generations are per-module atoms now.
+ * @param {string} agentDir
+ * @param {Object<string,string[]>} approvedByModule  module → approved proposal ids
+ * @returns {Array<{module:string, generation:string, count:number}>}  one per minted module
+ */
+export function mintApprovedModules(agentDir, approvedByModule) {
+  const minted = [];
+  for (const [module, ids] of Object.entries(approvedByModule)) {
+    if (!ids.length) continue;
+    const lf = mintModuleGeneration(agentDir, module, { mintedFrom: ids });
+    minted.push({ module, generation: lf.id, count: ids.length });
+  }
+  return minted;
+}
+
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/**
+ * Pure: the graduation ceremony block shown after per-module generations mint.
+ * "Knowledge → gen_006 (2) · Guardrails → gen_003 (1)".
+ * @param {Array<{module:string, generation:string, count:number}>} minted
  * @returns {string}
  */
-export function ceremonyBlock(genId, approvedIds, byModule) {
-  const n = approvedIds.length;
-  const breakdown = Object.entries(byModule)
-    .filter(([, c]) => c > 0)
-    .map(([f, c]) => `${f} +${c}`)
-    .join(' · ');
+export function ceremonyBlock(minted) {
+  if (!minted.length) return '';
+  const line = minted.map((m) => `${cap(m.module)} → ${m.generation} (${m.count})`).join(' · ');
+  const first = minted[0];
   return [
-    `\n✓ generation ${genId} minted from ${n} approval(s)${breakdown ? ` — ${breakdown}` : ''}.`,
-    `  inspect: zuzuu generation show ${genId}   ·   roll back: zuzuu generation rollback ${genId}`,
+    `\n✓ minted: ${line}`,
+    `  inspect: zuzuu module ${first.module} generation show ${first.generation}   ·   checkpoint: zuzuu checkpoint mint`,
   ].join('\n');
 }
 
@@ -78,7 +93,7 @@ export async function review() {
   };
 
   const approvedIds = [];
-  const approvedByModule = {}; // module → count, for the graduation ceremony
+  const approvedByModule = {}; // module → approved proposal ids (per-module mint)
   let approved = 0, rejected = 0, skipped = 0;
   let totalLeft = groups.reduce((n, g) => n + g.proposals.length, 0);
   const sessionMtimes = buildSessionMtimes();
@@ -112,7 +127,7 @@ export async function review() {
           const r = gate.approve(agentDir, adapter.name, p.id);
           if (isActions) console.log(r.ok ? '  ✓ activated' : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`);
           else { console.log(r.ok ? `  ✓ ${r.action}` : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`); for (const w of r.warnings ?? []) console.log(`  ⚠ ${w}`); }
-          if (r.ok) { approvedIds.push(p.id); approvedByModule[adapter.name] = (approvedByModule[adapter.name] ?? 0) + 1; }
+          if (r.ok) { approvedIds.push(p.id); (approvedByModule[adapter.name] ??= []).push(p.id); }
           approved++; totalLeft--; acted = true;
         } else if (a === 'n') {
           const reason = isActions ? '' : (await ask('  reason (optional) > ')).trim();
@@ -135,8 +150,7 @@ export async function review() {
           rl.close();
           console.log(`\nreview: ${approved} approved · ${rejected} rejected · ${skipped} skipped · ${totalLeft} left`);
           if (approvedIds.length > 0) {
-            const gen = mintGeneration(agentDir, { forkedFrom: activeGeneration(agentDir), mintedFrom: approvedIds });
-            console.log(ceremonyBlock(gen.id, approvedIds, approvedByModule));
+            console.log(ceremonyBlock(mintApprovedModules(agentDir, approvedByModule)));
           }
           return;
         }
@@ -146,7 +160,6 @@ export async function review() {
   rl.close();
   console.log(`\nreview complete: ${approved} approved · ${rejected} rejected · ${skipped} skipped`);
   if (approvedIds.length > 0) {
-    const gen = mintGeneration(agentDir, { forkedFrom: activeGeneration(agentDir), mintedFrom: approvedIds });
-    console.log(ceremonyBlock(gen.id, approvedIds, approvedByModule));
+    console.log(ceremonyBlock(mintApprovedModules(agentDir, approvedByModule)));
   }
 }

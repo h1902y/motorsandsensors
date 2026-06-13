@@ -12,68 +12,53 @@ import { loadRegistry } from '../knowledge/registry.mjs';
 import { allItems } from '../knowledge/items.mjs';
 import { listProposals } from '../knowledge/proposals.mjs';
 import { detectEmbedder } from '../knowledge/embed.mjs';
-import { activeGeneration, readGeneration, snapshotModules } from '../module/generation/read.mjs';
+import {
+  activeModuleGeneration, readModuleGeneration, snapshotModuleItems,
+} from '../module/generation/read.mjs';
+import { MODULES } from '../module/contract.mjs';
 import { sessionStatus } from '../sessions/session-git.mjs';
 import { leftoverLine } from './session.mjs';
 
 /**
- * Pure drift checker (WS3-T3). Compares the current module hashes against the
- * active generation's pinned `modules` manifest. Fail-open: any error returns
- * { error } rather than throwing.
+ * Pure PER-MODULE drift checker (W2.5 Phase 2). For each module with an active
+ * generation, compares the current item hashes against that module's pinned
+ * lockfile items. Module independence: each module is checked against its own
+ * active generation. Fail-open: any error returns { error }, never throws.
  *
  * Returns:
- *   { noneActive: true }            — no generation pinned yet
- *   { generationId, drifted: [] }   — active gen, drifted items (may be empty)
+ *   { noneActive: true }            — no module has a generation pinned yet
+ *   { drifted: [] }                 — drifted items across modules (may be empty)
  *   { error }                       — unexpected failure (fail-open)
  *
- * Each drifted entry: { id, module, reason: 'hash_changed'|'added'|'removed',
- *                        pinned?: string, current?: string }
+ * Each drifted entry: { id, module, generation, reason:
+ *   'hash_changed'|'added'|'removed', pinned?: string, current?: string }
  */
 export function detectDrift(agentDir) {
   try {
-    const genId = activeGeneration(agentDir);
-    if (!genId) return { noneActive: true };
-
-    const lockfile = readGeneration(agentDir, genId);
-    if (!lockfile) return { noneActive: true };
-
-    const current = snapshotModules(agentDir);
-    const pinned = lockfile.modules || {};
     const drifted = [];
+    let anyActive = false;
 
-    // Compare per-module item arrays — all five are envelope-item lists (W24).
-    for (const module of ['knowledge', 'actions', 'memory', 'guardrails', 'instructions']) {
-      const pinnedItems = (pinned[module]?.items ?? []);
-      const currentItems = (current[module]?.items ?? []);
+    for (const module of MODULES) {
+      const genId = activeModuleGeneration(agentDir, module);
+      if (!genId) continue;
+      const lockfile = readModuleGeneration(agentDir, module, genId);
+      if (!lockfile) continue;
+      anyActive = true;
 
-      const pinnedMap = new Map(pinnedItems.map((i) => [i.id, i.hash]));
-      const currentMap = new Map(currentItems.map((i) => [i.id, i.hash]));
+      const pinnedMap = new Map((lockfile.items ?? []).map((i) => [i.id, i.hash]));
+      const currentMap = new Map(snapshotModuleItems(agentDir, module).map((i) => [i.id, i.hash]));
 
-      // Check for changed or removed items
       for (const [id, hash] of pinnedMap) {
-        if (!currentMap.has(id)) {
-          drifted.push({ id, module, reason: 'removed', pinned: hash });
-        } else if (currentMap.get(id) !== hash) {
-          drifted.push({ id, module, reason: 'hash_changed', pinned: hash, current: currentMap.get(id) });
-        }
+        if (!currentMap.has(id)) drifted.push({ id, module, generation: genId, reason: 'removed', pinned: hash });
+        else if (currentMap.get(id) !== hash) drifted.push({ id, module, generation: genId, reason: 'hash_changed', pinned: hash, current: currentMap.get(id) });
       }
-
-      // Check for added items
       for (const [id, hash] of currentMap) {
-        if (!pinnedMap.has(id)) {
-          drifted.push({ id, module, reason: 'added', current: hash });
-        }
+        if (!pinnedMap.has(id)) drifted.push({ id, module, generation: genId, reason: 'added', current: hash });
       }
     }
 
-    // Compare knowledge.registryHash
-    const pinnedReg = pinned.knowledge?.registryHash ?? null;
-    const currentReg = current.knowledge?.registryHash ?? null;
-    if (pinnedReg !== currentReg) {
-      drifted.push({ id: 'registryHash', module: 'knowledge', reason: 'hash_changed', pinned: pinnedReg, current: currentReg });
-    }
-
-    return { generationId: genId, drifted };
+    if (!anyActive) return { noneActive: true };
+    return { drifted };
   } catch (err) {
     return { error: String(err) };
   }
@@ -188,20 +173,20 @@ export async function doctor() {
   if (hosts.length) ok(`hosts detected: ${hosts.map((h) => h.name).join(', ')}`);
   else warn('no supported agent data found — use Claude Code or Gemini CLI, then `zuzuu capture`');
 
-  // generation drift check (WS3-T3)
+  // per-module generation drift check (W2.5 Phase 2)
   try {
     const { dir: agentDir } = paths();
     const drift = detectDrift(agentDir);
     if (drift.noneActive) {
-      info('generation: no generation pinned yet — run `zuzuu generation mint`');
+      info('generations: none pinned yet — approving in `zuzuu review` mints per-module generations');
     } else if (drift.error) {
       warn(`generation drift check failed: ${drift.error}`);
     } else if (drift.drifted.length === 0) {
-      ok(`generation ${drift.generationId} — no module drift`);
+      ok('generations: no module drift (every active generation matches its module)');
     } else {
-      warn(`generation ${drift.generationId} — ${drift.drifted.length} drifted item(s):`);
+      warn(`generation drift — ${drift.drifted.length} drifted item(s):`);
       for (const d of drift.drifted) {
-        info(`  drift: ${d.module}/${d.id} (${d.reason})`);
+        info(`  drift: ${d.module}/${d.id} vs ${d.generation} (${d.reason})`);
       }
     }
   } catch {

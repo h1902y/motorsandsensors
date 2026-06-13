@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { mintGeneration } from '../../zuzuu/module/generation/write.mjs';
+import { mintModuleGeneration } from '../../zuzuu/module/generation/write.mjs';
 import { detectDrift } from '../../zuzuu/commands/doctor.mjs';
 
 function withMns(fn) {
@@ -45,7 +45,7 @@ test('detectDrift: no active generation → noneActive', () => {
 test('detectDrift: active generation with no edits → empty drifted array', () => {
   withMns(({ agentDir }) => {
     seedKnowledge(agentDir, { 'fact-a.md': 'content of fact A', 'fact-b.md': 'content of fact B' });
-    mintGeneration(agentDir);
+    mintModuleGeneration(agentDir, 'knowledge');
     const result = detectDrift(agentDir);
     assert.equal(result.noneActive, undefined, 'should not be noneActive');
     assert.ok(Array.isArray(result.drifted), 'drifted must be an array');
@@ -56,7 +56,7 @@ test('detectDrift: active generation with no edits → empty drifted array', () 
 test('detectDrift: mutated knowledge item appears in drifted', () => {
   withMns(({ agentDir }) => {
     seedKnowledge(agentDir, { 'fact-a.md': 'original content', 'fact-b.md': 'stable content' });
-    mintGeneration(agentDir);
+    mintModuleGeneration(agentDir, 'knowledge');
     // Mutate one item after minting
     writeFileSync(join(agentDir, 'knowledge', 'items', 'fact-a.md'), 'CHANGED content');
     const result = detectDrift(agentDir);
@@ -75,7 +75,7 @@ test('detectDrift: mutated knowledge item appears in drifted', () => {
 test('detectDrift: new item added after mint appears in drifted', () => {
   withMns(({ agentDir }) => {
     seedKnowledge(agentDir, { 'fact-a.md': 'content A' });
-    mintGeneration(agentDir);
+    mintModuleGeneration(agentDir, 'knowledge');
     // Add a new item after minting
     writeFileSync(join(agentDir, 'knowledge', 'items', 'fact-new.md'), 'brand new');
     const result = detectDrift(agentDir);
@@ -89,7 +89,7 @@ test('detectDrift: new item added after mint appears in drifted', () => {
 test('detectDrift: item removed after mint appears in drifted', () => {
   withMns(({ agentDir }) => {
     seedKnowledge(agentDir, { 'fact-a.md': 'content A', 'fact-b.md': 'content B' });
-    mintGeneration(agentDir);
+    mintModuleGeneration(agentDir, 'knowledge');
     // Remove an item that was pinned
     rmSync(join(agentDir, 'knowledge', 'items', 'fact-b.md'));
     const result = detectDrift(agentDir);

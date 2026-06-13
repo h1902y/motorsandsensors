@@ -51,7 +51,7 @@ export function listModuleItems(agentDir, module, opts = {}) {
     const base = join(agentDir, 'actions');
     if (!existsSync(base)) return { items, errors };
     for (const name of readdirSync(base).sort()) {
-      if (name === 'inbox' || name === 'proposals' || name === '_rolledback') continue;
+      if (name === 'inbox' || name === 'proposals' || name === '_rolledback' || name === 'generations') continue;
       const p = join(base, name, 'ACTION.md');
       let isDir = false;
       try { isDir = statSync(join(base, name)).isDirectory(); } catch { /* skip */ }
