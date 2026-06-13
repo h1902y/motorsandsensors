@@ -66,7 +66,7 @@ export function RightPanel({
   return (
     <div className="flex h-full min-w-0 flex-col bg-surface">
       <Bar border="b">
-        <span className="min-w-0 truncate text-meta uppercase tracking-wide text-ink-500">
+        <span className="wc-eyebrow min-w-0 truncate">
           {title}
         </span>
         {hasEditor && (

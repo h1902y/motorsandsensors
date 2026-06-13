@@ -52,7 +52,7 @@ export function Sidebar() {
   return (
     <div className="flex h-full flex-col">
       <Bar border="b" className="!gap-0">
-        <span className="px-1 text-meta uppercase tracking-wider text-ink-500">Files</span>
+        <span className="wc-eyebrow px-1">Files</span>
         <span className="ml-auto flex items-center gap-0.5">
           <ActionMenu items={newMenu} title="New file or folder" iconPath="M8 3v10M3 8h10" />
           <IconButton
