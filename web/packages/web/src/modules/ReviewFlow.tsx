@@ -7,6 +7,7 @@ import {
   buildQueue, currentItem, initReview, isDone, reduceReview,
   type ReviewEvent, type ReviewItem, type ReviewState,
 } from "./review-queue";
+import { ProposalDetail } from "../panel/ProposalDetail";
 
 /** The review ceremony: eval-ranked proposals then pending actions, one card at
  *  a time — approve / reject / skip — ending in a generation mint. */
@@ -124,8 +125,10 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
   const item = state ? currentItem(state) : null;
 
   return (
-    <Overlay onClose={requestClose}>
-      <Dialog width="lg">
+    <Overlay onClose={requestClose} className="p-4">
+      {/* width: min(640px, 92vw) — readable line length, never clipped by the
+          viewport on small screens. The body scrolls if a card runs tall. */}
+      <Dialog className="!max-w-none" style={{ width: "min(640px, 92vw)", maxHeight: "88vh" }}>
         <DialogHeader
           title={
             state && !finished
@@ -134,7 +137,7 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
           }
           onClose={requestClose}
         />
-        <div className="flex flex-col gap-3 p-4">
+        <div className="flex max-h-[calc(88vh-3rem)] flex-col gap-3 overflow-y-auto p-4">
           {state?.cliAbsent && (
             <div className="rounded-[var(--radius-sm)] border border-warn/40 bg-[color-mix(in_oklab,var(--color-warn)_10%,transparent)] px-3 py-2 text-ui text-warn">
               zuzuu CLI required — <code>npm i -g @zuzuucodes/cli</code>
@@ -151,7 +154,27 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
 
           {state !== null && !finished && item && (
             <>
-              <ItemCard item={item} />
+              <div className="rounded-ui border border-border bg-surface p-3">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="rounded-[var(--radius-sm)] bg-hover px-1.5 py-0.5 text-meta text-accent-dim">{item.module}</span>
+                  {item.kind === "action" && (
+                    <span className="rounded-[var(--radius-sm)] border border-border px-1.5 py-0.5 text-meta text-ink-400">action inbox</span>
+                  )}
+                </div>
+                <ProposalDetail
+                  data={{
+                    id: item.id,
+                    module: item.module,
+                    title: item.title,
+                    score: item.score,
+                    confidence: item.confidence,
+                    rationale: item.rationale,
+                    signals: item.signals,
+                    evidence: item.evidence,
+                    isAction: item.kind === "action",
+                  }}
+                />
+              </div>
               {state.error && (
                 <div className="break-all font-mono text-meta text-danger">{state.error}</div>
               )}
@@ -194,27 +217,6 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ItemCard({ item }: { item: ReviewItem }) {
-  return (
-    <div className="rounded-ui border border-border bg-surface p-3">
-      <div className="mb-2 flex items-center gap-2">
-        <span className="rounded-[var(--radius-sm)] bg-hover px-1.5 py-0.5 text-meta text-accent-dim">{item.module}</span>
-        {item.kind === "action" && (
-          <span className="rounded-[var(--radius-sm)] border border-border px-1.5 py-0.5 text-meta text-ink-400">action inbox</span>
-        )}
-        {item.score !== null && (
-          <span className="ml-auto text-meta text-ink-400">
-            score {item.score}{item.confidence ? ` · ${item.confidence}` : ""}
-          </span>
-        )}
-      </div>
-      <div className="text-ui text-ink-100">{item.title}</div>
-      <div className="mt-1 font-mono text-meta text-ink-600">{item.id}</div>
-      {item.rationale && <div className="mt-2 text-meta text-ink-400">{item.rationale}</div>}
-    </div>
-  );
-}
-
 function EndState({
   approvedCount, mint, onRetry, onDone,
 }: {
@@ -234,15 +236,19 @@ function EndState({
           {mint.minted.length === 0
             ? `${approvedCount} approval${approvedCount === 1 ? "" : "s"} applied`
             : (
-              <>
-                minted{" "}
-                {mint.minted.map((m, i) => (
-                  <span key={m.module}>
-                    {i > 0 ? " · " : ""}
-                    <span className="capitalize">{m.module}</span> <span className="text-accent">{m.id}</span>
-                  </span>
-                ))}
-              </>
+              <div className="flex flex-col gap-1">
+                <span className="text-meta text-ink-500">generations advanced</span>
+                <span>
+                  {mint.minted.map((m, i) => (
+                    <span key={m.module}>
+                      {i > 0 ? <span className="text-ink-600"> · </span> : null}
+                      <span className="capitalize text-ink-200">{m.module}</span>
+                      <span className="text-ink-600"> → </span>
+                      <span className="font-mono text-accent">{m.id}</span>
+                    </span>
+                  ))}
+                </span>
+              </div>
             )}
         </div>
       )}

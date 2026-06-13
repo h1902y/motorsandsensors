@@ -26,6 +26,26 @@ export function evalLine({ score, confidence, rationale }) {
 }
 
 /**
+ * Distil the raw evidence a proposal carries into the shape the UI renders to
+ * plain language. Pure; never invents counts — a field the proposal lacks stays
+ * undefined (inbox-sourced proposals carry only `erVerdict`; trace-mined ones
+ * carry occurrences/sessions/failures).
+ *
+ * @param {object} proposal  A unified proposal record.
+ * @returns {{ occurrences?: number, sessions?: number, failures?: number, erVerdict?: string }}
+ */
+export function evalEvidence(proposal) {
+  const ev = proposal?.evidence ?? {};
+  const out = {};
+  if (typeof ev.occurrences === 'number') out.occurrences = ev.occurrences;
+  if (typeof ev.sessions === 'number') out.sessions = ev.sessions;
+  if (typeof ev.failures === 'number') out.failures = ev.failures;
+  const verdict = proposal?.analysis?.er?.verdict;
+  if (typeof verdict === 'string') out.erVerdict = verdict;
+  return out;
+}
+
+/**
  * Pure: gather + rank all pending proposals, returning structured data for JSON output.
  * The zuzuu-web /eval source.
  * Touches FS via buildSessionMtimes (fail-open) and collectProposals.
@@ -33,7 +53,11 @@ export function evalLine({ score, confidence, rationale }) {
  * @param {string} agentDir   Resolved .zuzuu/ path.
  * @param {object} [opts]
  * @param {string} [opts.module]  Filter to a single module name.
- * @returns {{ ranked: Array<{id,module,title,score,confidence,rationale}> }}
+ * @returns {{ ranked: Array<{id,module,title,score,confidence,rationale,signals,evidence}> }}
+ *   `signals` = the 5 normalized 0-1 components behind the score;
+ *   `evidence` = the raw counts the UI renders into plain language
+ *   ({ occurrences, sessions, failures, erVerdict }). Both are best-effort:
+ *   inbox-sourced proposals may carry only erVerdict.
  */
 export function evalData(agentDir, { module: onlyModule = null } = {}) {
   const adapters = registry.all();
@@ -56,13 +80,27 @@ export function evalData(agentDir, { module: onlyModule = null } = {}) {
   const rankResults = rank(rawProposals, scorer, { now, sessionMtimes });
   const moduleByProposalId = new Map(allEntries.map((e) => [e.proposal.id, e.module]));
 
-  const ranked = rankResults.map(({ proposal, score, confidence, rationale }) => {
+  const ranked = rankResults.map(({ proposal, score, confidence, rationale, signals }) => {
     const fac = moduleByProposalId.get(proposal.id) ?? '?';
     const title = proposal.title
       ?? proposal.candidate?.body?.slice(0, 80)
       ?? proposal.payload?.body?.slice(0, 80)
       ?? proposal.id;
-    return { id: proposal.id, module: fac, title, score, confidence, rationale };
+    return {
+      id: proposal.id,
+      module: fac,
+      title,
+      score,
+      confidence,
+      rationale,
+      // The 5 normalized 0-1 components behind the score (occurrence,
+      // corroboration, recency, failureReduction, erNovelty).
+      signals,
+      // Raw evidence the UI translates to plain language. Occurrences/sessions/
+      // failures come from trace-mined proposals; erVerdict from the entity-
+      // resolution analysis. Absent fields stay undefined (never invented).
+      evidence: evalEvidence(proposal),
+    };
   });
 
   return { ranked };

@@ -53,6 +53,13 @@ describe("createZuzuuApi file routes", () => {
     expect(body.items[0]).toMatchObject({ id: "k1", module: "knowledge", kind: "fact", title: "fact one", status: "active" });
     expect(body.items[0].payload).toBeUndefined(); // detail degrades, counts survive
     expect(body.proposals[0].title).toMatch(/node:sqlite/);
+    // proposals enrich from disk: kind, payload preview, persisted score + evidence
+    expect(body.proposals[0]).toMatchObject({
+      id: "p1", module: "knowledge", kind: "fact",
+      preview: "use node:sqlite",
+      score: 0.775, confidence: "high", rationale: "recurring + cross-session",
+      evidence: { occurrences: 12, sessions: 3, failures: 0, erVerdict: "new" },
+    });
     expect((await app.request("/module/bogus")).status).toBe(404);
   });
   it("GET /module/:key passes the CLI's envelopes through whole (payload + body)", async () => {

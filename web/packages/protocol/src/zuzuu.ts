@@ -53,6 +53,21 @@ export interface ProposalSummary {
   id: string;
   module: string;
   title: string;
+  /** the envelope kind being proposed (fact|rule|runbook|…) — best-effort */
+  kind?: string;
+  /** a short preview of the actual content being approved (body first lines,
+   *  or a rule's pattern→action, or an action's exec) — best-effort */
+  preview?: string;
+  /** the persisted score float, when the proposal carries one */
+  score?: number | null;
+  /** the persisted confidence bucket (high|med|low), when present */
+  confidence?: string | null;
+  /** the scorer's one-line rationale, when present */
+  rationale?: string | null;
+  /** the 5 normalized signal components behind the score, when present */
+  signals?: RankedProposalSignals;
+  /** the raw evidence behind the score, when present */
+  evidence?: RankedProposalEvidence;
 }
 
 export interface ModuleDetail {
@@ -192,8 +207,31 @@ export interface DigestResponse {
 
 // ── Write side (mutations are CLI-only; the daemon shells out to zuzuu) ──
 
+/** The 5 normalized 0-1 signal components behind a proposal's score
+ *  (the eval scorer's weight vector). Present only via the CLI path. */
+export interface RankedProposalSignals {
+  occurrence: number;
+  corroboration: number;
+  recency: number;
+  failureReduction: number;
+  erNovelty: number;
+}
+
+/** The raw evidence behind a proposal's score — the UI renders these to plain
+ *  language ("seen 5× across 3 sessions"). Every field is best-effort: inbox-
+ *  sourced proposals carry only `erVerdict`; trace-mined ones carry the counts. */
+export interface RankedProposalEvidence {
+  occurrences?: number;
+  sessions?: number;
+  failures?: number;
+  /** entity-resolution verdict: "new" | "enrich" | "duplicate" */
+  erVerdict?: string;
+}
+
 /** GET /eval — a proposal as ranked by `zuzuu eval`; nulls when the CLI is
- *  absent and the daemon fell back to an unranked file-read listing. */
+ *  absent and the daemon fell back to an unranked file-read listing.
+ *  `signals`/`evidence` are present only via the CLI (the scorer's output);
+ *  the file-read fallback omits them. */
 export interface RankedProposal {
   id: string;
   module: string;
@@ -201,6 +239,8 @@ export interface RankedProposal {
   score: number | null;
   confidence: string | null;
   rationale: string | null;
+  signals?: RankedProposalSignals;
+  evidence?: RankedProposalEvidence;
 }
 
 export interface EvalResponse {

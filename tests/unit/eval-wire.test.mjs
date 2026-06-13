@@ -120,6 +120,77 @@ test('home eval --module knowledge shows only knowledge proposals', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Test: evalEvidence distils the raw evidence the UI renders to plain language.
+// ---------------------------------------------------------------------------
+test('evalEvidence carries occurrences/sessions/failures + erVerdict', async () => {
+  const { evalEvidence } = await import('../../zuzuu/commands/eval.mjs');
+  const full = evalEvidence({
+    evidence: { occurrences: 12, sessions: 3, failures: 2 },
+    analysis: { er: { verdict: 'new' } },
+  });
+  assert.deepEqual(full, { occurrences: 12, sessions: 3, failures: 2, erVerdict: 'new' });
+});
+
+test('evalEvidence never invents absent counts (inbox-sourced proposal)', async () => {
+  const { evalEvidence } = await import('../../zuzuu/commands/eval.mjs');
+  // inbox-sourced proposals carry only an inboxFile + er verdict
+  const partial = evalEvidence({
+    evidence: { inboxFile: 'note.txt' },
+    analysis: { er: { verdict: 'new' } },
+  });
+  assert.deepEqual(partial, { erVerdict: 'new' });
+  // a totally bare proposal yields an empty object, never undefined
+  assert.deepEqual(evalEvidence({}), {});
+  assert.deepEqual(evalEvidence(null), {});
+});
+
+// ---------------------------------------------------------------------------
+// Test: `eval --json` carries the signals vector + raw evidence (the UI's
+// source for plain-language "why" — the score's components, not just the float).
+// ---------------------------------------------------------------------------
+test('eval --json carries signals + evidence behind each score', () => {
+  const root = mkdtempSync(join(tmpdir(), 'zuzuu-eval-json-'));
+  const home = join(root, '.zuzuu');
+  for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
+    mkdirSync(join(home, d), { recursive: true });
+  }
+  const proposal = {
+    id: 'p-evidence',
+    kind: 'item',
+    status: 'pending',
+    source: 'distill',
+    created_at: '2026-01-01T00:00:00Z',
+    candidate: { id: 'p-evidence', type: 'command', body: 'recurring command', attributes: {}, relations: [] },
+    evidence: { occurrences: 12, sessions: 3, failures: 2 },
+    analysis: { er: { verdict: 'new' } },
+    provenance: [],
+    er: { verdict: 'new', confidence: 0.9, reason: 'new' },
+  };
+  writeFileSync(join(home, 'knowledge', 'proposals', 'p-evidence.json'), JSON.stringify(proposal, null, 2));
+  try {
+    const r = spawnSync(process.execPath, [BIN, 'eval', '--json'], { cwd: root, encoding: 'utf8' });
+    assert.equal(r.status, 0, `eval --json failed: ${r.stderr}`);
+    const data = JSON.parse(r.stdout);
+    assert.ok(Array.isArray(data.ranked) && data.ranked.length === 1, 'one ranked entry');
+    const e = data.ranked[0];
+    // the existing shape still holds
+    assert.equal(e.id, 'p-evidence');
+    assert.equal(typeof e.score, 'number');
+    assert.equal(typeof e.rationale, 'string');
+    // NEW: the 5 normalized signal components
+    assert.ok(e.signals && typeof e.signals === 'object', 'signals present');
+    for (const k of ['occurrence', 'corroboration', 'recency', 'failureReduction', 'erNovelty']) {
+      assert.equal(typeof e.signals[k], 'number', `signals.${k} is a number`);
+      assert.ok(e.signals[k] >= 0 && e.signals[k] <= 1, `signals.${k} in [0,1]`);
+    }
+    // NEW: the raw evidence the UI renders to plain language
+    assert.deepEqual(e.evidence, { occurrences: 12, sessions: 3, failures: 2, erVerdict: 'new' });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Test: distill persists `score` on created proposals.
 // ---------------------------------------------------------------------------
 test('distill persists score on created proposal', async () => {

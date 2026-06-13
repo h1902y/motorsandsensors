@@ -7,7 +7,9 @@ import { useRightPanel } from "../state/right-panel";
 import { confirm } from "../components/ui";
 import { ProposalRow } from "./ProposalRow";
 import { ItemRow, Section, TeachingEmpty, moduleDisplay } from "./kit";
-import { moduleItemPath, moduleReadmePath, moduleSchemaPath } from "./module-paths";
+import { moduleItemPath } from "./module-paths";
+import { SchemaView, ReadmeView } from "./ModuleDocs";
+import { ModuleGenerations } from "./ModuleGenerations";
 
 const openInEditor = (path: string) => useExplorer.getState().openPreviewPath(path);
 
@@ -24,6 +26,7 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
   const queryClient = useQueryClient();
   const closeDrill = useRightPanel((s) => s.closeDrill);
   const [err, setErr] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [hintDismissed, setHintDismissed] = useState(readHintDismissed);
   // display = the manifest ui descriptor when the overview has it (the
   // shared cache), built-in MODULE_META as the fallback
@@ -35,24 +38,27 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
     refetchInterval: 4000,
   });
 
-  const run = async (fn: () => Promise<unknown>) => {
+  const run = async (id: string, fn: () => Promise<unknown>) => {
     setErr(null);
+    setBusyId(id);
     try {
       await fn();
       void queryClient.invalidateQueries({ queryKey: ["zuzuu"] });
     } catch (e) {
       setErr(describeZuzuuError(e));
+    } finally {
+      setBusyId(null);
     }
   };
 
   // The actions module's pending list is its inbox — those go through act
   // approve/reject by slug; every other module through the proposal routes.
   const approve = (p: ProposalSummary) =>
-    void run(() => (moduleKey === "actions" ? zuzuuApi.approveAction(p.id) : zuzuuApi.approveProposal(p.id, p.module)));
+    void run(p.id, () => (moduleKey === "actions" ? zuzuuApi.approveAction(p.id) : zuzuuApi.approveProposal(p.id, p.module)));
   const reject = async (p: ProposalSummary) => {
     const ok = await confirm({ title: "Reject proposal?", message: p.title, okLabel: "Reject", danger: true });
     if (!ok) return;
-    void run(() => (moduleKey === "actions" ? zuzuuApi.rejectAction(p.id) : zuzuuApi.rejectProposal(p.id, p.module)));
+    void run(p.id, () => (moduleKey === "actions" ? zuzuuApi.rejectAction(p.id) : zuzuuApi.rejectProposal(p.id, p.module)));
   };
 
   const dismissHint = () => {
@@ -103,7 +109,14 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
             <Section label={`pending proposals (${proposals.length})`}>
               <div className="flex flex-col">
                 {proposals.map((p) => (
-                  <ProposalRow key={p.id} data={p} onApprove={() => approve(p)} onReject={() => void reject(p)} />
+                  <ProposalRow
+                    key={p.id}
+                    data={p}
+                    isAction={moduleKey === "actions"}
+                    busy={busyId === p.id}
+                    onApprove={() => approve(p)}
+                    onReject={() => void reject(p)}
+                  />
                 ))}
               </div>
             </Section>
@@ -115,14 +128,15 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
             ) : (
               <div className="flex flex-col">
                 {items.map((it) => (
-                  <ItemRow
+                  <ItemPeek
                     key={it.id}
                     kind={it.kind}
                     title={it.title}
                     status={it.status === "archived" ? "archived" : undefined}
                     timestamp={it.updated_at ?? it.created_at}
-                    onClick={() => openInEditor(moduleItemPath(moduleKey, it.id))}
-                    titleAttr={moduleItemPath(moduleKey, it.id)}
+                    body={typeof it.body === "string" ? it.body : (typeof it.payload?.body === "string" ? it.payload.body : undefined)}
+                    path={moduleItemPath(moduleKey, it.id)}
+                    onOpen={() => openInEditor(moduleItemPath(moduleKey, it.id))}
                   />
                 ))}
               </div>
@@ -143,22 +157,67 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
 
       {err && <div className="break-all font-mono text-meta text-danger">{err}</div>}
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => openInEditor(moduleSchemaPath(moduleKey))}
-          className="text-meta text-ink-500 hover:text-accent"
-          title={moduleSchemaPath(moduleKey)}
-        >
-          schema.json ›
-        </button>
-        <button
-          onClick={() => openInEditor(moduleReadmePath(moduleKey))}
-          className="text-meta text-ink-500 hover:text-accent"
-          title={moduleReadmePath(moduleKey)}
-        >
-          module README ›
-        </button>
+      {/* generation lineage for THIS module (per-module atoms, W2.5 Phase 2) */}
+      {!bare && (
+        <Section label="generations">
+          <ModuleGenerations moduleKey={moduleKey} />
+        </Section>
+      )}
+
+      {/* rendered schema + README (raw-file escape hatch lives inside each) */}
+      <div className="flex flex-col gap-2 border-t border-border pt-3">
+        <SchemaView moduleKey={moduleKey} />
+        <ReadmeView moduleKey={moduleKey} />
       </div>
+    </div>
+  );
+}
+
+/** An envelope-item row with an inline expand affordance: click the chevron to
+ *  peek the first lines of the body before opening the full file in Monaco. */
+function ItemPeek({
+  kind, title, status, timestamp, body, path, onOpen,
+}: {
+  kind: string | undefined;
+  title: string;
+  status?: string;
+  timestamp?: string | null;
+  body?: string;
+  path: string;
+  onOpen: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const peek = body ? body.split("\n").slice(0, 6).join("\n").slice(0, 600) : null;
+  return (
+    <div className="border-b border-border last:border-0">
+      <div className="flex items-center gap-1">
+        {peek && (
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="shrink-0 text-meta text-ink-600 hover:text-accent"
+            title={open ? "Collapse" : "Peek"}
+          >
+            {open ? "▾" : "▸"}
+          </button>
+        )}
+        {!peek && <span className="w-[1ch] shrink-0" />}
+        <div className="min-w-0 flex-1">
+          <ItemRow
+            kind={kind}
+            title={title}
+            status={status}
+            timestamp={timestamp}
+            onClick={onOpen}
+            titleAttr={path}
+            compact
+          />
+        </div>
+      </div>
+      {open && peek && (
+        <pre className="mb-1.5 ml-5 whitespace-pre-wrap break-words rounded-[var(--radius-sm)] bg-surface px-2 py-1.5 font-mono text-meta text-ink-400">
+          {peek}
+        </pre>
+      )}
     </div>
   );
 }
