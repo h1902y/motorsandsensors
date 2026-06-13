@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ModuleKey, ProposalSummary } from "@zuzuu-web/protocol";
+import type { ModuleItem, ModuleKey, ProposalSummary } from "@zuzuu-web/protocol";
 import { describeZuzuuError, zuzuuApi } from "../lib/zuzuu-api";
 import { useExplorer } from "../state/explorer";
 import { useRightPanel } from "../state/right-panel";
-import { confirm } from "../components/ui";
+import { confirm, PropertyRow, StatusPill } from "../components/ui";
 import { ProposalRow } from "./ProposalRow";
-import { ItemRow, Section, TeachingEmpty, moduleDisplay, moduleHue } from "./kit";
+import { ItemRow, Section, TeachingEmpty, moduleDisplay, moduleHue, kindIcon, relativeTime } from "./kit";
 import { moduleItemPath } from "./module-paths";
 import { SchemaView, ReadmeView } from "./ModuleDocs";
 import { ModuleGenerations } from "./ModuleGenerations";
@@ -145,11 +145,8 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
                 {items.map((it) => (
                   <ItemPeek
                     key={it.id}
-                    kind={it.kind}
-                    title={it.title}
-                    status={it.status === "archived" ? "archived" : undefined}
-                    timestamp={it.updated_at ?? it.created_at}
-                    body={typeof it.body === "string" ? it.body : (typeof it.payload?.body === "string" ? it.payload.body : undefined)}
+                    item={it}
+                    allItems={items}
                     path={moduleItemPath(moduleKey, it.id)}
                     onOpen={() => openInEditor(moduleItemPath(moduleKey, it.id))}
                   />
@@ -188,50 +185,242 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
   );
 }
 
+// ── Confidence → pill tone ────────────────────────────────────────────────
+type PillTone = "ok" | "warn" | "bad" | "neutral";
+function confidenceTone(confidence: string | undefined): PillTone {
+  if (confidence === "high") return "ok";
+  if (confidence === "med") return "warn";
+  if (confidence === "low") return "bad";
+  return "neutral";
+}
+
+// ── ItemDetail: the reading body + properties rail + backlinks ────────────
+
+/** Extract relations from item payload — returns an array of relation objects
+ *  with at least an id or title. Best-effort; falls back to []. */
+function extractRelations(item: ModuleItem): { id?: string; title?: string; snippet?: string }[] {
+  const rel = item.payload?.relations;
+  if (!Array.isArray(rel)) return [];
+  return rel
+    .filter((r): r is Record<string, unknown> => !!r && typeof r === "object")
+    .map((r) => ({
+      id: typeof r.id === "string" ? r.id : undefined,
+      title: typeof r.title === "string" ? r.title : (typeof r.id === "string" ? r.id : undefined),
+      snippet: typeof r.snippet === "string" ? r.snippet : (typeof r.context === "string" ? r.context : undefined),
+    }))
+    .filter((r) => r.id ?? r.title);
+}
+
+/** The full item reading body + right rail of PropertyRows + backlinks.
+ *  Shown when ItemPeek is expanded. */
+function ItemDetail({ item, allItems }: { item: ModuleItem; allItems: ModuleItem[] }) {
+  const rel = relativeTime(item.updated_at ?? item.created_at);
+  const provenanceSessions = (item.provenance ?? [])
+    .map((p) => p.session)
+    .filter((s): s is string => typeof s === "string");
+  const confidence = typeof item.payload?.confidence === "string"
+    ? item.payload.confidence
+    : undefined;
+  const source = typeof item.payload?.source === "string"
+    ? item.payload.source
+    : (provenanceSessions[0] ?? undefined);
+  const generation = typeof item.payload?.generation === "string"
+    ? item.payload.generation
+    : undefined;
+  const score = typeof item.payload?.score === "number"
+    ? item.payload.score
+    : undefined;
+
+  // Body prose: item.body is the primary source; strip leading "# Title" if present
+  const rawBody = typeof item.body === "string" ? item.body : "";
+  const bodyLines = rawBody.split("\n");
+  // Drop a leading `# …` heading that duplicates the title
+  const body = (bodyLines[0]?.startsWith("# ") ? bodyLines.slice(1) : bodyLines)
+    .join("\n")
+    .trim();
+
+  // Relations: from payload.relations (schema field), or from other items in
+  // the module that share a provenance session — honest fallback as ItemRows.
+  const payloadRelations = extractRelations(item);
+  const sharedSessionRelations = payloadRelations.length === 0
+    ? allItems.filter(
+        (other) =>
+          other.id !== item.id &&
+          provenanceSessions.length > 0 &&
+          (other.provenance ?? []).some((p) => provenanceSessions.includes(p.session ?? "")),
+      )
+    : [];
+
+  return (
+    <div className="wc-panel-enter flex flex-col gap-0 mt-1 mb-2 ml-4">
+      {/* ── two-column: reading body (left) + properties rail (right) ── */}
+      <div className="flex gap-5">
+        {/* reading body — capped measure, generous line-height */}
+        <div className="min-w-0 flex-1">
+          {/* title at display size, serif accent */}
+          <h2 className="wc-serif mb-2 text-display font-semibold leading-snug text-ink-100" style={{ maxWidth: "44ch" }}>
+            {item.title}
+          </h2>
+          {body ? (
+            <p className="wc-sans text-body leading-relaxed text-ink-300" style={{ maxWidth: "52ch" }}>
+              {body}
+            </p>
+          ) : (
+            <p className="wc-sans text-body italic text-ink-600" style={{ maxWidth: "52ch" }}>
+              no body — the fact is its title
+            </p>
+          )}
+        </div>
+
+        {/* properties rail */}
+        <div className="w-44 shrink-0 border-l border-border pl-4">
+          <div className="flex flex-col divide-y divide-border">
+            {/* kind */}
+            <PropertyRow label="kind">
+              <span className="wc-sans flex items-center gap-1 text-ink-200">
+                <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0 text-ink-500" fill="none" stroke="currentColor" strokeWidth="1.4">
+                  <path d={kindIcon(item.kind)} strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {item.kind ?? "—"}
+              </span>
+            </PropertyRow>
+            {/* status */}
+            {item.status && (
+              <PropertyRow label="status">
+                <StatusPill tone={item.status === "active" ? "ok" : item.status === "archived" ? "neutral" : "neutral"}>
+                  {item.status}
+                </StatusPill>
+              </PropertyRow>
+            )}
+            {/* confidence */}
+            {confidence && (
+              <PropertyRow label="confidence">
+                <StatusPill tone={confidenceTone(confidence)}>{confidence}</StatusPill>
+              </PropertyRow>
+            )}
+            {/* score */}
+            {score !== undefined && (
+              <PropertyRow label="score">
+                <span className="wc-mono text-ink-300">{score.toFixed(2)}</span>
+              </PropertyRow>
+            )}
+            {/* source / provenance session */}
+            {source && (
+              <PropertyRow label="source">
+                <span className="wc-mono truncate text-ink-400" title={source}>
+                  {source.length > 16 ? source.slice(0, 14) + "…" : source}
+                </span>
+              </PropertyRow>
+            )}
+            {/* generation lockfile */}
+            {generation && (
+              <PropertyRow label="generation">
+                <span className="wc-mono text-ink-400">{generation}</span>
+              </PropertyRow>
+            )}
+            {/* updated timestamp */}
+            {rel && (
+              <PropertyRow label="updated">
+                <span className="wc-mono text-ink-500">{rel}</span>
+              </PropertyRow>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── quoted-context backlinks / related items ────────────────── */}
+      {payloadRelations.length > 0 && (
+        <div className="mt-4 flex flex-col gap-1.5 border-t border-border pt-3">
+          <div className="wc-eyebrow mb-1">Related ({payloadRelations.length})</div>
+          {payloadRelations.map((r, i) => (
+            <div
+              key={r.id ?? i}
+              className="rounded-ui border border-border bg-surface p-2.5"
+            >
+              {r.snippet ? (
+                <>
+                  {/* quoted context sentence — the Reflect pattern */}
+                  <p className="wc-sans mb-1 text-ui italic text-ink-300 leading-relaxed">
+                    "{r.snippet}"
+                  </p>
+                  <span className="wc-sans text-meta text-ink-500">{r.title ?? r.id}</span>
+                </>
+              ) : (
+                <span className="wc-sans text-ui text-ink-200">{r.title ?? r.id}</span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* honest fallback: ItemRows from same-session siblings */}
+      {payloadRelations.length === 0 && sharedSessionRelations.length > 0 && (
+        <div className="mt-4 flex flex-col gap-1 border-t border-border pt-3">
+          <div className="wc-eyebrow mb-1">Related ({sharedSessionRelations.length})</div>
+          {sharedSessionRelations.slice(0, 5).map((other) => (
+            <ItemRow
+              key={other.id}
+              kind={other.kind}
+              title={other.title}
+              status={other.status === "archived" ? "archived" : undefined}
+              timestamp={other.updated_at ?? other.created_at}
+              compact
+            />
+          ))}
+        </div>
+      )}
+
+      {/* empty-state: teach that links appear here */}
+      {payloadRelations.length === 0 && sharedSessionRelations.length === 0 && (
+        <div className="mt-3 border-t border-border pt-3">
+          <div className="wc-eyebrow mb-1">Related</div>
+          <p className="wc-sans text-meta text-ink-600">
+            no related items yet — links appear here as zuzuu corroborates this fact
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** An envelope-item row with an inline expand affordance: click the chevron to
- *  peek the first lines of the body before opening the full file in Monaco. */
+ *  show the full reading body + properties rail before opening the file. */
 function ItemPeek({
-  kind, title, status, timestamp, body, path, onOpen,
+  item,
+  allItems,
+  path,
+  onOpen,
 }: {
-  kind: string | undefined;
-  title: string;
-  status?: string;
-  timestamp?: string | null;
-  body?: string;
+  item: ModuleItem;
+  allItems: ModuleItem[];
   path: string;
   onOpen: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const peek = body ? body.split("\n").slice(0, 6).join("\n").slice(0, 600) : null;
   return (
     <div className="border-b border-border last:border-0">
       <div className="flex items-center gap-1">
-        {peek && (
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="shrink-0 text-meta text-ink-600 hover:text-accent"
-            title={open ? "Collapse" : "Peek"}
-          >
-            {open ? "▾" : "▸"}
-          </button>
-        )}
-        {!peek && <span className="w-[1ch] shrink-0" />}
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="shrink-0 text-meta text-ink-600 hover:text-accent"
+          title={open ? "Collapse" : "Expand detail"}
+        >
+          {open ? "▾" : "▸"}
+        </button>
         <div className="min-w-0 flex-1">
           <ItemRow
-            kind={kind}
-            title={title}
-            status={status}
-            timestamp={timestamp}
+            kind={item.kind}
+            title={item.title}
+            status={item.status === "archived" ? "archived" : undefined}
+            timestamp={item.updated_at ?? item.created_at}
             onClick={onOpen}
             titleAttr={path}
             compact
           />
         </div>
       </div>
-      {open && peek && (
-        <pre className="mb-1.5 ml-5 whitespace-pre-wrap break-words rounded-[var(--radius-sm)] bg-surface px-2 py-1.5 font-mono text-meta text-ink-400">
-          {peek}
-        </pre>
+      {open && (
+        <ItemDetail item={item} allItems={allItems} />
       )}
     </div>
   );

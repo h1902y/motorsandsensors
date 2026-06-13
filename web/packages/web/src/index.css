@@ -12,6 +12,9 @@
      This contrast is the single biggest "less terminal" lever. */
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  /* Optional serif accent — used ONLY at display size on knowledge item reading bodies.
+     Kept minimal: ui-serif stack, no custom font download. */
+  --font-serif: ui-serif, Georgia, "Times New Roman", serif;
 
   /* ── ink ramp ────────────────────────────────────────────────────────
      Warm-charcoal ramp: a neutral taupe/brown near-black, no blue cast, so
@@ -148,6 +151,8 @@ body {
 }
 /* Machine data only: ids, paths, durations, span ops, log lines, literal patterns. */
 .wc-mono { font-family: var(--font-mono); font-feature-settings: normal; }
+/* Serif accent — display-size reading body only (knowledge item fact text). */
+.wc-serif { font-family: var(--font-serif); }
 /* Section eyebrow: small, tracked, uppercase, sans — the section rhythm. */
 .wc-eyebrow {
   font-family: var(--font-sans);

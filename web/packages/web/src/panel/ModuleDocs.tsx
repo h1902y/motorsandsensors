@@ -15,8 +15,28 @@ const MarkdownView = lazy(() =>
 
 const openInEditor = (path: string) => useExplorer.getState().openPreviewPath(path);
 
-/** schema.json → a readable field list (name · type · required · enum), with an
- *  "open file ›" escape hatch to Monaco for the full JSON. */
+// ── Field-type icons (16×16 stroke paths) ─────────────────────────────────
+// One small glyph per schema field type — Fibery-style type-icon rows.
+// These are deliberately minimal so they read as quiet metadata hints.
+const FIELD_TYPE_ICONS: Record<string, string> = {
+  string: "M4 5h8M4 8h6M4 11h4",                          // text lines
+  number: "M5 4v8M7 6l2-2 2 2M11 6l-2 6",                 // numeric hash
+  integer: "M5 4v8M7 6l2-2 2 2M11 6l-2 6",
+  boolean: "M4 8a4 4 0 008 0M4 8a4 4 0 008 0M8 6v4",      // toggle circle
+  array: "M3 4.5h2v7H3M11 4.5h2v7h-2M5 8h6",             // bracket pair
+  object: "M4 4.5l4 3 4-3M4 11.5l4-3 4 3",               // diamond
+  "string (enum)": "M3.5 5h3v2h-3zM3.5 9h3v2h-3zM9 6h3.5M9 10h3.5", // enum chips
+};
+const DEFAULT_FIELD_ICON = "M4.5 2.5h5L12 5v8.5H4.5v-11M9 2.5V5.5H12"; // document
+
+function fieldTypeIcon(type: string): string {
+  // strip array<…> wrapper → "array", or use the type directly
+  const key = type.startsWith("array") ? "array" : type;
+  return FIELD_TYPE_ICONS[key] ?? DEFAULT_FIELD_ICON;
+}
+
+/** schema.json → typed-field rows (Fibery-style: type glyph · name · value/meta),
+ *  with an "open file ›" escape hatch to Monaco for the full JSON. */
 export function SchemaView({ moduleKey }: { moduleKey: ModuleKey }) {
   const [open, setOpen] = useState(false);
   const q = useQuery({
@@ -27,29 +47,53 @@ export function SchemaView({ moduleKey }: { moduleKey: ModuleKey }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <button onClick={() => setOpen((v) => !v)} className="self-start text-meta text-ink-500 hover:text-accent">
+      <button onClick={() => setOpen((v) => !v)} className="wc-sans self-start text-meta text-ink-500 hover:text-accent">
         {open ? "▾" : "▸"} schema
       </button>
       {open && (
-        <div className="flex flex-col gap-1.5 rounded-ui border border-border bg-surface p-2.5">
+        <div className="wc-panel-enter flex flex-col gap-0.5 rounded-ui border border-border bg-surface p-2.5">
           {q.isLoading && <div className="text-meta text-ink-600">loading…</div>}
           {!q.isLoading && fields.length === 0 && (
             <div className="text-meta text-ink-600">no readable fields — open the file for the raw schema</div>
           )}
           {fields.map((f) => (
-            <div key={f.name} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-meta">
-              <span className="font-mono text-ink-100">{f.name}</span>
-              <span className="text-ink-500">{f.type}</span>
-              {f.required && <span className="text-warn">required</span>}
-              {f.enumValues && (
-                <span className="font-mono text-ink-400">{f.enumValues.join(" | ")}</span>
+            <div key={f.name} className="flex items-baseline gap-2 py-1 border-b border-border last:border-0">
+              {/* type glyph */}
+              <svg
+                viewBox="0 0 16 16"
+                className="mt-0.5 h-3 w-3 shrink-0 text-ink-500"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                aria-hidden
+              >
+                <path d={fieldTypeIcon(f.type)} strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              {/* field name */}
+              <span className="wc-sans min-w-0 shrink-0 text-ui text-ink-200">{f.name}</span>
+              {/* type badge */}
+              <span className="text-meta text-ink-500">{f.type}</span>
+              {/* required marker */}
+              {f.required && (
+                <span className="shrink-0 rounded-full bg-[color-mix(in_oklab,var(--color-warn)_14%,transparent)] px-1.5 text-meta leading-4 text-warn">
+                  required
+                </span>
               )}
-              {f.constraint && <span className="text-ink-600">{f.constraint}</span>}
+              {/* enum values — mono chip */}
+              {f.enumValues && (
+                <span className="wc-mono ml-auto shrink-0 text-meta text-ink-400">
+                  {f.enumValues.join(" | ")}
+                </span>
+              )}
+              {/* constraint hint */}
+              {f.constraint && !f.enumValues && (
+                <span className="wc-mono ml-auto shrink-0 text-meta text-ink-500">{f.constraint}</span>
+              )}
             </div>
           ))}
           <button
             onClick={() => openInEditor(moduleSchemaPath(moduleKey))}
-            className="mt-1 self-start text-meta text-ink-600 hover:text-accent"
+            className="wc-sans mt-1.5 self-start text-meta text-ink-600 hover:text-accent"
             title={moduleSchemaPath(moduleKey)}
           >
             open file ›
@@ -73,7 +117,7 @@ export function ReadmeView({ moduleKey }: { moduleKey: ModuleKey }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <button onClick={() => setOpen((v) => !v)} className="self-start text-meta text-ink-500 hover:text-accent">
+      <button onClick={() => setOpen((v) => !v)} className="wc-sans self-start text-meta text-ink-500 hover:text-accent">
         {open ? "▾" : "▸"} README
       </button>
       {open && (
@@ -89,7 +133,7 @@ export function ReadmeView({ moduleKey }: { moduleKey: ModuleKey }) {
           )}
           <button
             onClick={() => openInEditor(path)}
-            className="m-2.5 self-start text-meta text-ink-600 hover:text-accent"
+            className="wc-sans m-2.5 self-start text-meta text-ink-600 hover:text-accent"
             title={path}
           >
             open file ›
