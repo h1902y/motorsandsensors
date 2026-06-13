@@ -30,7 +30,7 @@ type ButtonVariant = "primary" | "ghost" | "subtle" | "danger";
 type ButtonSize = "sm" | "md";
 
 const BTN_BASE =
-  "wc-focus inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap";
+  "wc-sans wc-focus inline-flex items-center justify-center gap-1.5 rounded-[var(--radius-sm)] font-medium transition-colors disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap";
 const BTN_VARIANT: Record<ButtonVariant, string> = {
   primary: "border border-accent-dim bg-[color-mix(in_oklab,var(--color-accent)_14%,transparent)] text-accent hover:bg-[color-mix(in_oklab,var(--color-accent)_22%,transparent)]",
   ghost: "text-ink-300 hover:bg-hover hover:text-ink-100",

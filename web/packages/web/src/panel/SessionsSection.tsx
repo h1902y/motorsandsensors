@@ -35,7 +35,7 @@ function SessionRow({ session, pinned = false }: { session: ZuzuuSessionEntry; p
         tone={meta.tone === "danger" ? "bad" : meta.tone === "warn" ? "warn" : meta.tone === "ok" ? "ok" : "idle"}
         pulse={meta.pulse}
       />
-      <span className="text-ink-100">{session.host ?? "?"}</span>
+      <span className="wc-sans font-medium text-ink-100">{session.host ?? "?"}</span>
       <span className={cx("text-meta", TONE_TEXT[meta.tone])}>{meta.label}</span>
       <span className="ml-auto flex shrink-0 items-baseline gap-2 text-meta text-ink-600">
         {when && <span>{when}</span>}

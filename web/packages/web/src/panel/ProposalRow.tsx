@@ -4,7 +4,11 @@ import { Button } from "../components/ui";
 import { confidencePill } from "../modules/proposal-evidence";
 import { ProposalDetail } from "./ProposalDetail";
 
-const TONE_TEXT = { success: "text-accent", warning: "text-warn", neutral: "text-ink-500" } as const;
+const TONE_TEXT = {
+  success: "text-[color-mix(in_oklab,var(--color-success)_82%,white)]",
+  warning: "text-[color-mix(in_oklab,var(--color-pending)_82%,white)]",
+  neutral: "text-ink-500",
+} as const;
 
 /** One pending proposal: collapsed = title + confidence pill; click → expands
  *  inline to the shared WHAT/WHY/WHAT-HAPPENS detail with Approve/Reject right
@@ -32,7 +36,7 @@ export function ProposalRow({
         className="flex w-full items-center gap-2 py-1.5 text-left text-ui"
       >
         <span className="shrink-0 text-meta text-ink-600">{open ? "▾" : "▸"}</span>
-        <span className="min-w-0 flex-1 truncate text-ink-200">{data.title}</span>
+        <span className="wc-sans min-w-0 flex-1 truncate text-ink-200">{data.title}</span>
         {!isAction && (
           <span className={`shrink-0 text-meta ${TONE_TEXT[pill.tone]}`} title={`score ${data.score ?? "?"}`}>
             {pill.level}

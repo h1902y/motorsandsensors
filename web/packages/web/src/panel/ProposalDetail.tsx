@@ -23,12 +23,14 @@ export interface ProposalDetailData {
   isAction?: boolean;
 }
 
-// The cool-grey/cyan palette has no dedicated green; high confidence reads as
-// the accent (also --color-status-ok), medium as warn, low as a quiet neutral.
-// Phase 4 introduces the per-module hue system.
+// Semantic status hues (Phase 4) — distinct from the per-module identity
+// hues: high confidence = success green, medium = pending amber, low = a quiet
+// neutral. These read as "how sure", not as a module's brand color.
 const TONE_CLASS: Record<ConfidencePill["tone"], string> = {
-  success: "border-accent-dim/50 bg-[color-mix(in_oklab,var(--color-accent)_12%,transparent)] text-accent",
-  warning: "border-warn/40 bg-[color-mix(in_oklab,var(--color-warn)_12%,transparent)] text-warn",
+  success:
+    "border-[color-mix(in_oklab,var(--color-success)_45%,transparent)] bg-[color-mix(in_oklab,var(--color-success)_13%,transparent)] text-[color-mix(in_oklab,var(--color-success)_82%,white)]",
+  warning:
+    "border-[color-mix(in_oklab,var(--color-pending)_42%,transparent)] bg-[color-mix(in_oklab,var(--color-pending)_13%,transparent)] text-[color-mix(in_oklab,var(--color-pending)_82%,white)]",
   neutral: "border-border bg-hover text-ink-400",
 };
 
@@ -46,7 +48,7 @@ export function ProposalDetail({ data }: { data: ProposalDetailData }) {
     <div className="flex flex-col gap-3">
       {/* WHAT — the content being approved */}
       <Block label="what">
-        <div className="break-words text-ui text-ink-100">{data.title}</div>
+        <div className="wc-sans break-words text-body font-medium text-ink-100">{data.title}</div>
         {data.preview && data.preview !== data.title && (
           <pre className="mt-1.5 whitespace-pre-wrap break-words rounded-[var(--radius-sm)] bg-surface px-2 py-1.5 font-mono text-meta text-ink-300">
             {data.preview}
@@ -85,8 +87,8 @@ export function ProposalDetail({ data }: { data: ProposalDetailData }) {
                   <li key={p.key} className="flex items-center gap-2 text-meta text-ink-300">
                     <span className="h-1 w-12 shrink-0 overflow-hidden rounded-full bg-hover">
                       <span
-                        className="block h-full rounded-full bg-accent/60"
-                        style={{ width: `${Math.round(p.strength * 100)}%` }}
+                        className="block h-full rounded-full"
+                        style={{ width: `${Math.round(p.strength * 100)}%`, background: "color-mix(in oklab, var(--color-success) 70%, transparent)" }}
                       />
                     </span>
                     <span>{p.text}</span>
@@ -124,12 +126,12 @@ export function ProposalDetail({ data }: { data: ProposalDetailData }) {
 function Block({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="mb-1 text-meta uppercase tracking-wide text-ink-600">{label}</div>
+      <div className="wc-eyebrow mb-1.5">{label}</div>
       {children}
     </div>
   );
 }
 
 const Mod = ({ children }: { children: React.ReactNode }) => (
-  <span className="font-medium text-ink-200">{children}</span>
+  <span className="wc-sans font-medium text-ink-200">{children}</span>
 );

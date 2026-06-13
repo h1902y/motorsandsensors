@@ -6,7 +6,7 @@ import { useExplorer } from "../state/explorer";
 import { useRightPanel } from "../state/right-panel";
 import { confirm } from "../components/ui";
 import { ProposalRow } from "./ProposalRow";
-import { ItemRow, Section, TeachingEmpty, moduleDisplay } from "./kit";
+import { ItemRow, Section, TeachingEmpty, moduleDisplay, moduleHue } from "./kit";
 import { moduleItemPath } from "./module-paths";
 import { SchemaView, ReadmeView } from "./ModuleDocs";
 import { ModuleGenerations } from "./ModuleGenerations";
@@ -71,23 +71,31 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
   const errors = detail.data?.errors ?? [];
   const bare = proposals.length === 0 && items.length === 0 && errors.length === 0;
 
+  const hue = moduleHue(moduleKey);
   return (
-    <div className="wc-slide-in flex flex-col gap-4 p-3">
+    <div className="wc-slide-in flex flex-col gap-4 p-3.5" style={{ ["--hue" as string]: hue }}>
       {/* back to the dashboard root */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={closeDrill}
-          className="text-meta text-ink-500 transition-colors hover:text-accent"
-          title="Back to all modules"
+      <button
+        onClick={closeDrill}
+        className="wc-sans -mb-1 w-fit text-meta text-ink-500 transition-colors hover:text-ink-200"
+        title="Back to all modules"
+      >
+        ‹ All modules
+      </button>
+      {/* module hero: the hue-carrying icon chip + the display name */}
+      <div className="flex items-center gap-3">
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px]"
+          style={{
+            background: "color-mix(in oklab, var(--hue) 14%, transparent)",
+            boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--hue) 24%, transparent)",
+          }}
         >
-          ‹ All modules
-        </button>
-        <span className="ml-auto flex items-center gap-1.5 text-ui font-medium text-ink-100">
-          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 text-ink-300" fill="none" stroke="currentColor" strokeWidth="1.4">
+          <svg viewBox="0 0 16 16" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.35" style={{ color: "var(--hue)" }}>
             <path d={display.icon} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {display.label}
         </span>
+        <span className="wc-sans text-display font-semibold text-ink-100">{display.label}</span>
       </div>
 
       {/* educative one-time hint */}
@@ -101,7 +109,7 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
       )}
 
       {bare ? (
-        <TeachingEmpty display={display} />
+        <TeachingEmpty display={display} moduleId={moduleKey} />
       ) : (
         <>
           {/* pending first — the human gate is the panel's headline */}
