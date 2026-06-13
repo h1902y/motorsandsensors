@@ -119,7 +119,7 @@ function StepRow({ step, state, index }: StepRowProps) {
           <div
             className={cx(
               "wc-sans text-ui font-semibold",
-              isCompleted ? "text-ink-500 line-through" : isActive ? "text-ink-100" : "text-ink-400",
+              isCompleted ? "text-ink-500" : isActive ? "text-ink-100" : "text-ink-400",
             )}
           >
             {step.title}
