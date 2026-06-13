@@ -52,7 +52,8 @@ affected module. A **checkpoint** composes them for whole-brain coherence —
 ## Get in the loop
 - \`zuzuu inbox\`            — what's waiting for your approval
 - \`zuzuu review\`          — approve / reject, one at a time
-- \`zuzuu generation list\` — your checkpoints (· = active)
+- \`zuzuu checkpoint list\` — your whole-brain checkpoints
+- \`zuzuu module <m> generations\` — one module's lineage (● = active)
 - \`zuzuu explain\`         — this model, any time
 
 ## What to ignore
