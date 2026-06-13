@@ -168,6 +168,29 @@ function countExcludedSecrets(cwd) {
   return n;
 }
 
+// zuzuu's OWN tracked files churn at runtime (the session index is rewritten on
+// every capture). They must NOT count as USER dirt that blocks a session merge,
+// and they're safe to reset before the branch dance — `capture`/`doctor`
+// regenerate them. (.traces/.live are git-ignored; sessions.json is the tracked one.)
+const ZUZUU_OWN_PATH = '.zuzuu/sessions.json';
+// Let git itself exclude zuzuu's own files (robust — no porcelain parsing, which
+// the trimming git() wrapper would shift off-by-one on a leading-space status).
+const EXCLUDE_ZUZUU_OWN = `:(exclude)${ZUZUU_OWN_PATH}`;
+
+/** Worktree has changes the USER cares about — anything beyond zuzuu's own
+ *  runtime-managed tracked files. Gates a merge from off the session branch. */
+function userDirty(cwd) {
+  return !!git(['status', '--porcelain', '-uall', '--', '.', EXCLUDE_ZUZUU_OWN], cwd).out;
+}
+
+/** Reset zuzuu's OWN tracked index churn to HEAD so it can't block a checkout.
+ *  Best-effort; only acts when that file is actually dirty. */
+function resetZuzuuOwn(cwd) {
+  if (git(['status', '--porcelain', '--', ZUZUU_OWN_PATH], cwd).out) {
+    git(['checkout', '-q', '--', ZUZUU_OWN_PATH], cwd);
+  }
+}
+
 /** TURN: checkpoint commit — only ON a session branch, only when dirty. NEVER commits on main.
  *  Secret-family files are excluded from staging (left untracked/unstaged);
  *  the count of excluded paths is returned as `excludedSecrets` when > 0. */
@@ -255,8 +278,9 @@ export function closeSession(cwd, { title } = {}) {
       const cp = checkpoint(cwd); // fold any uncommitted work into the squash
       if (!cp.ok) return { ok: false, reason: cp.reason };
       excludedSecrets = cp.excludedSecrets ?? 0;
-    } else if (isDirty(cwd)) {
-      // Loose changes on another branch are the USER's — never mix them into the squash.
+    } else if (userDirty(cwd)) {
+      // Loose changes on another branch are the USER's — never mix them into the
+      // squash. zuzuu's OWN index churn (.zuzuu/sessions.json) is excused below.
       return { ok: false, reason: 'dirty-worktree' };
     }
 
@@ -271,6 +295,9 @@ export function closeSession(cwd, { title } = {}) {
       return git(['checkout', '-q', cur], cwd).ok ? cur : null;
     };
 
+    // zuzuu's own index churn (excused by userDirty above) would still block the
+    // checkout to main — reset it first; capture/doctor regenerate it.
+    resetZuzuuOwn(cwd);
     const co = git(['checkout', '-q', main], cwd);
     if (!co.ok) return { ok: false, reason: co.err || 'checkout-main-failed' };
     const merge = git(['merge', '--squash', branch], cwd);

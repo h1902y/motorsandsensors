@@ -206,6 +206,50 @@ test('close from main with a dirty tree refuses (never mixes user changes into t
   });
 });
 
+test('close from main merges despite zuzuu\'s OWN tracked index churn (.zuzuu/sessions.json)', () => {
+  tmpRepo((cwd) => {
+    // The tracked session index, committed on main, then churned at runtime.
+    mkdirSync(join(cwd, '.zuzuu'), { recursive: true });
+    writeFileSync(join(cwd, '.zuzuu', 'sessions.json'), '{"v":1}\n');
+    git(['add', '-A'], cwd);
+    git(['commit', '-q', '-m', 'add session index'], cwd);
+
+    openSession(cwd, 'idxguard1');
+    writeFileSync(join(cwd, 'b.txt'), 'session work\n');
+    checkpoint(cwd);
+    git(['checkout', '-q', 'main'], cwd);
+    // zuzuu rewrites its own index (dirty AND differs from the branch) — must NOT block.
+    writeFileSync(join(cwd, '.zuzuu', 'sessions.json'), '{"v":2,"churn":true}\n');
+
+    const done = closeSession(cwd, { title: 't' });
+    assert.equal(done.ok, true, 'merge succeeds despite zuzuu index churn');
+    assert.equal(done.commits, 1);
+    assert.equal(curBranch(cwd), 'main');
+    assert.deepEqual(listSessionBranches(cwd), [], 'session branch merged away');
+  });
+});
+
+test('close still refuses on REAL user dirt even when zuzuu\'s index is also dirty', () => {
+  tmpRepo((cwd) => {
+    mkdirSync(join(cwd, '.zuzuu'), { recursive: true });
+    writeFileSync(join(cwd, '.zuzuu', 'sessions.json'), '{"v":1}\n');
+    git(['add', '-A'], cwd);
+    git(['commit', '-q', '-m', 'idx'], cwd);
+
+    openSession(cwd, 'idxguard2');
+    writeFileSync(join(cwd, 'b.txt'), 'session work\n');
+    checkpoint(cwd);
+    git(['checkout', '-q', 'main'], cwd);
+    writeFileSync(join(cwd, '.zuzuu', 'sessions.json'), '{"v":2}\n'); // zuzuu churn (excused)
+    writeFileSync(join(cwd, 'loose.txt'), 'user wip\n');              // real user dirt (refuses)
+
+    const done = closeSession(cwd, {});
+    assert.equal(done.ok, false);
+    assert.equal(done.reason, 'dirty-worktree');
+    assert.deepEqual(listSessionBranches(cwd), ['zz/session-idxguard'], 'branch intact');
+  });
+});
+
 // ------------------------------------------------------------------ conflict
 
 test('conflict on close: abort cleanly — branch intact, main untouched, no merge state', () => {
