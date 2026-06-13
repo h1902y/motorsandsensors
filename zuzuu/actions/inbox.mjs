@@ -7,7 +7,7 @@
 import { join } from 'node:path';
 import { existsSync, readFileSync, renameSync, mkdirSync, rmSync } from 'node:fs';
 import { actionsDir, inboxDir, listActions, isSafeSlug } from './manifest.mjs';
-import { parseEnvelope } from '../faculty/envelope.mjs';
+import { parseEnvelope } from '../module/envelope.mjs';
 
 /** Archive dir for rejected action proposals: .zuzuu/actions/proposals/archive/. */
 const archiveBaseDir = (agentDir) => join(actionsDir(agentDir), 'proposals', 'archive');

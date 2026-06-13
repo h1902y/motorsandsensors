@@ -1,9 +1,9 @@
-// Knowledge items — files as truth, in the Faculty Standard envelope (W24).
+// Knowledge items — files as truth, in the Module Standard envelope (W24).
 // One item per markdown file under .zuzuu/knowledge/items/<id>.md:
 //
 //   ---
 //   id: test-command
-//   faculty: knowledge
+//   module: knowledge
 //   kind: command
 //   title: The test command
 //   status: active
@@ -21,7 +21,7 @@
 //   ---
 //   Body prose.
 //
-// This module is a thin wrapper over faculty/envelope.mjs: the ON-DISK format
+// This module is a thin wrapper over module/envelope.mjs: the ON-DISK format
 // is the envelope; the IN-MEMORY item shape stays the historical knowledge one
 // ({id, type, created_at, status, attributes, relations, provenance, body}) so
 // the registry/ER/index/digest pipeline is untouched. Ids are unchanged by the
@@ -29,7 +29,7 @@
 
 import { join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
-import { parseEnvelope, serializeEnvelope, deriveTitle } from '../faculty/envelope.mjs';
+import { parseEnvelope, serializeEnvelope, deriveTitle } from '../module/envelope.mjs';
 
 export const itemsDir = (agentDir) => join(agentDir, 'knowledge', 'items');
 
@@ -49,7 +49,7 @@ export function slugify(text, max = 60) {
 export function parseItem(text) {
   const { ok, item: env, errors } = parseEnvelope(text);
   if (!ok) throw new Error(errors[0] ?? 'invalid envelope');
-  if (env.faculty !== 'knowledge') throw new Error(`not a knowledge item (faculty: ${env.faculty})`);
+  if (env.module !== 'knowledge') throw new Error(`not a knowledge item (module: ${env.module})`);
   const p = env.payload ?? {};
   const item = {
     attributes: p.attributes ?? {},
@@ -75,7 +75,7 @@ export function serializeItem(item) {
   if ((item.relations ?? []).length) payload.relations = item.relations;
   return serializeEnvelope({
     id: item.id,
-    faculty: 'knowledge',
+    module: 'knowledge',
     kind: item.type,
     title: item.title ?? deriveTitle(item.body, item.id),
     status: item.status,

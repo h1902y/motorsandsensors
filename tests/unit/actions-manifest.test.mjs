@@ -4,11 +4,11 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadManifest, execOf, allActions, listActions, inboxDir } from '../../zuzuu/actions/manifest.mjs';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 const actionMd = ({ slug, kind = 'script', title = slug, body = slug, payload = {} }) =>
   serializeEnvelope({
-    id: slug, faculty: 'actions', kind, title, status: 'active',
+    id: slug, module: 'actions', kind, title, status: 'active',
     created_at: '2026-06-12T00:00:00Z', payload, body,
   });
 

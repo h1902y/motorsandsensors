@@ -1,15 +1,15 @@
-// `zuzuu eval [--faculty f]` — non-interactive proposal ranking table.
-// Loads proposals across all faculties (or one with --faculty), ranks them
+// `zuzuu eval [--module f]` — non-interactive proposal ranking table.
+// Loads proposals across all modules (or one with --module), ranks them
 // highest-score first, and prints a table:
-//   <score> [<conf>]  <faculty>/<id>  — <rationale>
+//   <score> [<conf>]  <module>/<id>  — <rationale>
 //
 // Also exports `evalLine` — a small pure helper used by `zuzuu review` to render
 // a one-line eval annotation per proposal card.
 
 import { join } from 'node:path';
 import { paths } from '../core/store.mjs';
-import * as registry from '../faculty/registry.mjs';
-import { buildSessionMtimes, facultyPending } from '../faculty/pending.mjs';
+import * as registry from '../module/registry.mjs';
+import { buildSessionMtimes, modulePending } from '../module/pending.mjs';
 import { rank } from '../eval/rank.mjs';
 import { getScorer } from '../eval/score.mjs';
 
@@ -32,10 +32,10 @@ export function evalLine({ score, confidence, rationale }) {
  *
  * @param {string} agentDir   Resolved .zuzuu/ path.
  * @param {object} [opts]
- * @param {string} [opts.faculty]  Filter to a single faculty name.
- * @returns {{ ranked: Array<{id,faculty,title,score,confidence,rationale}> }}
+ * @param {string} [opts.module]  Filter to a single module name.
+ * @returns {{ ranked: Array<{id,module,title,score,confidence,rationale}> }}
  */
-export function evalData(agentDir, { faculty: onlyFaculty = null } = {}) {
+export function evalData(agentDir, { module: onlyModule = null } = {}) {
   const adapters = registry.all();
   const sessionMtimes = buildSessionMtimes(join(agentDir, '..'));
   const now = Date.now();
@@ -43,10 +43,10 @@ export function evalData(agentDir, { faculty: onlyFaculty = null } = {}) {
 
   const allEntries = [];
   for (const adapter of adapters) {
-    if (onlyFaculty && adapter.name !== onlyFaculty) continue;
-    const proposals = facultyPending(agentDir, adapter);
+    if (onlyModule && adapter.name !== onlyModule) continue;
+    const proposals = modulePending(agentDir, adapter);
     for (const proposal of proposals) {
-      allEntries.push({ proposal, faculty: adapter.name });
+      allEntries.push({ proposal, module: adapter.name });
     }
   }
 
@@ -54,15 +54,15 @@ export function evalData(agentDir, { faculty: onlyFaculty = null } = {}) {
 
   const rawProposals = allEntries.map((e) => e.proposal);
   const rankResults = rank(rawProposals, scorer, { now, sessionMtimes });
-  const facultyByProposalId = new Map(allEntries.map((e) => [e.proposal.id, e.faculty]));
+  const moduleByProposalId = new Map(allEntries.map((e) => [e.proposal.id, e.module]));
 
   const ranked = rankResults.map(({ proposal, score, confidence, rationale }) => {
-    const fac = facultyByProposalId.get(proposal.id) ?? '?';
+    const fac = moduleByProposalId.get(proposal.id) ?? '?';
     const title = proposal.title
       ?? proposal.candidate?.body?.slice(0, 80)
       ?? proposal.payload?.body?.slice(0, 80)
       ?? proposal.id;
-    return { id: proposal.id, faculty: fac, title, score, confidence, rationale };
+    return { id: proposal.id, module: fac, title, score, confidence, rationale };
   });
 
   return { ranked };
@@ -76,18 +76,18 @@ export function evalData(agentDir, { faculty: onlyFaculty = null } = {}) {
  */
 export function evalCmd(args, log = console.log) {
   const agentDir = paths().dir;
-  const onlyFaculty = args?.faculty ?? null;
+  const onlyModule = args?.module ?? null;
 
   if (args?.json) {
-    const d = evalData(agentDir, { faculty: onlyFaculty });
+    const d = evalData(agentDir, { module: onlyModule });
     log(JSON.stringify(d));
     return;
   }
 
-  const { ranked } = evalData(agentDir, { faculty: onlyFaculty });
+  const { ranked } = evalData(agentDir, { module: onlyModule });
   if (!ranked.length) { log('no pending proposals'); return; }
-  for (const { id, faculty, score, confidence, rationale } of ranked) {
+  for (const { id, module, score, confidence, rationale } of ranked) {
     const warn = confidence === 'low' ? ' ⚠' : '';
-    log(`${String(score).padEnd(6)} [${confidence}]  ${faculty}/${id}  — ${rationale}${warn}`);
+    log(`${String(score).padEnd(6)} [${confidence}]  ${module}/${id}  — ${rationale}${warn}`);
   }
 }

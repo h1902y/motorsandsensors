@@ -107,7 +107,7 @@ test('prints a clean summary banner + launching line before launch', () => {
     deps.log = (...m) => out.push(m.join(' '));
     code({ _: [d] }, deps);
     const text = out.join('\n');
-    assert.match(text, /faculty-equipped/, 'summary banner');
+    assert.match(text, /module-equipped/, 'summary banner');
     assert.match(text, /capture \+ guardrails gate/, 'wired status');
     assert.match(text, /launching OpenCode in/, 'launching line');
   });

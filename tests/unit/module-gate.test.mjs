@@ -1,0 +1,79 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { approve, reject } from '../../zuzuu/module/gate.mjs'; // built-in adapters always registered
+import { register } from '../../zuzuu/module/registry.mjs';
+import { writeProposal, makeProposal } from '../../zuzuu/module/proposal.mjs';
+import { SEED_TYPES } from '../../zuzuu/knowledge/registry.mjs';
+
+function withHome(fn) {
+  const dir = mkdtempSync(join(tmpdir(), 'zuzuu-gate-'));
+  const agentDir = join(dir, '.zuzuu');
+  const reg = join(agentDir, 'knowledge', 'registry');
+  mkdirSync(reg, { recursive: true });
+  mkdirSync(join(agentDir, 'knowledge', 'items'), { recursive: true });
+  mkdirSync(join(agentDir, 'knowledge', 'proposals'), { recursive: true });
+  writeFileSync(join(reg, 'types.json'), JSON.stringify(SEED_TYPES));
+  try { return fn(agentDir); } finally { rmSync(dir, { recursive: true, force: true }); }
+}
+
+test('gate.approve applies a knowledge proposal and archives it', () => {
+  withHome((agentDir) => {
+    const p = makeProposal({
+      module: 'knowledge', kind: 'item', source: 'test',
+      payload: { id: 'ci-node', type: 'fact', body: 'CI runs Node 22 and 24' },
+      analysis: { er: { verdict: 'new' } },
+    });
+    writeProposal(agentDir, p);
+    const r = approve(agentDir, 'knowledge', p.id);
+    assert.ok(r.ok, JSON.stringify(r));
+    // item written
+    assert.ok(r.itemIds.includes('ci-node'));
+    // proposal archived, not pending
+    assert.ok(!existsSync(join(agentDir, 'knowledge', 'proposals', `${p.id}.json`)), 'pending gone');
+    const archPath = join(agentDir, 'knowledge', 'proposals', 'archive', `${p.id}.json`);
+    assert.ok(existsSync(archPath), 'archived');
+    const arch = JSON.parse(readFileSync(archPath, 'utf8'));
+    assert.equal(arch.status, 'approved');
+  });
+});
+
+test('gate.approve does NOT archive when apply fails — proposal stays pending for retry', () => {
+  withHome((agentDir) => {
+    // a dummy module whose validate passes but apply fails (e.g. "already exists")
+    register({
+      name: 'dummy',
+      validate: () => ({ ok: true, errors: [], warnings: [] }),
+      apply: () => ({ ok: false, action: 'already exists', error: 'exists' }),
+      render: () => ({ line: 'x', card: ['x'] }),
+    });
+    const p = makeProposal({ module: 'dummy', kind: 'thing', source: 'test', payload: { id: 'd1' } });
+    writeProposal(agentDir, p);
+    const r = approve(agentDir, 'dummy', p.id);
+    assert.equal(r.ok, false, 'apply failure surfaced');
+    // the pending proposal must SURVIVE (not archived as approved)
+    assert.ok(existsSync(join(agentDir, 'dummy', 'proposals', `${p.id}.json`)), 'still pending for retry');
+    assert.ok(!existsSync(join(agentDir, 'dummy', 'proposals', 'archive', `${p.id}.json`)), 'not archived');
+  });
+});
+
+test('gate.reject archives the proposal with status rejected, does NOT delete', () => {
+  withHome((agentDir) => {
+    const p = makeProposal({
+      module: 'knowledge', kind: 'item', source: 'test',
+      payload: { id: 'junk', type: 'fact', body: 'an unwanted fact' },
+      analysis: { er: { verdict: 'new' } },
+    });
+    writeProposal(agentDir, p);
+    const r = reject(agentDir, 'knowledge', p.id, 'too weak');
+    assert.ok(r.ok);
+    assert.ok(!existsSync(join(agentDir, 'knowledge', 'proposals', `${p.id}.json`)), 'pending gone');
+    const archPath = join(agentDir, 'knowledge', 'proposals', 'archive', `${p.id}.json`);
+    assert.ok(existsSync(archPath), 'archived not deleted');
+    const arch = JSON.parse(readFileSync(archPath, 'utf8'));
+    assert.equal(arch.status, 'rejected');
+    assert.equal(arch.reason, 'too weak');
+  });
+});

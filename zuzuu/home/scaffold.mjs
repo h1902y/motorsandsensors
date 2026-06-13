@@ -1,38 +1,38 @@
-// The faculty-home scaffold — the layout contract for `zuzuu init`.
+// The module-home scaffold — the layout contract for `zuzuu init`.
 //
 // Git-init discipline: idempotent and never destructive. plan() inspects what
 // exists; apply() creates ONLY what's missing — it never overwrites a file, so
 // user edits to any seeded file always survive a re-init.
 //
-// Layout = the five faculties (docs/DESIGN.md §3①, the 5+3 anatomy):
+// Layout = the five modules (docs/DESIGN.md §3①, the 5+3 anatomy):
 //   .zuzuu/agent.json + knowledge/ memory/ actions/ instructions/ guardrails/
 // The home is HIDDEN (.zuzuu/, like .git — decided 2026-06-12, DESIGN §13):
 // transparency comes from porcelain (zz status/explain/digest) + plain-text
 // files inside; the only visible footprint is the managed block + .gitignore lines.
 // Guardrails became first-class (enforced via the PreToolUse gate) on 2026-06-10;
 // the old instructions/guardrails.md advisory seed left the layout (existing
-// projects keep theirs — no-clobber — but new scaffolds get the real faculty).
+// projects keep theirs — no-clobber — but new scaffolds get the real module).
 
 import { join } from 'node:path';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../knowledge/registry.mjs';
-import { serializeEnvelope, PAYLOAD_SCHEMAS, FACULTY_KINDS } from '../faculty/envelope.mjs';
-import { BUILTIN_MODULES } from '../faculty/registry.mjs';
+import { serializeEnvelope, PAYLOAD_SCHEMAS, MODULE_KINDS } from '../module/envelope.mjs';
+import { BUILTIN_MODULES } from '../module/registry.mjs';
 
 export const MANIFEST_VERSION = 4;
 
-// Deterministic seed timestamp (the Faculty Standard date) — seeds are pinned
+// Deterministic seed timestamp (the Module Standard date) — seeds are pinned
 // definitions, so idempotent re-inits must produce byte-identical files.
 const SEED_AT = '2026-06-12T00:00:00Z';
 
 const AGENT_README = `# .zuzuu/ — your agent's home (hidden, like .git — yours to read & version)
 
-This directory is your agent's evolving brain. Five **faculties** grow from how you
+This directory is your agent's evolving brain. Five **modules** grow from how you
 actually work — and **nothing changes without your approval**. It's dot-prefixed to
 stay out of your way; everything inside is plain text, versioned in git, and
 surfaced by \`zuzuu status\` / \`zuzuu explain\` / \`zuzuu digest\`.
 
-## The five faculties
+## The five modules
 - **knowledge/** — what's TRUE (facts about this project)
 - **memory/** — what HAPPENED (curated episodes from past sessions)
 - **actions/** — how to DO things (runbooks the agent can call)
@@ -44,8 +44,8 @@ surfaced by \`zuzuu status\` / \`zuzuu explain\` / \`zuzuu digest\`.
                                                               │  you decide
                                                     zuzuu review  (y / n / edit)
                                                               ▼
-                                          approved → the faculty + a new *generation*
-A **generation** is a pinned checkpoint of every faculty. Approving proposals mints
+                                          approved → the module + a new *generation*
+A **generation** is a pinned checkpoint of every module. Approving proposals mints
 one; \`zuzuu generation rollback <id>\` restores any earlier checkpoint.
 
 ## Get in the loop
@@ -59,7 +59,7 @@ one; \`zuzuu generation rollback <id>\` restores any earlier checkpoint.
 Everything else here is yours to read, edit, and version in git.
 `;
 
-const KNOWLEDGE_README = `# knowledge/ — the Knowledge faculty (what's TRUE)
+const KNOWLEDGE_README = `# knowledge/ — the Knowledge module (what's TRUE)
 
 Items in \`items/\` — one fact/entity per file: prose body + typed attributes +
 typed relations (registry-governed: \`registry/\`) + provenance. The derived
@@ -70,17 +70,17 @@ become \`proposals/\`, and a human approves via \`zuzuu review\` — never silen
 checks health.
 `;
 
-const MEMORY_README = `# memory/ — episodic faculty (what HAPPENED)
+const MEMORY_README = `# memory/ — episodic module (what HAPPENED)
 
 Curated recollections of past sessions, distilled from the observability traces (\`.zuzuu/.traces/\`).
 - **Who writes:** zuzuu (distillation — *not built yet*), human (curation). Raw traces stay in traces/ — this is the *curated* layer.
 - **Where:** one Markdown file per entry under \`entries/\`, named \`<id>.md\`.
 
-## Record schema (the Faculty Standard envelope)
+## Record schema (the Module Standard envelope)
 \`\`\`markdown
 ---
 id: mem-2026-06-11-flaky-ci-retry      # mem-<YYYY-MM-DD>-<slug>, stable
-faculty: memory
+module: memory
 kind: episode
 title: Flaky CI fixed by pinning node 22
 status: active
@@ -103,7 +103,7 @@ The durable lesson.
 \`\`\`
 `;
 
-const ACTIONS_README = `# actions/ — procedural faculty (how to DO things)
+const ACTIONS_README = `# actions/ — procedural module (how to DO things)
 
 Named, reusable procedures/skills for this project (scripts, runbooks, tool recipes).
 - **Who writes:** the human; later, zuzuu proposes crystallized actions mined from traces (human-approved).
@@ -111,18 +111,18 @@ Named, reusable procedures/skills for this project (scripts, runbooks, tool reci
 - **Propose a reusable action**: \`zuzuu act propose <slug>\` scaffolds into \`actions/inbox/\` for review. A human approves via \`zuzuu review\` (or \`zuzuu act approve <slug>\`). Never write active actions directly from an agent.
 `;
 
-const INSTRUCTIONS_README = `# instructions/ — the Instructions faculty (directive: who the agent is)
+const INSTRUCTIONS_README = `# instructions/ — the Instructions module (directive: who the agent is)
 
 Cognition steering: identity, conventions, priorities — the project-level seed of
 the pinned system prompt. The host agent reads and follows this.
 - \`items/steering.md\` — the pinned steering item (what this is, conventions, priorities).
 - Approved amendments land as further items in \`items/\` (kind: amendment).
-- Hard *enforced* rules live in \`../guardrails/\` (a separate faculty), not here.
+- Hard *enforced* rules live in \`../guardrails/\` (a separate module), not here.
 `;
 
 const STEERING_SEED = serializeEnvelope({
   id: 'steering',
-  faculty: 'instructions',
+  module: 'instructions',
   kind: 'steering',
   title: 'Project steering',
   status: 'active',
@@ -131,7 +131,7 @@ const STEERING_SEED = serializeEnvelope({
   body: '<!-- Fill in: what this project is, conventions, priorities. The host agent reads this. -->',
 });
 
-const GUARDRAILS_README = `# guardrails/ — the Guardrails faculty (enforced, not advisory)
+const GUARDRAILS_README = `# guardrails/ — the Guardrails module (enforced, not advisory)
 
 One rule per envelope item in \`items/\` (markdown + frontmatter; payload =
 \`{ action: deny|ask|allow, tool: "Bash"|"*", pattern: <regex over the tool
@@ -143,10 +143,10 @@ decisions are logged for the trace. Edit, commit, done — rules are definitions
 versioned in git like everything else.
 `;
 
-/** Seeded rules, one envelope item each (the Faculty Standard, W24). */
+/** Seeded rules, one envelope item each (the Module Standard, W24). */
 const ruleSeed = ({ id, title, action, tool, pattern, reason, body }) =>
   serializeEnvelope({
-    id, faculty: 'guardrails', kind: 'rule', title, status: 'active', created_at: SEED_AT,
+    id, module: 'guardrails', kind: 'rule', title, status: 'active', created_at: SEED_AT,
     payload: { action, tool, pattern, reason }, body,
   });
 
@@ -173,21 +173,21 @@ const RULE_SEEDS = {
 /** Envelope spec seed (.zuzuu/schema.json) — descriptive, for humans + tools. */
 const ENVELOPE_SPEC = JSON.stringify(
   {
-    standard: 'zuzuu-faculty-envelope',
+    standard: 'zuzuu-module-envelope',
     version: 1,
-    description: 'One file per item: markdown body + strict frontmatter. One rigid envelope across all five faculties; payload is faculty-typed and validated by <faculty>/schema.json.',
+    description: 'One file per item: markdown body + strict frontmatter. One rigid envelope across all five modules; payload is module-typed and validated by <module>/schema.json.',
     envelope: {
       id: 'required — slug [a-z0-9-]',
-      faculty: 'required — knowledge|memory|actions|instructions|guardrails',
-      kind: 'required — per-faculty kinds (see kinds)',
+      module: 'required — knowledge|memory|actions|instructions|guardrails',
+      kind: 'required — per-module kinds (see kinds)',
       title: 'required — single line',
       status: 'active|archived (default active)',
       created_at: 'required — ISO date/datetime',
       updated_at: 'optional — ISO date/datetime',
       provenance: 'optional list of {session, ref}',
-      payload: 'faculty-typed machine fields (see <faculty>/schema.json)',
+      payload: 'module-typed machine fields (see <module>/schema.json)',
     },
-    kinds: { ...FACULTY_KINDS, knowledge: 'registry-governed (knowledge/registry/types.json)' },
+    kinds: { ...MODULE_KINDS, knowledge: 'registry-governed (knowledge/registry/types.json)' },
   },
   null,
   2,
@@ -195,7 +195,7 @@ const ENVELOPE_SPEC = JSON.stringify(
 
 const payloadSchemaSeed = (f) => JSON.stringify(PAYLOAD_SCHEMAS[f], null, 2) + '\n';
 
-/** Faculty Module manifest seed (faculty.json) — the built-in module's canonical
+/** Module manifest seed (module.json) — the built-in module's canonical
  *  manifest, serialized. Pinned definitions: byte-identical on re-init. */
 export const manifestSeed = (f) => JSON.stringify(BUILTIN_MODULES[f].manifest, null, 2) + '\n';
 
@@ -207,20 +207,20 @@ export const LAYOUT = {
     '.zuzuu/schema.json': ENVELOPE_SPEC,
     '.zuzuu/knowledge/README.md': KNOWLEDGE_README,
     '.zuzuu/knowledge/schema.json': payloadSchemaSeed('knowledge'),
-    '.zuzuu/knowledge/faculty.json': manifestSeed('knowledge'),
+    '.zuzuu/knowledge/module.json': manifestSeed('knowledge'),
     '.zuzuu/memory/README.md': MEMORY_README,
     '.zuzuu/memory/schema.json': payloadSchemaSeed('memory'),
-    '.zuzuu/memory/faculty.json': manifestSeed('memory'),
+    '.zuzuu/memory/module.json': manifestSeed('memory'),
     '.zuzuu/actions/README.md': ACTIONS_README,
     '.zuzuu/actions/schema.json': payloadSchemaSeed('actions'),
-    '.zuzuu/actions/faculty.json': manifestSeed('actions'),
+    '.zuzuu/actions/module.json': manifestSeed('actions'),
     '.zuzuu/instructions/README.md': INSTRUCTIONS_README,
     '.zuzuu/instructions/schema.json': payloadSchemaSeed('instructions'),
-    '.zuzuu/instructions/faculty.json': manifestSeed('instructions'),
+    '.zuzuu/instructions/module.json': manifestSeed('instructions'),
     '.zuzuu/instructions/items/steering.md': STEERING_SEED,
     '.zuzuu/guardrails/README.md': GUARDRAILS_README,
     '.zuzuu/guardrails/schema.json': payloadSchemaSeed('guardrails'),
-    '.zuzuu/guardrails/faculty.json': manifestSeed('guardrails'),
+    '.zuzuu/guardrails/module.json': manifestSeed('guardrails'),
     '.zuzuu/guardrails/items/no-root-wipe.md': RULE_SEEDS['no-root-wipe'],
     '.zuzuu/guardrails/items/no-secret-reads.md': RULE_SEEDS['no-secret-reads'],
     '.zuzuu/guardrails/items/confirm-force-push.md': RULE_SEEDS['confirm-force-push'],

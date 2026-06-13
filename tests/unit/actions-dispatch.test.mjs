@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { runAction } from '../../zuzuu/actions/dispatch.mjs';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 // payload = ACTION.md envelope payload ({exec?, args?}); runBody = run.mjs source.
 // NOTE: awaits fn — an async fn body must finish before the temp tree is removed.
@@ -13,7 +13,7 @@ async function withAction(slug, payload, runBody, fn) {
   const dir = join(root, '.zuzuu', 'actions', slug);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'ACTION.md'), serializeEnvelope({
-    id: slug, faculty: 'actions', kind: 'script', title: slug, status: 'active',
+    id: slug, module: 'actions', kind: 'script', title: slug, status: 'active',
     created_at: '2026-06-12T00:00:00Z', payload, body: `runs ${slug}`,
   }));
   writeFileSync(join(dir, 'run.mjs'), runBody);

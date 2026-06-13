@@ -1,4 +1,4 @@
-// WS2-T2 — the Knowledge faculty adapter. Verifies the adapter wraps the existing
+// WS2-T2 — the Knowledge module adapter. Verifies the adapter wraps the existing
 // approve pipeline behaviour-preservingly: ingest runs ER, validate uses the
 // registry, apply writes + indexes the item, render produces a human card.
 
@@ -11,7 +11,7 @@ import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../../zuzuu/knowled
 import { createProposal, getProposal } from '../../zuzuu/knowledge/proposals.mjs';
 import { readItem } from '../../zuzuu/knowledge/items.mjs';
 import { search } from '../../zuzuu/knowledge/index.mjs';
-import * as registry from '../../zuzuu/faculty/registry.mjs'; // built-ins always present
+import * as registry from '../../zuzuu/module/registry.mjs'; // built-ins always present
 
 function withHome(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'zuzuu-kadapter-'));

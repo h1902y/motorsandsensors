@@ -74,7 +74,7 @@ test('sessions --json: empty index → empty list (never throws)', () => {
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 });
 
-test('session inspect: {session, trace:{spans,tools,duration}, signals:{faculty:counts}}', () => {
+test('session inspect: {session, trace:{spans,tools,duration}, signals:{module:counts}}', () => {
   withSeededRepo((cwd) => {
     const d = sessionInspectData(cwd, 'sess-test', {
       transcripts: [{ host: 'claude-code', ref: FIXTURE, sessionId: 'sess-test' }],
@@ -88,7 +88,7 @@ test('session inspect: {session, trace:{spans,tools,duration}, signals:{faculty:
     assert.equal(d.trace.spans, 3);
     assert.equal(d.trace.tools, 2);
     assert.equal(d.trace.duration, 300000);
-    // per-faculty signals via the modules' sessionSignals hooks
+    // per-module signals via the modules' sessionSignals hooks
     // (claude-sample: 2 bash commands, 1 failed, 1 adjacent 2-gram, no files,
     //  no corrections, no destructive failures)
     assert.deepEqual(d.signals.knowledge, { commands: 2, files: 0, failures: 1 });

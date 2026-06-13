@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// zuzuu — the agent-faculty CLI (formerly zuzuu / motors & sensors). Verb-first, entire.io-style; zero deps, no build.
+// zuzuu — the agent-module CLI (formerly zuzuu / motors & sensors). Verb-first, entire.io-style; zero deps, no build.
 //
 //   zuzuu status                 detected hosts + recorded sessions
 //   zuzuu capture [--host h]      capture a session → git-native trace + index entry
@@ -35,7 +35,7 @@ import { explain } from '../zuzuu/commands/explain.mjs';
 import { inbox } from '../zuzuu/commands/inbox.mjs';
 import { session } from '../zuzuu/commands/session.mjs';
 import { sessions } from '../zuzuu/commands/sessions.mjs';
-import { faculty } from '../zuzuu/commands/faculty.mjs';
+import { module } from '../zuzuu/commands/module.mjs';
 
 function parseArgs(argv) {
   const a = { _: [] };
@@ -59,15 +59,15 @@ function version() {
 }
 
 function help() {
-  console.log(`zuzuu — evolving faculties for the coding agent you already run
+  console.log(`zuzuu — evolving modules for the coding agent you already run
 
 usage: zuzuu <command> [options]
 
-  code [dir]                launch OpenCode as the bundled default host (faculty home + capture + gate + digest)
+  code [dir]                launch OpenCode as the bundled default host (module home + capture + gate + digest)
   web [dir] [--stop|--status]
                             launch the visual workbench (reuses a running one;
                             --stop ends it, --status reports it)
-  init                      scaffold the faculty home (.zuzuu/) — git-style, idempotent
+  init                      scaffold the module home (.zuzuu/) — git-style, idempotent
   status                    detected hosts + recorded sessions
   capture [--host NAME]     capture a session → .zuzuu/.traces + .zuzuu/sessions.json
           [--session ID] [--file PATH]
@@ -77,41 +77,43 @@ usage: zuzuu <command> [options]
   recall "query" [--type t] [--attr k=v] [--related-to id] [--semantic]
                             search knowledge: lexical · graph · semantic
   knowledge reindex|audit   rebuild the search index · check registry/items health
-  faculty items <f> [--json|--jsonl]
-                            list a faculty's envelope items (one doc · one line per item)
-  faculty schema <f> [--json]
-                            print a faculty's payload schema (JSON-Schema subset)
-  faculty manifest <f> [--json]
-                            print a faculty's module manifest (faculty.json)
-  faculty overview [--json] every faculty in one shot: ui + counts + top items + pending
+  module items <f> [--json|--jsonl]
+                            list a module's envelope items (one doc · one line per item)
+  module schema <f> [--json]
+                            print a module's payload schema (JSON-Schema subset)
+  module manifest <f> [--json]
+                            print a module's manifest (module.json)
+  module overview [--json] every module in one shot: ui + counts + top items + pending
   digest [--json] [--budget N]
                             print the session-start grounding brief
   act [list|show <slug>|new <slug>|schema <slug>]
-                            the Actions faculty — runbooks + runnable scripts
+                            the Actions module — runbooks + runnable scripts
   act <slug> [--args JSON]  run a script action
   act propose <slug>        scaffold a proposed action → actions/inbox/ (for review)
   act inbox|approve <slug>|reject <slug>
                             the actions gate (or use \`zuzuu review\`)
   distill [--all|--session ID]
                             mine real sessions → knowledge proposals (default: last)
-  inbox                     what's pending your approval, per faculty
+  inbox                     what's pending your approval, per module
   review                    walk pending actions + knowledge proposals (y/n/e/s/q)
   proposals list|show|approve|reject <id>
                             the same gate, non-interactive
   generation [list|show <id>|mint|rollback <id>]
-                            pin/list/show/roll back faculty generations (lockfiles)
+                            pin/list/show/roll back module generations (lockfiles)
   enable                    background hooks: invisible live capture + guardrails gate
   disable                   remove the background hooks
   session [status|merge|continue|discard]
                             the invisible session branch (one per agent session)
   sessions [--json]         recorded sessions with lifecycle state labels
   session inspect <id> [--json]
-                            one session: trace summary + per-faculty mined signals
-  eval [--faculty f]        rank pending proposals by eval score, highest first
-  migrate [--home|--items]  one-time migrators: proposal schema · --home moves agent/ → .zuzuu/
-                            · --items rewrites legacy faculty shapes → the envelope standard
+                            one session: trace summary + per-module mined signals
+  eval [--module f]        rank pending proposals by eval score, highest first
+  migrate [--home|--items|--modules]
+                            one-time migrators: proposal schema · --home moves agent/ → .zuzuu/
+                            · --items rewrites legacy module shapes → the envelope standard
+                            · --modules renames faculty → module (keys, manifests, lockfiles)
   doctor                    environment + session health (reconciles lost sessions)
-  explain [topic]           the 5 faculties + how graduation works
+  explain [topic]           the 5 modules + how graduation works
   version                   print version
   help                      this message
 
@@ -143,7 +145,7 @@ switch (cmd) {
   case 'hook': runHook(args._[0], { host: args.host, session: args.session }); break;
   case 'session': session(args); break;
   case 'sessions': sessions(args); break;
-  case 'faculty': faculty(args); break;
+  case 'module': module(args); break;
   case 'eval': evalCmd(args); break;
   case 'migrate': migrate(args); break;
   case 'generation': generation(args); break;

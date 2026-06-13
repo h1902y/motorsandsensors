@@ -1,13 +1,13 @@
-// The Guardrails faculty — v1 rule engine (pure; I/O lives in the hook command).
+// The Guardrails module — v1 rule engine (pure; I/O lives in the hook command).
 //
 // Rules are DATA, not code: one envelope item per rule under
-// .zuzuu/guardrails/items/<id>.md (the Faculty Standard, W24) — *definitions*
+// .zuzuu/guardrails/items/<id>.md (the Module Standard, W24) — *definitions*
 // in the pin-definitions sense (versioned in git, graduate via proposals like
-// every faculty's contents).
+// every module's contents).
 //
 //   ---
 //   id: no-root-wipe
-//   faculty: guardrails
+//   module: guardrails
 //   kind: rule
 //   title: …
 //   payload:
@@ -31,7 +31,7 @@
 
 import { join } from 'node:path';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { parseEnvelope } from '../faculty/envelope.mjs';
+import { parseEnvelope } from '../module/envelope.mjs';
 
 const SEVERITY = { deny: 3, ask: 2, allow: 1 };
 const ACTIONS = new Set(Object.keys(SEVERITY));
@@ -52,10 +52,10 @@ function compileRule(item) {
 }
 
 /**
- * Load the rules from a guardrails faculty dir (…/guardrails) by composing the
+ * Load the rules from a guardrails module dir (…/guardrails) by composing the
  * envelope items under its items/ subdir. FAIL-OPEN: a missing dir is zero
  * rules; a malformed item is skipped + counted, never a crash.
- * @param {string} guardrailsDir  the faculty dir (e.g. <home>/guardrails)
+ * @param {string} guardrailsDir  the module dir (e.g. <home>/guardrails)
  * @returns {{ok: boolean, rules: Array, skipped: Array<{file: string, error: string}>}}
  */
 export function loadRules(guardrailsDir) {

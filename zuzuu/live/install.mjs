@@ -7,7 +7,7 @@
 export const SIGNATURE = 'zuzuu.mjs'; // appears in every zuzuu hook command path, quote-agnostic
 const tagged = (cmd) => String(cmd).includes(SIGNATURE);
 // entire-style: agent can't read its own observability output (feedback loop) —
-// but ONLY that. The faculty home (.zuzuu/knowledge etc., served by `zuzuu init`)
+// but ONLY that. The module home (.zuzuu/knowledge etc., served by `zuzuu init`)
 // must stay readable, so the deny is narrowed to .traces/ + .live/.
 const DENY_RULES = ['Read(./.zuzuu/.traces/**)', 'Read(./.zuzuu/.live/**)'];
 

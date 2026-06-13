@@ -21,7 +21,7 @@ import { sessionGitEnabled, openSession, checkpoint, closeSession } from '../ses
 import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../guardrails/engine.mjs';
 import { paths, liveDir as liveDirOf } from '../core/store.mjs';
 import { computeDigest } from '../digest/compose.mjs';
-import { activeGeneration } from '../faculty/generation/read.mjs';
+import { activeGeneration } from '../module/generation/read.mjs';
 
 // Lifecycle events, normalized across hosts (verified by observing each host):
 //   open  — session starts
@@ -157,8 +157,8 @@ export function gateDecision({ host = 'claude-code', payload = {}, cwd = process
 
 /**
  * Universal digest delivery (Design B side effect, not a span builder). Computes
- * the faculty digest and writes it to `.zuzuu/.live/digest.md` — the ONE channel
- * every host can read at session start (the faculty block points here). Claude
+ * the module digest and writes it to `.zuzuu/.live/digest.md` — the ONE channel
+ * every host can read at session start (the module block points here). Claude
  * also gets it inline via sessionStartContext; the other 4 hosts rely on this
  * file. Fail-open: any error is swallowed (never break the host).
  * @param {string} cwd  repo cwd; paths() resolves the .zuzuu/ home under it
@@ -177,7 +177,7 @@ export function writeLiveDigest(cwd = process.cwd()) {
 }
 
 /**
- * Build Claude Code's SessionStart additionalContext payload from the faculty
+ * Build Claude Code's SessionStart additionalContext payload from the module
  * digest. Returns null on ANY failure (fail-open: the session proceeds with no
  * injected context, never a broken hook).
  * @param {string} cwd  repo cwd; paths() resolves the .zuzuu/ home under it

@@ -1,5 +1,5 @@
 // `zuzuu code` — launch OpenCode as the bundled default host, pre-wired with the
-// faculty home + the zuzuu plugin (capture + gate + digest). We CONFIGURE + LAUNCH
+// module home + the zuzuu plugin (capture + gate + digest). We CONFIGURE + LAUNCH
 // the real `opencode` binary; we never fork it and never drive it headlessly
 // (the observe model; interactive-first). Stage 2 of the product sequence.
 //
@@ -57,7 +57,7 @@ export function code(args = {}, deps = {}) {
   const dir = args._?.[0] ? resolve(String(args._[0])) : process.cwd();
   if (!existsSync(dir)) { d.log(`zuzuu code: no such directory: ${dir}`); return 1; }
 
-  // 2. ensure the faculty home (only when absent — keeps output clean; init is idempotent)
+  // 2. ensure the module home (only when absent — keeps output clean; init is idempotent)
   if (!homeExists(repoRoot(dir))) d.runInit(dir);
 
   // 3. ensure OpenCode (detect + install-on-demand)
@@ -75,8 +75,8 @@ export function code(args = {}, deps = {}) {
   try { d.runEnable(dir); } catch (e) { wired = false; d.log(`zuzuu code: could not wire the zuzuu plugin (${e?.message || e}) — launching unwired.`); }
 
   // a clean one-screen summary of what the newcomer just got (vs. the verbose enable output)
-  d.log('zuzuu code → OpenCode, faculty-equipped');
-  d.log(`  ✓ faculty home (.zuzuu/)   ${wired ? '✓ capture + guardrails gate   ✓ session grounding' : '⚠ plugin not wired (degraded)'}`);
+  d.log('zuzuu code → OpenCode, module-equipped');
+  d.log(`  ✓ module home (.zuzuu/)   ${wired ? '✓ capture + guardrails gate   ✓ session grounding' : '⚠ plugin not wired (degraded)'}`);
   d.log(`  → launching OpenCode in ${dir} …`);
 
   // 5. launch the real OpenCode (configure + launch, never drive)

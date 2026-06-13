@@ -1,12 +1,12 @@
 // zuzuu/commands/generation.mjs — `zuzuu generation` CLI (WS3-T1).
 //
 //   zuzuu generation list             generations (id · mintedAt · mintedFrom count · ● active)
-//   zuzuu generation mint             manually mint a generation from the current faculty state
+//   zuzuu generation mint             manually mint a generation from the current module state
 //   zuzuu generation rollback <id>    restore a past generation by content (flip active + restore)
 
 import { paths, repoRoot } from '../core/store.mjs';
-import { listGenerations, readGeneration, activeGeneration, diffGenerations } from '../faculty/generation/read.mjs';
-import { mintGeneration, rollback } from '../faculty/generation/write.mjs';
+import { listGenerations, readGeneration, activeGeneration, diffGenerations } from '../module/generation/read.mjs';
+import { mintGeneration, rollback } from '../module/generation/write.mjs';
 
 function agentDir() {
   return paths(repoRoot(process.cwd())).dir;
@@ -76,7 +76,7 @@ export function generationShowData(dir, id) {
   return d ? { id, ...d } : null;
 }
 
-/** Pure: the per-faculty diff lines for `generation show`. */
+/** Pure: the per-module diff lines for `generation show`. */
 export function showLines(dir, id) {
   const d = diffGenerations(dir, id);
   if (!d) return null;
@@ -85,9 +85,9 @@ export function showLines(dir, id) {
   lines.push(`  forkedFrom: ${d.forkedFrom ?? '(none — first generation)'}`);
   lines.push(`  mintedFrom: ${d.mintedFrom.length} proposal(s)`);
   lines.push('  changes vs parent:');
-  // all five faculties are envelope-item lists under the Faculty Standard (W24)
+  // all five modules are envelope-item lists under the Module Standard (W24)
   for (const f of ['knowledge', 'actions', 'memory', 'guardrails', 'instructions']) {
-    const x = d.faculties[f] || { added: [], changed: [], removed: [] };
+    const x = d.modules[f] || { added: [], changed: [], removed: [] };
     const parts = [];
     if (x.added.length) parts.push(`+${x.added.length} added`);
     if (x.changed.length) parts.push(`~${x.changed.length} changed`);

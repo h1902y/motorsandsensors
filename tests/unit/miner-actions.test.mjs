@@ -7,9 +7,9 @@ import { join } from 'node:path';
 import { mkdtempSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-import { miner, aggregate, propose } from '../../zuzuu/faculties/actions/index.mjs';
-import * as registry from '../../zuzuu/faculty/registry.mjs';
-import { parseEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { miner, aggregate, propose } from '../../zuzuu/modules/actions/index.mjs';
+import * as registry from '../../zuzuu/module/registry.mjs';
+import { parseEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 // ---------------------------------------------------------------------------
 // Helpers — build the mineTranscript output shape directly (deterministic).
@@ -114,7 +114,7 @@ test('propose: scaffolds actions/inbox/<slug>/ with a runbook ACTION.md', () => 
   const { ok, item } = parseEnvelope(readFileSync(actionMd, 'utf8'));
   assert.ok(ok, 'ACTION.md is a valid envelope');
   assert.equal(item.id, slug);
-  assert.equal(item.faculty, 'actions');
+  assert.equal(item.module, 'actions');
   assert.equal(item.kind, 'runbook');
   assert.ok(typeof item.title === 'string' && item.title.length > 0);
   // numbered steps must be present in the body
@@ -146,7 +146,7 @@ test('propose: idempotent — second call does not duplicate or throw', () => {
 test('actions miner self-registers on import', () => {
   assert.ok(registry.minerOf('actions'), 'actions miner in registry');
   assert.equal(registry.minerOf('actions'), miner);
-  assert.equal(miner.faculty, 'actions');
+  assert.equal(miner.module, 'actions');
   assert.equal(typeof miner.aggregate, 'function');
   assert.equal(typeof miner.propose, 'function');
 });

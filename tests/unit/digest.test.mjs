@@ -7,11 +7,11 @@ import { join } from 'node:path';
 import { computeDigest } from '../../zuzuu/digest/compose.mjs';
 import { writeItem } from '../../zuzuu/knowledge/items.mjs';
 import { createProposal } from '../../zuzuu/knowledge/proposals.mjs';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 // Steering item envelope with the given prose body.
 const steering = (body) => serializeEnvelope({
-  id: 'steering', faculty: 'instructions', kind: 'steering', title: 'Project steering',
+  id: 'steering', module: 'instructions', kind: 'steering', title: 'Project steering',
   status: 'active', created_at: '2026-06-12T00:00:00Z', payload: { scope: 'project' }, body,
 });
 
@@ -64,7 +64,7 @@ test('missing steering item → interview directive', () => {
 test('amendment items ride along after the steering body', () => {
   withHome((home) => {
     writeFileSync(join(home, 'instructions', 'items', 'always-test.md'), serializeEnvelope({
-      id: 'always-test', faculty: 'instructions', kind: 'amendment', title: 'Always test',
+      id: 'always-test', module: 'instructions', kind: 'amendment', title: 'Always test',
       status: 'active', created_at: '2026-06-12T00:00:00Z', payload: {}, body: 'Always run the suite before merging.',
     }));
     const d = computeDigest(home);
@@ -77,7 +77,7 @@ test('amendment items ride along after the steering body', () => {
 const FILLED = 'Ship daily.';
 const RULES = {
   'no-secret-reads.md': serializeEnvelope({
-    id: 'no-secret-reads', faculty: 'guardrails', kind: 'rule', title: 'secrets', status: 'active',
+    id: 'no-secret-reads', module: 'guardrails', kind: 'rule', title: 'secrets', status: 'active',
     created_at: '2026-06-12T00:00:00Z', payload: { action: 'deny', tool: '*', pattern: '\\.env', reason: 'secrets' }, body: '',
   }),
 };
@@ -105,7 +105,7 @@ test('proposals + guardrails sections reflect state', () => {
   }, { project: FILLED, rules: RULES });
 });
 
-test('a broken faculty does not sink the digest (fail-soft)', () => {
+test('a broken module does not sink the digest (fail-soft)', () => {
   withHome((home) => {
     const d = computeDigest(home);
     assert.match(d.text, /## Instructions/);
@@ -147,7 +147,7 @@ test('digest Actions section lists slug · snippet (progressive disclosure)', ()
     const a = join(home, 'actions', 'run-tests');
     _mkdirA(a, { recursive: true });
     _writeA(join(a, 'ACTION.md'), serializeEnvelope({
-      id: 'run-tests', faculty: 'actions', kind: 'script', title: 'Run tests', status: 'active',
+      id: 'run-tests', module: 'actions', kind: 'script', title: 'Run tests', status: 'active',
       created_at: '2026-06-12T00:00:00Z', payload: { exec: 'run.mjs' }, body: 'run the suite',
     }));
     _writeA(join(a, 'run.mjs'), 'export async function main(){ return {}; }');

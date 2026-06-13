@@ -8,9 +8,9 @@ import { join } from 'node:path';
 import { mkdtempSync, existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-import { miner, aggregate, propose } from '../../zuzuu/faculties/instructions/index.mjs';
-import * as registry from '../../zuzuu/faculty/registry.mjs';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { miner, aggregate, propose } from '../../zuzuu/modules/instructions/index.mjs';
+import * as registry from '../../zuzuu/module/registry.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 // Import memory miner so it self-registers (needed for Test 4 + Test 5).
 
@@ -90,7 +90,7 @@ test('propose: writes instructions proposal JSON (kind:block) to home/instructio
   assert.equal(files.length, 1, 'exactly one proposal file');
 
   const proposal = JSON.parse(readFileSync(join(propDir, files[0]), 'utf8'));
-  assert.equal(proposal.faculty, 'instructions', 'faculty is instructions');
+  assert.equal(proposal.module, 'instructions', 'module is instructions');
   assert.equal(proposal.kind, 'block', 'kind is block');
   assert.equal(proposal.source, 'distill', 'source is distill');
   assert.ok(typeof proposal.payload.text === 'string' && proposal.payload.text.length > 0, 'payload.text present');
@@ -122,7 +122,7 @@ test('propose: idempotent — skips if text already present in an instructions i
   const itemsDir = join(agentDir, 'instructions', 'items');
   mkdirSync(itemsDir, { recursive: true });
   writeFileSync(join(itemsDir, 'steering.md'), serializeEnvelope({
-    id: 'steering', faculty: 'instructions', kind: 'steering', title: 'Project steering',
+    id: 'steering', module: 'instructions', kind: 'steering', title: 'Project steering',
     status: 'active', created_at: '2026-06-12T00:00:00Z', payload: {}, body: text,
   }));
 
@@ -142,16 +142,16 @@ test('memory miner: stub registered, aggregate returns [], propose returns 0', (
 });
 
 // ---------------------------------------------------------------------------
-// Test 5: registry.all() includes all 5 faculties after importing all miners.
+// Test 5: registry.all() includes all 5 modules after importing all miners.
 
-test('registry.all() includes all 5 faculties: knowledge, actions, guardrails, instructions, memory', () => {
-  const faculties = registry.miners().map((m) => m.faculty);
-  assert.ok(faculties.includes('knowledge'), 'knowledge in registry');
-  assert.ok(faculties.includes('actions'), 'actions in registry');
-  assert.ok(faculties.includes('guardrails'), 'guardrails in registry');
-  assert.ok(faculties.includes('instructions'), 'instructions in registry');
-  assert.ok(faculties.includes('memory'), 'memory in registry');
-  assert.equal(faculties.length, 5, 'exactly 5 faculties registered');
+test('registry.all() includes all 5 modules: knowledge, actions, guardrails, instructions, memory', () => {
+  const modules = registry.miners().map((m) => m.module);
+  assert.ok(modules.includes('knowledge'), 'knowledge in registry');
+  assert.ok(modules.includes('actions'), 'actions in registry');
+  assert.ok(modules.includes('guardrails'), 'guardrails in registry');
+  assert.ok(modules.includes('instructions'), 'instructions in registry');
+  assert.ok(modules.includes('memory'), 'memory in registry');
+  assert.equal(modules.length, 5, 'exactly 5 modules registered');
 });
 
 // ---------------------------------------------------------------------------
@@ -160,7 +160,7 @@ test('registry.all() includes all 5 faculties: knowledge, actions, guardrails, i
 test('instructions miner self-registers on import', () => {
   assert.ok(registry.minerOf('instructions'), 'instructions miner in registry');
   assert.equal(registry.minerOf('instructions'), miner);
-  assert.equal(miner.faculty, 'instructions');
+  assert.equal(miner.module, 'instructions');
   assert.equal(typeof miner.aggregate, 'function');
   assert.equal(typeof miner.propose, 'function');
 });

@@ -1,20 +1,27 @@
-// zuzuu/commands/migrations/items.mjs — the Faculty Standard migrator (W24):
-// legacy per-faculty shapes → one envelope. knowledge/memory frontmatter keys
+// zuzuu/commands/migrations/items.mjs — the Module Standard migrator (W24):
+// legacy per-module shapes → one envelope. knowledge/memory frontmatter keys
 // standardised, rules.json exploded into guardrails/items/, action.json+SKILL.md
 // → ACTION.md, instructions/project.md → items/steering.md. Idempotent,
 // fail-soft per item. Auto-runs from `zuzuu init` when old shapes are detected.
+//
+// NOTE: this migrator predates the faculty→module noun rename. An "envelope" is
+// detected by EITHER the legacy `faculty:` key OR the current `module:` key —
+// either way the file is already a standard envelope (the noun rename itself is
+// handled by the `--modules` migrator). New envelopes this migrator writes carry
+// the current `module:` key.
 
 import { existsSync, readdirSync, readFileSync, writeFileSync, rmSync, statSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { serializeEnvelope, deriveTitle } from '../../faculty/envelope.mjs';
+import { serializeEnvelope, deriveTitle } from '../../module/envelope.mjs';
 import { serializeItem } from '../../knowledge/items.mjs';
-import { FACULTIES } from '../../faculty/contract.mjs';
-import { BUILTIN_MODULES } from '../../faculty/registry.mjs';
+import { MODULES } from '../../module/contract.mjs';
+import { BUILTIN_MODULES } from '../../module/registry.mjs';
 
-/** Does this file's frontmatter already carry the envelope (a `faculty:` key)? */
+/** Does this file's frontmatter already carry the envelope (a `module:`/legacy
+ *  `faculty:` key)? Either marks it as already-standard (skip). */
 function isEnvelopeText(text) {
   const m = String(text).match(/^---\r?\n([\s\S]*?)\r?\n---/);
-  return !!m && /^faculty:/m.test(m[1]);
+  return !!m && /^(module|faculty):/m.test(m[1]);
 }
 
 const unquoteLegacy = (s) => {
@@ -131,7 +138,7 @@ function migrateMemoryEntries(agentDir, out) {
       if (tags.length) payload.tags = tags;
       writeFileSync(path, serializeEnvelope({
         id,
-        faculty: 'memory',
+        module: 'memory',
         kind: 'episode',
         title: legacy.scalars.title ?? deriveTitle(legacy.body, id),
         status: 'active', // curated/proposed lifecycles fold into active
@@ -167,7 +174,7 @@ function migrateGuardrails(agentDir, out) {
       mkdirSync(itemsDir, { recursive: true });
       writeFileSync(join(itemsDir, `${id}.md`), serializeEnvelope({
         id,
-        faculty: 'guardrails',
+        module: 'guardrails',
         kind: 'rule',
         title: deriveTitle(r.reason, id),
         status: 'active',
@@ -228,7 +235,7 @@ function migrateActionDir(dir, slug, out) {
     if (skillBody) bodyParts.push('', skillBody);
     writeFileSync(actionMd, serializeEnvelope({
       id: slug,
-      faculty: 'actions',
+      module: 'actions',
       kind: isScript ? 'script' : 'runbook',
       title: man.title ?? skillFm.name ?? slug,
       status: 'active',
@@ -276,7 +283,7 @@ function migrateInstructions(agentDir, out) {
     mkdirSync(join(agentDir, 'instructions', 'items'), { recursive: true });
     writeFileSync(steeringPath, serializeEnvelope({
       id: 'steering',
-      faculty: 'instructions',
+      module: 'instructions',
       kind: 'steering',
       title: 'Project steering',
       status: 'active',
@@ -291,20 +298,22 @@ function migrateInstructions(agentDir, out) {
   }
 }
 
-/** Seed missing <faculty>/faculty.json manifests into an existing home (the
- *  Faculty Module contract, 2026-06-13). Only faculties whose dir exists get
- *  one — a migrator repairs, it never scaffolds. Idempotent, fail-soft. */
-function seedFacultyManifests(agentDir, out) {
-  for (const f of FACULTIES) {
+/** Seed missing <module>/module.json manifests into an existing home (the
+ *  Module contract, 2026-06-13). Only modules whose dir exists get one — a
+ *  migrator repairs, it never scaffolds. A home still carrying the legacy
+ *  `faculty.json` is left for the `--modules` migrator (we don't double-seed).
+ *  Idempotent, fail-soft. */
+function seedModuleManifests(agentDir, out) {
+  for (const f of MODULES) {
     try {
       const dir = join(agentDir, f);
       if (!existsSync(dir)) continue;
-      const p = join(dir, 'faculty.json');
-      if (existsSync(p)) continue;
+      const p = join(dir, 'module.json');
+      if (existsSync(p) || existsSync(join(dir, 'faculty.json'))) continue;
       writeFileSync(p, JSON.stringify(BUILTIN_MODULES[f].manifest, null, 2) + '\n');
       out.manifests++;
     } catch (e) {
-      out.errors.push({ file: `${f}/faculty.json`, error: e.message });
+      out.errors.push({ file: `${f}/module.json`, error: e.message });
     }
   }
 }
@@ -313,8 +322,8 @@ function seedFacultyManifests(agentDir, out) {
  * Are pre-standard shapes present? Cheap checks gate the init auto-run.
  */
 export function needsItemsMigration(agentDir) {
-  for (const f of FACULTIES) {
-    if (existsSync(join(agentDir, f)) && !existsSync(join(agentDir, f, 'faculty.json'))) return true;
+  for (const f of MODULES) {
+    if (existsSync(join(agentDir, f)) && !existsSync(join(agentDir, f, 'module.json')) && !existsSync(join(agentDir, f, 'faculty.json'))) return true;
   }
   if (existsSync(join(agentDir, 'guardrails', 'rules.json'))) return true;
   if (existsSync(join(agentDir, 'instructions', 'project.md'))) return true;
@@ -341,7 +350,7 @@ export function needsItemsMigration(agentDir) {
 }
 
 /**
- * One-shot Faculty Standard migration for a home. Idempotent (already-envelope
+ * One-shot Module Standard migration for a home. Idempotent (already-envelope
  * files are skipped) and fail-soft per item (an unconvertible item is reported,
  * never fatal; its legacy source is left in place).
  * @returns {{knowledge:number, memory:number, guardrails:number, actions:number,
@@ -354,7 +363,7 @@ export function migrateItems(agentDir) {
   migrateGuardrails(agentDir, out);
   migrateActions(agentDir, out);
   migrateInstructions(agentDir, out);
-  seedFacultyManifests(agentDir, out);
+  seedModuleManifests(agentDir, out);
   return out;
 }
 

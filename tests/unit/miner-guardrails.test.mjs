@@ -8,9 +8,9 @@ import { join } from 'node:path';
 import { mkdtempSync, existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 
-import { miner, aggregate, propose, escapeRegex } from '../../zuzuu/faculties/guardrails/index.mjs';
-import * as registry from '../../zuzuu/faculty/registry.mjs';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { miner, aggregate, propose, escapeRegex } from '../../zuzuu/modules/guardrails/index.mjs';
+import * as registry from '../../zuzuu/module/registry.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -207,7 +207,7 @@ test('propose: writes guardrails proposal JSON to home/guardrails/proposals/', (
   assert.equal(files.length, 1, 'exactly one proposal file');
 
   const proposal = JSON.parse(readFileSync(join(propDir, files[0]), 'utf8'));
-  assert.equal(proposal.faculty, 'guardrails');
+  assert.equal(proposal.module, 'guardrails');
   assert.equal(proposal.kind, 'rule');
   assert.equal(proposal.payload.action, 'ask');
   assert.equal(proposal.payload.tool, 'Bash');
@@ -248,7 +248,7 @@ test('propose: skips if the rule id already exists as a live rule item', () => {
   const itemsDir = join(agentDir, 'guardrails', 'items');
   mkdirSync(itemsDir, { recursive: true });
   writeFileSync(join(itemsDir, `${cands[0].payload.id}.md`), serializeEnvelope({
-    id: cands[0].payload.id, faculty: 'guardrails', kind: 'rule', title: 'pre-existing',
+    id: cands[0].payload.id, module: 'guardrails', kind: 'rule', title: 'pre-existing',
     status: 'active', created_at: '2026-06-12T00:00:00Z',
     payload: { action: 'ask', tool: 'Bash', pattern: 'something', reason: 'pre-existing' }, body: '',
   }));
@@ -263,7 +263,7 @@ test('propose: skips if the rule id already exists as a live rule item', () => {
 test('guardrails miner self-registers on import', () => {
   assert.ok(registry.minerOf('guardrails'), 'guardrails miner in registry');
   assert.equal(registry.minerOf('guardrails'), miner);
-  assert.equal(miner.faculty, 'guardrails');
+  assert.equal(miner.module, 'guardrails');
   assert.equal(typeof miner.aggregate, 'function');
   assert.equal(typeof miner.propose, 'function');
 });

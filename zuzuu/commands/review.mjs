@@ -10,11 +10,11 @@ import { createInterface } from 'node:readline';
 import { paths } from '../core/store.mjs';
 import { processInbox } from '../knowledge/inbox.mjs';
 import { getProposal, proposalsDir } from '../knowledge/proposals.mjs';
-import * as gate from '../faculty/gate.mjs';
-import { pendingByFaculty, buildSessionMtimes } from '../faculty/pending.mjs';
-import { knowledgeCard } from '../faculty/render.mjs';
-import { activeGeneration } from '../faculty/generation/read.mjs';
-import { mintGeneration } from '../faculty/generation/write.mjs';
+import * as gate from '../module/gate.mjs';
+import { pendingByModule, buildSessionMtimes } from '../module/pending.mjs';
+import { knowledgeCard } from '../module/render.mjs';
+import { activeGeneration } from '../module/generation/read.mjs';
+import { mintGeneration } from '../module/generation/write.mjs';
 import { getScorer } from '../eval/score.mjs';
 import { evalLine } from './eval.mjs';
 
@@ -22,12 +22,12 @@ import { evalLine } from './eval.mjs';
  * Pure: the graduation ceremony block shown when a generation is minted.
  * @param {string} genId
  * @param {string[]} approvedIds
- * @param {Object<string,number>} byFaculty  faculty → approval count
+ * @param {Object<string,number>} byModule  module → approval count
  * @returns {string}
  */
-export function ceremonyBlock(genId, approvedIds, byFaculty) {
+export function ceremonyBlock(genId, approvedIds, byModule) {
   const n = approvedIds.length;
-  const breakdown = Object.entries(byFaculty)
+  const breakdown = Object.entries(byModule)
     .filter(([, c]) => c > 0)
     .map(([f, c]) => `${f} +${c}`)
     .join(' · ');
@@ -41,7 +41,7 @@ export async function review() {
   const agentDir = paths().dir;
   const inbox = processInbox(agentDir);
   if (inbox.processed) console.log(`(processed ${inbox.processed} inbox candidate(s) → proposals)`);
-  const groups = pendingByFaculty(agentDir);
+  const groups = pendingByModule(agentDir);
   if (!groups.length) {
     console.log('nothing to review — knowledge and actions are current');
     return;
@@ -78,13 +78,13 @@ export async function review() {
   };
 
   const approvedIds = [];
-  const approvedByFaculty = {}; // faculty → count, for the graduation ceremony
+  const approvedByModule = {}; // module → count, for the graduation ceremony
   let approved = 0, rejected = 0, skipped = 0;
   let totalLeft = groups.reduce((n, g) => n + g.proposals.length, 0);
   const sessionMtimes = buildSessionMtimes();
   const now = Date.now();
   const scorer = getScorer();
-  // One loop over faculties with pending proposals (adapter-driven, WS2-T3).
+  // One loop over modules with pending proposals (adapter-driven, WS2-T3).
   for (const { adapter, proposals } of groups) {
     const isActions = adapter.name === 'actions';
     for (let i = 0; i < proposals.length; i++) {
@@ -93,7 +93,7 @@ export async function review() {
       let scoreResult = null;
       try { scoreResult = scorer(p, { now, sessionMtimes }); } catch { /* fail-open */ }
       // Card: knowledge keeps its rich card (ER + existing-item lookup); other
-      // faculties render through the adapter contract.
+      // modules render through the adapter contract.
       if (adapter.name === 'knowledge') console.log(knowledgeCard(agentDir, p, i, proposals.length, scoreResult));
       else {
         const r = adapter.render(p);
@@ -112,7 +112,7 @@ export async function review() {
           const r = gate.approve(agentDir, adapter.name, p.id);
           if (isActions) console.log(r.ok ? '  ✓ activated' : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`);
           else { console.log(r.ok ? `  ✓ ${r.action}` : `  ✗ ${(r.errors ?? [r.action]).join('; ')}`); for (const w of r.warnings ?? []) console.log(`  ⚠ ${w}`); }
-          if (r.ok) { approvedIds.push(p.id); approvedByFaculty[adapter.name] = (approvedByFaculty[adapter.name] ?? 0) + 1; }
+          if (r.ok) { approvedIds.push(p.id); approvedByModule[adapter.name] = (approvedByModule[adapter.name] ?? 0) + 1; }
           approved++; totalLeft--; acted = true;
         } else if (a === 'n') {
           const reason = isActions ? '' : (await ask('  reason (optional) > ')).trim();
@@ -136,7 +136,7 @@ export async function review() {
           console.log(`\nreview: ${approved} approved · ${rejected} rejected · ${skipped} skipped · ${totalLeft} left`);
           if (approvedIds.length > 0) {
             const gen = mintGeneration(agentDir, { forkedFrom: activeGeneration(agentDir), mintedFrom: approvedIds });
-            console.log(ceremonyBlock(gen.id, approvedIds, approvedByFaculty));
+            console.log(ceremonyBlock(gen.id, approvedIds, approvedByModule));
           }
           return;
         }
@@ -147,6 +147,6 @@ export async function review() {
   console.log(`\nreview complete: ${approved} approved · ${rejected} rejected · ${skipped} skipped`);
   if (approvedIds.length > 0) {
     const gen = mintGeneration(agentDir, { forkedFrom: activeGeneration(agentDir), mintedFrom: approvedIds });
-    console.log(ceremonyBlock(gen.id, approvedIds, approvedByFaculty));
+    console.log(ceremonyBlock(gen.id, approvedIds, approvedByModule));
   }
 }

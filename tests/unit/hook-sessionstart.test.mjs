@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { existsSync, readFileSync } from 'node:fs';
 import { sessionStartContext, writeLiveDigest, handleHook } from '../../zuzuu/commands/hook.mjs';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 function withHome(fn, project) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-hook-'));
@@ -15,7 +15,7 @@ function withHome(fn, project) {
   mkdirSync(join(home, 'instructions', 'items'), { recursive: true });
   mkdirSync(join(home, 'guardrails', 'items'), { recursive: true });
   writeFileSync(join(home, 'instructions', 'items', 'steering.md'), serializeEnvelope({
-    id: 'steering', faculty: 'instructions', kind: 'steering', title: 'Project steering',
+    id: 'steering', module: 'instructions', kind: 'steering', title: 'Project steering',
     status: 'active', created_at: '2026-06-12T00:00:00Z', payload: {}, body: project,
   }));
   try {
@@ -29,7 +29,7 @@ test('sessionStartContext returns the Claude additionalContext shape', () => {
   withHome((root) => {
     const out = sessionStartContext(root);
     assert.equal(out.hookSpecificOutput.hookEventName, 'SessionStart');
-    assert.match(out.hookSpecificOutput.additionalContext, /zuzuu faculty digest/);
+    assert.match(out.hookSpecificOutput.additionalContext, /zuzuu module digest/);
     assert.match(out.hookSpecificOutput.additionalContext, /Ship daily/);
   }, '# Project steering\n\nShip daily.\n');
 });
@@ -39,7 +39,7 @@ test('writeLiveDigest writes the digest to .zuzuu/.live/digest.md (universal cha
     writeLiveDigest(root);
     const p = join(root, '.zuzuu', '.live', 'digest.md');
     assert.ok(existsSync(p), 'digest.md created');
-    assert.match(readFileSync(p, 'utf8'), /zuzuu faculty digest/);
+    assert.match(readFileSync(p, 'utf8'), /zuzuu module digest/);
     assert.match(readFileSync(p, 'utf8'), /Ship daily/);
   }, '# Project steering\n\nShip daily.\n');
 });
@@ -63,12 +63,12 @@ test('writeLiveDigest on an absent home does not throw (fail-open)', () => {
 test('sessionStartContext on an absent home degrades gracefully (no throw, well-formed)', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-nohome-'));
   try {
-    // No .home/ here, yet computeDigest is fail-soft per faculty and still
+    // No .home/ here, yet computeDigest is fail-soft per module and still
     // renders headers (interview directive + empty knowledge + guardrails) →
     // a non-empty digest, so we get a well-formed payload, never null/throw.
     const out = sessionStartContext(root); // must not throw
     assert.equal(out.hookSpecificOutput.hookEventName, 'SessionStart');
-    assert.match(out.hookSpecificOutput.additionalContext, /zuzuu faculty digest/);
+    assert.match(out.hookSpecificOutput.additionalContext, /zuzuu module digest/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

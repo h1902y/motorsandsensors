@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, mkdirSync, existsSync, readFileSync } from 'node:f
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { proposeAction } from '../../zuzuu/commands/act-author.mjs';
-import { parseEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { parseEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-prop-'));

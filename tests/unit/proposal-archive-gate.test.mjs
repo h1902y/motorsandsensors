@@ -15,9 +15,9 @@ import { tmpdir } from 'node:os';
 
 import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../../zuzuu/knowledge/registry.mjs';
 import { createProposal, rejectProposal, approveProposal, listProposals } from '../../zuzuu/knowledge/proposals.mjs';
-import { propose as kPropose } from '../../zuzuu/faculties/knowledge/index.mjs';
-import { aggregate as gAggregate, propose as gPropose } from '../../zuzuu/faculties/guardrails/index.mjs';
-import { archiveProposal, listProposals as listFacultyProposals, readArchived, isArchivedResolved } from '../../zuzuu/faculty/proposal.mjs';
+import { propose as kPropose } from '../../zuzuu/modules/knowledge/index.mjs';
+import { aggregate as gAggregate, propose as gPropose } from '../../zuzuu/modules/guardrails/index.mjs';
+import { archiveProposal, listProposals as listModuleProposals, readArchived, isArchivedResolved } from '../../zuzuu/module/proposal.mjs';
 
 const home = (prefix) => mkdtempSync(join(tmpdir(), prefix));
 
@@ -83,7 +83,7 @@ test('knowledge miner propose: archived-skips are not counted as filed proposals
 });
 
 // ---------------------------------------------------------------------------
-// Spine miners path (faculty/proposal.mjs writers)
+// Spine miners path (module/proposal.mjs writers)
 
 const makeSession = (id, destructiveFailures) => ({ sessionId: id, commands: [], files: [], failures: [], sequences: [], correctionTurns: [], destructiveFailures });
 const df = (cmd) => ({ cmd, tool: 'Bash' });
@@ -95,10 +95,10 @@ test('guardrails miner: archived-rejected id is never re-proposed', () => {
   assert.equal(gPropose(agentDir, cands), 1, 'first run files 1');
 
   // Reject it through the spine archive (what `zuzuu review` does).
-  const pending = listFacultyProposals(agentDir, 'guardrails');
+  const pending = listModuleProposals(agentDir, 'guardrails');
   assert.equal(pending.length, 1);
   archiveProposal(agentDir, 'guardrails', pending[0].id, { status: 'rejected', reason: 'too noisy' });
-  assert.equal(listFacultyProposals(agentDir, 'guardrails').length, 0);
+  assert.equal(listModuleProposals(agentDir, 'guardrails').length, 0);
 
   // Re-distill same sessions → nothing files, nothing pending.
   assert.equal(gPropose(agentDir, cands), 0, 'rejection remembered: propose files nothing');
@@ -113,11 +113,11 @@ test('guardrails miner: a different (un-archived) candidate still files after a 
   const freshCmd = 'git push --force origin main';
   const cands1 = gAggregate([makeSession('sA', [df(rejectedCmd), df(rejectedCmd)]), makeSession('sB', [df(rejectedCmd)])]);
   gPropose(agentDir, cands1);
-  archiveProposal(agentDir, 'guardrails', listFacultyProposals(agentDir, 'guardrails')[0].id, { status: 'rejected' });
+  archiveProposal(agentDir, 'guardrails', listModuleProposals(agentDir, 'guardrails')[0].id, { status: 'rejected' });
 
   const cands2 = gAggregate([makeSession('sC', [df(freshCmd), df(freshCmd)]), makeSession('sD', [df(freshCmd)])]);
   assert.equal(gPropose(agentDir, cands2), 1, 'fresh id files normally');
-  assert.equal(listFacultyProposals(agentDir, 'guardrails').length, 1);
+  assert.equal(listModuleProposals(agentDir, 'guardrails').length, 1);
 });
 
 // ---------------------------------------------------------------------------
@@ -130,7 +130,7 @@ test('readArchived / isArchivedResolved: read the archive record; absent → nul
 
   const cands = gAggregate([makeSession('sA', [df('rm -rf /x'), df('rm -rf /x')]), makeSession('sB', [df('rm -rf /x')])]);
   gPropose(agentDir, cands);
-  const id = listFacultyProposals(agentDir, 'guardrails')[0].id;
+  const id = listModuleProposals(agentDir, 'guardrails')[0].id;
   archiveProposal(agentDir, 'guardrails', id, { status: 'rejected', reason: 'r' });
 
   const rec = readArchived(agentDir, 'guardrails', id);

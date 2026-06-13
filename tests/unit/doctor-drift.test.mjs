@@ -1,4 +1,4 @@
-// Tests for detectDrift — the pure faculty-hash drift checker extracted from doctor.
+// Tests for detectDrift — the pure module-hash drift checker extracted from doctor.
 // Verifies four paths:
 //   1. No active generation → { noneActive: true }
 //   2. Active generation, no edits → empty drifted array
@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { mintGeneration } from '../../zuzuu/faculty/generation/write.mjs';
+import { mintGeneration } from '../../zuzuu/module/generation/write.mjs';
 import { detectDrift } from '../../zuzuu/commands/doctor.mjs';
 
 function withMns(fn) {
@@ -25,7 +25,7 @@ function withMns(fn) {
   }
 }
 
-/** Populate a minimal faculty layout (knowledge items) so mintGeneration has content. */
+/** Populate a minimal module layout (knowledge items) so mintGeneration has content. */
 function seedKnowledge(agentDir, items) {
   const dir = join(agentDir, 'knowledge', 'items');
   mkdirSync(dir, { recursive: true });
@@ -64,7 +64,7 @@ test('detectDrift: mutated knowledge item appears in drifted', () => {
     assert.equal(result.drifted.length, 1, 'exactly one item drifted');
     const d = result.drifted[0];
     assert.equal(d.id, 'fact-a', 'drifted id should be fact-a');
-    assert.equal(d.faculty, 'knowledge');
+    assert.equal(d.module, 'knowledge');
     assert.equal(d.reason, 'hash_changed');
     assert.ok(d.pinned, 'should include pinned hash');
     assert.ok(d.current, 'should include current hash');

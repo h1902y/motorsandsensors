@@ -9,7 +9,7 @@ import { join } from 'node:path';
 
 import { migrateProposals } from '../../zuzuu/commands/migrations/proposals.mjs';
 import { migrateHome } from '../../zuzuu/commands/migrations/home.mjs';
-import { readProposal } from '../../zuzuu/faculty/proposal.mjs';
+import { readProposal } from '../../zuzuu/module/proposal.mjs';
 
 // ---------------------------------------------------------------------------
 // helpers
@@ -126,7 +126,7 @@ const LEGACY = {
 // ---------------------------------------------------------------------------
 // 1. Legacy proposal in proposals/ is migrated
 // ---------------------------------------------------------------------------
-test('migrateProposals: legacy candidate/er → payload/analysis.er, faculty set', () => {
+test('migrateProposals: legacy candidate/er → payload/analysis.er, module set', () => {
   withHome((agentDir) => {
     const proposalsPath = join(agentDir, 'knowledge', 'proposals');
     writeFileSync(join(proposalsPath, 'x-1.json'), JSON.stringify(LEGACY, null, 2) + '\n');
@@ -142,7 +142,7 @@ test('migrateProposals: legacy candidate/er → payload/analysis.er, faculty set
     // new keys present
     assert.deepEqual(raw.payload, { id: 'x', type: 'fact', body: 'b' }, 'payload = candidate');
     assert.deepEqual(raw.analysis, { er: { verdict: 'new' } }, 'analysis.er = er');
-    assert.equal(raw.faculty, 'knowledge', 'faculty set');
+    assert.equal(raw.module, 'knowledge', 'module set');
 
     // legacy keys removed
     assert.equal(raw.candidate, undefined, 'candidate removed');
@@ -193,7 +193,7 @@ test('migrateProposals migrates records in proposals/archive/', () => {
     const raw = JSON.parse(readFileSync(join(archivePath, 'x-1.json'), 'utf8'));
     assert.deepEqual(raw.payload, { id: 'x', type: 'fact', body: 'b' });
     assert.deepEqual(raw.analysis, { er: { verdict: 'new' } });
-    assert.equal(raw.faculty, 'knowledge');
+    assert.equal(raw.module, 'knowledge');
     assert.equal(raw.candidate, undefined);
     assert.equal(raw.er, undefined);
     // preserved resolved fields
@@ -236,7 +236,7 @@ test('readProposal returns a coherent record after migration', () => {
     const rec = readProposal(agentDir, 'knowledge', 'x-1');
     assert.ok(rec, 'record readable');
     assert.equal(rec.id, 'x-1');
-    assert.equal(rec.faculty, 'knowledge');
+    assert.equal(rec.module, 'knowledge');
     assert.deepEqual(rec.payload, { id: 'x', type: 'fact', body: 'b' });
     assert.deepEqual(rec.analysis, { er: { verdict: 'new' } });
     assert.equal(rec.candidate, undefined, 'no legacy candidate key on normalised record');

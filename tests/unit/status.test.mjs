@@ -1,14 +1,14 @@
 // tests/unit/status.test.mjs (WS-C)
-// The faculties graduation line in `home status` — driven through the pure
-// facultiesLine(agentDir) helper (no console scraping).
+// The modules graduation line in `home status` — driven through the pure
+// modulesLine(agentDir) helper (no console scraping).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { facultiesLine } from '../../zuzuu/commands/status.mjs';
-import { mintGeneration } from '../../zuzuu/faculty/generation/write.mjs';
+import { modulesLine } from '../../zuzuu/commands/status.mjs';
+import { mintGeneration } from '../../zuzuu/module/generation/write.mjs';
 
 function freshHome() {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-status-'));
@@ -25,14 +25,14 @@ function addProposal(home, i) {
   const id = `fact-${i}`;
   writeFileSync(
     join(home, 'knowledge', 'proposals', `${id}.json`),
-    JSON.stringify({ id, faculty: 'knowledge', kind: 'item', status: 'pending', created_at: `2026-01-0${i + 1}T00:00:00.000Z`, candidate: { id, type: 'fact', body: `f${i}` }, er: { verdict: 'new' } }),
+    JSON.stringify({ id, module: 'knowledge', kind: 'item', status: 'pending', created_at: `2026-01-0${i + 1}T00:00:00.000Z`, candidate: { id, type: 'fact', body: `f${i}` }, er: { verdict: 'new' } }),
   );
 }
 
 test('no generation + no pending → "no generation yet · 0 pending review"', () => {
   const { root, home } = freshHome();
   try {
-    const line = facultiesLine(home);
+    const line = modulesLine(home);
     assert.match(line, /no generation yet/);
     assert.match(line, /0 pending review/);
   } finally {
@@ -47,7 +47,7 @@ test('active generation + pending count are reflected', () => {
     mintGeneration(home);
     addProposal(home, 0);
     addProposal(home, 1);
-    const line = facultiesLine(home);
+    const line = modulesLine(home);
     assert.match(line, /gen_001/);
     assert.match(line, /2 pending review/);
   } finally {

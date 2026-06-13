@@ -4,7 +4,7 @@
 // array (items), string/number/integer/boolean scalars, enum, pattern, and basic
 // length/range constraints. Returns an array of error strings ([] = valid). No
 // coercion: values are expected to already carry real JSON types. Shared by the
-// actions runner AND the faculty envelope (payload validation — W24).
+// actions runner AND the module envelope (payload validation — W24).
 
 function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v);

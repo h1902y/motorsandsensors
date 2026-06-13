@@ -3,18 +3,18 @@
 //
 //   zuzuu sessions [--json]              recorded sessions w/ state labels
 //   zuzuu session inspect <id> [--json]  one session: trace summary +
-//                                        per-faculty mined signals
+//                                        per-module mined signals
 //
-// inspect = { session, trace: {spans, tools, duration}, signals: {<faculty>:
+// inspect = { session, trace: {spans, tools, duration}, signals: {<module>:
 // counts} } — the span count reads the stored OTLP blob; the signals re-mine
 // the HOST transcript through the proven adapters' mineSignals and map the
-// superset onto faculties via each module's sessionSignals hook. Fail-soft
+// superset onto modules via each module's sessionSignals hook. Fail-soft
 // throughout: a gone blob/transcript degrades to warnings, never a throw.
 
 import { readFileSync } from 'node:fs';
 import { readIndex, resolveTrace, paths } from '../core/store.mjs';
 import { transcriptsFor, mineHostSession } from '../knowledge/distill.mjs';
-import { facultiesOf, invoke } from '../faculty/registry.mjs';
+import { modulesOf, invoke } from '../module/registry.mjs';
 
 /** Pure: the sessions list with state labels — the web Sessions section source. */
 export function sessionsListData(cwd = process.cwd()) {
@@ -73,7 +73,7 @@ export function sessionInspectData(cwd, idArg, { transcripts } = {}) {
   }
   const trace = { spans, tools: s.counts?.tools ?? 0, duration: s.durationMs ?? 0 };
 
-  // per-faculty mined signals — re-mine the host transcript (fail-soft when gone)
+  // per-module mined signals — re-mine the host transcript (fail-soft when gone)
   const signals = {};
   try {
     const pairs = transcripts ?? transcriptsFor({ scope: 'all', cwd });
@@ -83,7 +83,7 @@ export function sessionInspectData(cwd, idArg, { transcripts } = {}) {
       warnings.push('host transcript unavailable — signals empty');
     } else {
       const agentDir = paths(cwd).dir;
-      for (const entry of facultiesOf(agentDir)) {
+      for (const entry of modulesOf(agentDir)) {
         const r = invoke(entry, 'sessionSignals', mined);
         if (r.ok && r.value && typeof r.value === 'object') signals[entry.id] = r.value;
       }
@@ -150,9 +150,9 @@ export function sessionInspect(args = {}) {
   const sigs = Object.entries(d.signals);
   if (sigs.length) {
     console.log('  signals:');
-    for (const [faculty, counts] of sigs) {
+    for (const [module, counts] of sigs) {
       const parts = Object.entries(counts).map(([k, v]) => `${k} ${v}`).join(' · ');
-      console.log(`    ${faculty.padEnd(13)} ${parts}`);
+      console.log(`    ${module.padEnd(13)} ${parts}`);
     }
   }
   for (const w of d.warnings) console.log(`  ⚠ ${w}`);

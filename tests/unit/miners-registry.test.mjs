@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { writeFileSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { mineTranscript, aggregate } from '../../zuzuu/knowledge/distill.mjs';
-import * as registry from '../../zuzuu/faculty/registry.mjs';
-import { propose as knowledgePropose, miner as knowledgeMiner } from '../../zuzuu/faculties/knowledge/index.mjs';
+import * as registry from '../../zuzuu/module/registry.mjs';
+import { propose as knowledgePropose, miner as knowledgeMiner } from '../../zuzuu/modules/knowledge/index.mjs';
 
 const FIXTURE = join(dirname(fileURLToPath(import.meta.url)), '..', 'fixtures', 'claude-sample.jsonl');
 
@@ -69,7 +69,7 @@ test('mineTranscript: never throws on garbage shapes', () => {
   assert.doesNotThrow(() => mineTranscript(f));
 });
 
-test('knowledge miner is a registry built-in (the Faculty Module contract)', () => {
+test('knowledge miner is a registry built-in (the Module Module contract)', () => {
   // built-in modules are statically wired into the registry — no side-effect
   // import needed; the miner surfaced is the module's own miner object.
   assert.ok(registry.minerOf('knowledge'), 'knowledge miner present');
@@ -77,13 +77,13 @@ test('knowledge miner is a registry built-in (the Faculty Module contract)', () 
 });
 
 test('registry: all five built-in miners, legacy distill order, unknown → undefined', () => {
-  const faculties = registry.miners().map((m) => m.faculty);
-  assert.deepEqual(faculties, ['knowledge', 'actions', 'guardrails', 'instructions', 'memory']);
+  const modules = registry.miners().map((m) => m.module);
+  assert.deepEqual(modules, ['knowledge', 'actions', 'guardrails', 'instructions', 'memory']);
   assert.equal(registry.minerOf('missing'), undefined);
   // every miner speaks the contract shape
   for (const m of registry.miners()) {
-    assert.equal(typeof m.aggregate, 'function', `${m.faculty}.aggregate`);
-    assert.equal(typeof m.propose, 'function', `${m.faculty}.propose`);
+    assert.equal(typeof m.aggregate, 'function', `${m.module}.aggregate`);
+    assert.equal(typeof m.propose, 'function', `${m.module}.propose`);
   }
 });
 

@@ -1,18 +1,18 @@
 // zuzuu/commands/act-author.mjs
 // `zuzuu act new <slug>` — scaffold a script action (idempotent, no-clobber).
 // `zuzuu act schema <slug> [--mcp|--openai|--anthropic]` — convert the manifest.
-// Actions are described by ACTION.md (the Faculty Standard envelope, W24).
+// Actions are described by ACTION.md (the Module Standard envelope, W24).
 
 import { mkdirSync, existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { actionsDir, inboxDir, loadManifest, isSafeSlug } from '../actions/manifest.mjs';
 import { toMcpTool, toOpenAITool, toAnthropicTool } from '../actions/convert.mjs';
-import { serializeEnvelope } from '../faculty/envelope.mjs';
+import { serializeEnvelope } from '../module/envelope.mjs';
 
 function actionMdStub(slug) {
   return serializeEnvelope({
     id: slug,
-    faculty: 'actions',
+    module: 'actions',
     kind: 'script',
     title: slug,
     status: 'active',

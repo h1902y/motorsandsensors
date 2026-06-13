@@ -83,13 +83,13 @@ function scrubLegacyDenies(root) {
   }
 }
 
-/** Re-inject the current faculties block into any existing host instruction files. */
+/** Re-inject the current modules block into any existing host instruction files. */
 export function reinjectHostBlocks(root) {
   for (const f of ['CLAUDE.md', 'AGENTS.md', 'GEMINI.md']) {
     const p = join(root, f);
     if (existsSync(p)) {
       const text = readFileSync(p, 'utf8');
-      if (!text.includes(`zuzuu:faculties:v${BLOCK_VERSION}`)) writeFileSync(p, injectBlock(text));
+      if (!text.includes(`zuzuu:modules:v${BLOCK_VERSION}`)) writeFileSync(p, injectBlock(text));
     }
   }
 }

@@ -1,12 +1,12 @@
 // tests/unit/explain.test.mjs (WS-B)
-// `home explain [topic]` — discoverable docs for the 5 faculties + graduation.
+// `home explain [topic]` — discoverable docs for the 5 modules + graduation.
 // Tests drive the pure explainText(topic) helper (no console scraping).
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { explainText, explain } from '../../zuzuu/commands/explain.mjs';
 
-test('overview (no topic) names the faculties, review, and generation', () => {
+test('overview (no topic) names the modules, review, and generation', () => {
   const t = explainText();
   assert.ok(t.length > 0);
   assert.match(t, /knowledge/i);
@@ -18,8 +18,8 @@ test('overview (no topic) names the faculties, review, and generation', () => {
   assert.match(t, /generation/i);
 });
 
-test('explain faculties shows the promotion path inbox→proposals→items', () => {
-  const t = explainText('faculties');
+test('explain modules shows the promotion path inbox→proposals→items', () => {
+  const t = explainText('modules');
   assert.ok(t.length > 0);
   assert.match(t, /inbox/i);
   assert.match(t, /proposals/i);
@@ -32,7 +32,7 @@ test('explain graduation explains the human gate and rollback', () => {
   assert.match(t, /approve/i);
 });
 
-test('explain <faculty> returns that faculty contract', () => {
+test('explain <module> returns that module contract', () => {
   for (const f of ['knowledge', 'memory', 'actions', 'instructions', 'guardrails']) {
     const t = explainText(f);
     assert.ok(t.length > 0, `${f} has text`);

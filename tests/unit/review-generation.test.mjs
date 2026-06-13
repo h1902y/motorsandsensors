@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { listGenerations, readGeneration, activeGeneration } from '../../zuzuu/faculty/generation/read.mjs';
+import { listGenerations, readGeneration, activeGeneration } from '../../zuzuu/module/generation/read.mjs';
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
 

@@ -1,4 +1,4 @@
-// The git-native .zuzuu/ store (the hidden faculty home — the .git model:
+// The git-native .zuzuu/ store (the hidden module home — the .git model:
 // transparency via porcelain, not an un-dotted dir).
 //
 // Layout (entire.io-style split — linkage in git, blobs out of the diff):
@@ -25,7 +25,7 @@ export function repoRoot(cwd = process.cwd()) {
   return git(['rev-parse', '--show-toplevel'], cwd) || cwd;
 }
 
-/** Resolve the faculty home: the hidden `.zuzuu/`. The single chokepoint for the
+/** Resolve the module home: the hidden `.zuzuu/`. The single chokepoint for the
  *  whole CLI. */
 export function homeDir(root = repoRoot()) {
   return join(root, '.zuzuu');

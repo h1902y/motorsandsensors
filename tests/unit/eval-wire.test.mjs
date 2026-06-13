@@ -80,7 +80,7 @@ test('home eval prints proposals highest-score-first', () => {
     assert.ok(idxHigh !== -1, 'p-high found in output');
     assert.ok(idxLow !== -1, 'p-low found in output');
     assert.ok(idxHigh < idxLow, `p-high (idx ${idxHigh}) should appear before p-low (idx ${idxLow})`);
-    // each line should have score, faculty, id
+    // each line should have score, module, id
     const highLine = lines[idxHigh];
     assert.ok(highLine.includes('0.775') || highLine.includes('high'), 'high score line has score/confidence');
   } finally {
@@ -89,9 +89,9 @@ test('home eval prints proposals highest-score-first', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Test: home eval --faculty filters to one faculty.
+// Test: home eval --module filters to one module.
 // ---------------------------------------------------------------------------
-test('home eval --faculty knowledge shows only knowledge proposals', () => {
+test('home eval --module knowledge shows only knowledge proposals', () => {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-eval-fac-'));
   const home = join(root, '.zuzuu');
   for (const d of ['knowledge/items', 'knowledge/inbox', 'knowledge/proposals', 'knowledge/registry', 'actions/inbox']) {
@@ -111,8 +111,8 @@ test('home eval --faculty knowledge shows only knowledge proposals', () => {
   };
   writeFileSync(join(home, 'knowledge', 'proposals', 'kp1.json'), JSON.stringify(proposal, null, 2));
   try {
-    const r = spawnSync(process.execPath, [BIN, 'eval', '--faculty', 'knowledge'], { cwd: root, encoding: 'utf8' });
-    assert.equal(r.status, 0, `home eval --faculty failed: ${r.stderr}`);
+    const r = spawnSync(process.execPath, [BIN, 'eval', '--module', 'knowledge'], { cwd: root, encoding: 'utf8' });
+    assert.equal(r.status, 0, `home eval --module failed: ${r.stderr}`);
     assert.ok(r.stdout.includes('kp1'), 'kp1 in output');
   } finally {
     rmSync(root, { recursive: true, force: true });

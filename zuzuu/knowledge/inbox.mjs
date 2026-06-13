@@ -1,4 +1,4 @@
-// The inbox — where candidates arrive. Agents (per the faculty block) drop one
+// The inbox — where candidates arrive. Agents (per the module block) drop one
 // fact per file into .zuzuu/knowledge/inbox/; `zuzuu distill` drops mined candidates
 // the same way. Processing wraps each into an ER'd proposal (the file's full
 // content is preserved inside the proposal JSON) and removes the inbox file.

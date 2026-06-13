@@ -5,14 +5,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   sha256,
-  snapshotFaculties,
+  snapshotModules,
   agentId,
   activeGeneration,
   listGenerations,
   readGeneration,
   diffGenerations,
-} from '../../zuzuu/faculty/generation/read.mjs';
-import { ensureAgent, mintGeneration, rollback } from '../../zuzuu/faculty/generation/write.mjs';
+} from '../../zuzuu/module/generation/read.mjs';
+import { ensureAgent, mintGeneration, rollback } from '../../zuzuu/module/generation/write.mjs';
 
 // Build a minimal .home home with a couple knowledge items + a rules.json.
 function freshHome(fn) {
@@ -40,7 +40,7 @@ test('mintGeneration mints gen_001, sets active, snapshots knowledge with hashes
     assert.equal(lf.id, 'gen_001');
     assert.equal(activeGeneration(agentDir), 'gen_001');
     assert.ok(lf.agent && lf.agent.startsWith('agt_'));
-    const items = lf.faculties.knowledge.items;
+    const items = lf.modules.knowledge.items;
     assert.equal(items.length, 2);
     const alpha = items.find((i) => i.id === 'alpha');
     assert.ok(alpha && /^[0-9a-f]{64}$/.test(alpha.hash));
@@ -58,8 +58,8 @@ test('second mint bumps to gen_002 forkedFrom gen_001; changed item hash differs
     const g2 = mintGeneration(agentDir, { forkedFrom: 'gen_001' });
     assert.equal(g2.id, 'gen_002');
     assert.equal(g2.forkedFrom, 'gen_001');
-    const h1 = g1.faculties.knowledge.items.find((i) => i.id === 'alpha').hash;
-    const h2 = g2.faculties.knowledge.items.find((i) => i.id === 'alpha').hash;
+    const h1 = g1.modules.knowledge.items.find((i) => i.id === 'alpha').hash;
+    const h2 = g2.modules.knowledge.items.find((i) => i.id === 'alpha').hash;
     assert.notEqual(h1, h2);
     assert.equal(activeGeneration(agentDir), 'gen_002');
   });
@@ -123,9 +123,9 @@ test('diffGenerations reports added + changed knowledge items vs forkedFrom', ()
 
     const d = diffGenerations(agentDir, 'gen_002');
     assert.equal(d.forkedFrom, 'gen_001');
-    assert.deepEqual(d.faculties.knowledge.added, ['gamma']);
-    assert.deepEqual(d.faculties.knowledge.changed, ['alpha']);
-    assert.deepEqual(d.faculties.knowledge.removed, []);
+    assert.deepEqual(d.modules.knowledge.added, ['gamma']);
+    assert.deepEqual(d.modules.knowledge.changed, ['alpha']);
+    assert.deepEqual(d.modules.knowledge.removed, []);
   });
 });
 
@@ -134,8 +134,8 @@ test('diffGenerations of the first generation reports everything as added (no pa
     mintGeneration(agentDir); // gen_001, forkedFrom null
     const d = diffGenerations(agentDir, 'gen_001');
     assert.equal(d.forkedFrom, null);
-    assert.deepEqual(d.faculties.knowledge.added.sort(), ['alpha', 'beta']);
-    assert.deepEqual(d.faculties.knowledge.changed, []);
+    assert.deepEqual(d.modules.knowledge.added.sort(), ['alpha', 'beta']);
+    assert.deepEqual(d.modules.knowledge.changed, []);
   });
 });
 

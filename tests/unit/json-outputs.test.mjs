@@ -10,15 +10,15 @@ import { inboxData } from '../../zuzuu/commands/inbox.mjs';
 import { generationListData, generationShowData, mintGenerationData, rollbackData } from '../../zuzuu/commands/generation.mjs';
 import { evalData } from '../../zuzuu/commands/eval.mjs';
 import { proposalsListData, approveData, rejectData } from '../../zuzuu/commands/proposals.mjs';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 const actionMd = (slug, snippet) => serializeEnvelope({
-  id: slug, faculty: 'actions', kind: 'script', title: slug, status: 'active',
+  id: slug, module: 'actions', kind: 'script', title: slug, status: 'active',
   created_at: '2026-06-12T00:00:00Z', payload: { exec: 'run.mjs' }, body: snippet,
 });
 import { actInboxData, actApproveData, actRejectData } from '../../zuzuu/commands/act.mjs';
-import { mintGeneration } from '../../zuzuu/faculty/generation/write.mjs';
-import { writeProposal, makeProposal } from '../../zuzuu/faculty/proposal.mjs';
+import { mintGeneration } from '../../zuzuu/module/generation/write.mjs';
+import { writeProposal, makeProposal } from '../../zuzuu/module/proposal.mjs';
 import { processInbox } from '../../zuzuu/knowledge/inbox.mjs';
 import { digestData } from '../../zuzuu/commands/digest.mjs';
 import { SEED_TYPES, SEED_ATTRIBUTES, SEED_RELATIONS } from '../../zuzuu/knowledge/registry.mjs';
@@ -92,7 +92,7 @@ test('evalData returns ranked array with required keys for a seeded proposal', (
       join(dir, 'knowledge', 'proposals', 'kp1.json'),
       JSON.stringify({
         id: 'kp1',
-        faculty: 'knowledge',
+        module: 'knowledge',
         kind: 'item',
         status: 'pending',
         source: 'session-abc',
@@ -115,13 +115,13 @@ test('evalData returns ranked array with required keys for a seeded proposal', (
     assert.ok(d.ranked.length > 0, 'ranked has entries');
     const first = d.ranked[0];
     assert.ok('id' in first, 'has id');
-    assert.ok('faculty' in first, 'has faculty');
+    assert.ok('module' in first, 'has module');
     assert.ok('title' in first, 'has title');
     assert.ok('score' in first, 'has score');
     assert.ok('confidence' in first, 'has confidence');
     assert.ok('rationale' in first, 'has rationale');
     assert.equal(first.id, 'kp1');
-    assert.equal(first.faculty, 'knowledge');
+    assert.equal(first.module, 'knowledge');
   });
 });
 
@@ -136,10 +136,10 @@ test('evalData returns empty ranked array when no proposals', () => {
 
 // ── Task 2: proposals list/approve/reject --json ──────────────────────────────
 
-test('proposalsListData returns {pending:[{id,faculty,title}]}', () => {
+test('proposalsListData returns {pending:[{id,module,title}]}', () => {
   withHome((dir) => {
     const p = makeProposal({
-      faculty: 'knowledge', kind: 'item', source: 'sess1',
+      module: 'knowledge', kind: 'item', source: 'sess1',
       payload: { id: 'kfact', type: 'fact', body: 'zero-deps policy', attributes: {}, relations: [] },
     });
     writeProposal(dir, p);
@@ -148,9 +148,9 @@ test('proposalsListData returns {pending:[{id,faculty,title}]}', () => {
     assert.ok(d.pending.length > 0, 'has pending items');
     const item = d.pending[0];
     assert.ok('id' in item, 'has id');
-    assert.ok('faculty' in item, 'has faculty');
+    assert.ok('module' in item, 'has module');
     assert.ok('title' in item, 'has title');
-    assert.equal(item.faculty, 'knowledge');
+    assert.equal(item.module, 'knowledge');
   });
 });
 
@@ -175,7 +175,7 @@ test('proposalsListData is pure (no side-effects), but json list path promotes i
     processInbox(dir);
     const after = proposalsListData(dir);
     assert.ok(after.pending.length > 0, 'candidate appears after promotion');
-    assert.equal(after.pending[0].faculty, 'knowledge');
+    assert.equal(after.pending[0].module, 'knowledge');
     assert.ok(!existsSync(join(dir, 'knowledge', 'inbox', 'x.md')), 'inbox file consumed');
   });
 });
@@ -189,8 +189,8 @@ test('approveResultData: approve a seeded knowledge proposal → {ok,action,...}
     processInbox(dir);
     const listed = proposalsListData(dir);
     assert.ok(listed.pending.length > 0, 'proposal exists');
-    const { id, faculty } = listed.pending[0];
-    const r = approveData(dir, id, faculty);
+    const { id, module } = listed.pending[0];
+    const r = approveData(dir, id, module);
     assert.equal(r.ok, true, 'ok is true');
     assert.ok('action' in r, 'has action');
     // JSON-serialisable
@@ -205,8 +205,8 @@ test('rejectResultData: reject a seeded knowledge proposal → {ok,id}', () => {
     processInbox(dir);
     const listed = proposalsListData(dir);
     assert.ok(listed.pending.length > 0, 'proposal exists');
-    const { id, faculty } = listed.pending[0];
-    const r = rejectData(dir, id, faculty, 'test-reason');
+    const { id, module } = listed.pending[0];
+    const r = rejectData(dir, id, module, 'test-reason');
     assert.equal(r.ok, true, 'ok is true');
     assert.equal(r.id, id, 'id echoed');
     // JSON-serialisable
@@ -294,14 +294,14 @@ test('rollbackData returns {ok,restored,active} with gen_ id', () => {
 
 // ── pre-existing tests (unchanged) ───────────────────────────────────────────
 
-test('inboxData lists pending proposals with faculty + title + total', () => {
+test('inboxData lists pending proposals with module + title + total', () => {
   withHome((dir) => {
     writeFileSync(join(dir, 'knowledge', 'proposals', 'p1.json'),
       JSON.stringify({ id: 'p1', kind: 'item', status: 'pending',
         candidate: { id: 'p1', type: 'fact', body: 'use node:sqlite', attributes: {}, relations: [], provenance: [] } }));
     const d = inboxData(dir);
     assert.equal(d.total, 1);
-    assert.equal(d.pending[0].faculty, 'knowledge');
+    assert.equal(d.pending[0].module, 'knowledge');
     assert.equal(d.pending[0].id, 'p1');
     assert.match(d.pending[0].title, /node:sqlite/);
   });
@@ -315,7 +315,7 @@ test('generationListData returns active + list; showData returns the diff', () =
     assert.equal(list.generations[0].id, lf.id);
     const show = generationShowData(dir, lf.id);
     assert.equal(show.id, lf.id);
-    assert.ok(show.faculties && typeof show.faculties === 'object');
+    assert.ok(show.modules && typeof show.modules === 'object');
     assert.equal(generationShowData(dir, 'gen_999'), null);   // unknown id
   });
 });

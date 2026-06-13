@@ -7,7 +7,7 @@ import { geminiRef } from '../../zuzuu/commands/hook.mjs';
 import { mkdtempSync, rmSync, mkdirSync, writeFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { gateDecision } from '../../zuzuu/commands/hook.mjs';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fx = (h) => readFileSync(join(here, '..', 'fixtures', 'hooks', `${h}.probe.jsonl`), 'utf8')
@@ -35,7 +35,7 @@ function withRules(rules, fn) {
   mkdirSync(items, { recursive: true });
   for (const r of rules) {
     writeFileSync(join(items, `${r.id}.md`), serializeEnvelope({
-      id: r.id, faculty: 'guardrails', kind: 'rule', title: r.reason, status: 'active',
+      id: r.id, module: 'guardrails', kind: 'rule', title: r.reason, status: 'active',
       created_at: '2026-06-12T00:00:00Z', payload: { action: r.action, tool: r.tool, pattern: r.pattern, reason: r.reason }, body: '',
     }));
   }

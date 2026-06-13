@@ -1,6 +1,6 @@
 // tests/unit/inbox.test.mjs (WS-C)
-// `home inbox` — what is pending your approval, per faculty. Uses an injected
-// `log` (no console scraping) over a temp faculty home.
+// `home inbox` — what is pending your approval, per module. Uses an injected
+// `log` (no console scraping) over a temp module home.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -19,7 +19,7 @@ function homeWithKnowledgeProposals(n) {
       join(home, 'knowledge', 'proposals', `${id}.json`),
       JSON.stringify({
         id,
-        faculty: 'knowledge',
+        module: 'knowledge',
         kind: 'item',
         status: 'pending',
         created_at: `2026-01-0${i + 1}T00:00:00.000Z`,

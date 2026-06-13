@@ -1,22 +1,22 @@
 // zuzuu/commands/migrations/proposals.mjs — legacy proposal-schema migrator.
-// {candidate, er} → spine {payload, analysis, faculty} (WS2-T5). Pure core:
+// {candidate, er} → spine {payload, analysis, module} (WS2-T5). Pure core:
 // migrateProposals(agentDir) → { scanned, migrated, skipped }. Fail-soft per file.
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { proposalsDir, archiveDir } from '../../faculty/contract.mjs';
+import { proposalsDir, archiveDir } from '../../module/contract.mjs';
 
 /**
  * Determine whether a parsed JSON record is already in the new shape.
- * A record is "new" when it has `payload` AND `faculty` set.
- * If it only has `candidate` and/or lacks `faculty` it is legacy.
+ * A record is "new" when it has `payload` AND `module` set.
+ * If it only has `candidate` and/or lacks `module` it is legacy.
  */
 function isLegacy(rec) {
   if (!rec || typeof rec !== 'object') return false;
-  // already migrated: has payload and faculty
-  if (rec.payload !== undefined && rec.faculty !== undefined) return false;
-  // legacy if it has candidate or er keys, or is simply missing faculty/payload
-  return rec.candidate !== undefined || rec.er !== undefined || rec.faculty === undefined;
+  // already migrated: has payload and module
+  if (rec.payload !== undefined && rec.module !== undefined) return false;
+  // legacy if it has candidate or er keys, or is simply missing module/payload
+  return rec.candidate !== undefined || rec.er !== undefined || rec.module === undefined;
 }
 
 /**
@@ -38,8 +38,8 @@ function migrateRecord(rec) {
     delete out.er;
   }
 
-  // faculty defaults to 'knowledge' (only knowledge proposals exist pre-spine)
-  if (!out.faculty) out.faculty = 'knowledge';
+  // module defaults to 'knowledge' (only knowledge proposals exist pre-spine)
+  if (!out.module) out.module = 'knowledge';
 
   return out;
 }

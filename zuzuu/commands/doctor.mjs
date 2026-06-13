@@ -7,18 +7,18 @@ import { paths, gitInfo } from '../core/store.mjs';
 import { listLive } from '../live/live-store.mjs';
 import { reconcile } from '../live/reconcile.mjs';
 import { planScaffold, homeExists } from '../home/scaffold.mjs';
-import { facultiesOf, hookFailures } from '../faculty/registry.mjs';
+import { modulesOf, hookFailures } from '../module/registry.mjs';
 import { loadRegistry } from '../knowledge/registry.mjs';
 import { allItems } from '../knowledge/items.mjs';
 import { listProposals } from '../knowledge/proposals.mjs';
 import { detectEmbedder } from '../knowledge/embed.mjs';
-import { activeGeneration, readGeneration, snapshotFaculties } from '../faculty/generation/read.mjs';
+import { activeGeneration, readGeneration, snapshotModules } from '../module/generation/read.mjs';
 import { sessionStatus } from '../sessions/session-git.mjs';
 import { leftoverLine } from './session.mjs';
 
 /**
- * Pure drift checker (WS3-T3). Compares the current faculty hashes against the
- * active generation's pinned `faculties` manifest. Fail-open: any error returns
+ * Pure drift checker (WS3-T3). Compares the current module hashes against the
+ * active generation's pinned `modules` manifest. Fail-open: any error returns
  * { error } rather than throwing.
  *
  * Returns:
@@ -26,7 +26,7 @@ import { leftoverLine } from './session.mjs';
  *   { generationId, drifted: [] }   — active gen, drifted items (may be empty)
  *   { error }                       — unexpected failure (fail-open)
  *
- * Each drifted entry: { id, faculty, reason: 'hash_changed'|'added'|'removed',
+ * Each drifted entry: { id, module, reason: 'hash_changed'|'added'|'removed',
  *                        pinned?: string, current?: string }
  */
 export function detectDrift(agentDir) {
@@ -37,14 +37,14 @@ export function detectDrift(agentDir) {
     const lockfile = readGeneration(agentDir, genId);
     if (!lockfile) return { noneActive: true };
 
-    const current = snapshotFaculties(agentDir);
-    const pinned = lockfile.faculties || {};
+    const current = snapshotModules(agentDir);
+    const pinned = lockfile.modules || {};
     const drifted = [];
 
-    // Compare per-faculty item arrays — all five are envelope-item lists (W24).
-    for (const faculty of ['knowledge', 'actions', 'memory', 'guardrails', 'instructions']) {
-      const pinnedItems = (pinned[faculty]?.items ?? []);
-      const currentItems = (current[faculty]?.items ?? []);
+    // Compare per-module item arrays — all five are envelope-item lists (W24).
+    for (const module of ['knowledge', 'actions', 'memory', 'guardrails', 'instructions']) {
+      const pinnedItems = (pinned[module]?.items ?? []);
+      const currentItems = (current[module]?.items ?? []);
 
       const pinnedMap = new Map(pinnedItems.map((i) => [i.id, i.hash]));
       const currentMap = new Map(currentItems.map((i) => [i.id, i.hash]));
@@ -52,16 +52,16 @@ export function detectDrift(agentDir) {
       // Check for changed or removed items
       for (const [id, hash] of pinnedMap) {
         if (!currentMap.has(id)) {
-          drifted.push({ id, faculty, reason: 'removed', pinned: hash });
+          drifted.push({ id, module, reason: 'removed', pinned: hash });
         } else if (currentMap.get(id) !== hash) {
-          drifted.push({ id, faculty, reason: 'hash_changed', pinned: hash, current: currentMap.get(id) });
+          drifted.push({ id, module, reason: 'hash_changed', pinned: hash, current: currentMap.get(id) });
         }
       }
 
       // Check for added items
       for (const [id, hash] of currentMap) {
         if (!pinnedMap.has(id)) {
-          drifted.push({ id, faculty, reason: 'added', current: hash });
+          drifted.push({ id, module, reason: 'added', current: hash });
         }
       }
     }
@@ -70,7 +70,7 @@ export function detectDrift(agentDir) {
     const pinnedReg = pinned.knowledge?.registryHash ?? null;
     const currentReg = current.knowledge?.registryHash ?? null;
     if (pinnedReg !== currentReg) {
-      drifted.push({ id: 'registryHash', faculty: 'knowledge', reason: 'hash_changed', pinned: pinnedReg, current: currentReg });
+      drifted.push({ id: 'registryHash', module: 'knowledge', reason: 'hash_changed', pinned: pinnedReg, current: currentReg });
     }
 
     return { generationId: genId, drifted };
@@ -80,24 +80,24 @@ export function detectDrift(agentDir) {
 }
 
 /**
- * Pure-ish: faculty-module health for doctor — broken manifests + recorded
+ * Pure-ish: module-module health for doctor — broken manifests + recorded
  * hook failures become warnings (the module degraded to items-only);
- * declarative faculties get an informational note. Fail-open: any error
+ * declarative modules get an informational note. Fail-open: any error
  * returns empty lists rather than throwing into doctor.
  * @returns {{warnings: string[], notes: string[]}}
  */
-export function facultyModuleHealth(agentDir) {
+export function moduleModuleHealth(agentDir) {
   try {
     const warnings = [];
     const notes = [];
-    const entries = facultiesOf(agentDir);
+    const entries = modulesOf(agentDir);
     for (const e of entries.filter((x) => x.manifestError)) {
-      warnings.push(`faculty '${e.id}' faculty.json unreadable (${e.manifestError}) — module degraded to items-only`);
+      warnings.push(`module '${e.id}' module.json unreadable (${e.manifestError}) — module degraded to items-only`);
     }
     const declarative = entries.filter((x) => x.declarative && !x.manifestError);
-    if (declarative.length) notes.push(`declarative faculties: ${declarative.map((x) => x.id).join(', ')}`);
+    if (declarative.length) notes.push(`declarative modules: ${declarative.map((x) => x.id).join(', ')}`);
     for (const f of hookFailures()) {
-      warnings.push(`faculty '${f.faculty}' hook ${f.hook} failed (${f.error}) — degraded, items-only`);
+      warnings.push(`module '${f.module}' hook ${f.hook} failed (${f.error}) — degraded, items-only`);
     }
     return { warnings, notes };
   } catch {
@@ -149,26 +149,26 @@ export async function doctor() {
     bad(`.zuzuu/ not writable (${dir})`);
   }
 
-  // faculty home (served by `zuzuu init`)
+  // module home (served by `zuzuu init`)
   const root = paths().root;
   if (!homeExists(root)) {
-    warn('no faculty home — run `zuzuu init` to scaffold knowledge/memory/actions/instructions');
+    warn('no module home — run `zuzuu init` to scaffold knowledge/memory/actions/instructions');
   } else {
     const missing = planScaffold(root);
     const gaps = missing.dirs.length + missing.files.length + (missing.manifestMissing ? 1 : 0);
-    if (gaps) warn(`faculty home incomplete (${gaps} piece(s) missing) — rerun \`zuzuu init\``);
-    else ok('faculty home complete (knowledge/ memory/ actions/ instructions/ guardrails/)');
+    if (gaps) warn(`module home incomplete (${gaps} piece(s) missing) — rerun \`zuzuu init\``);
+    else ok('module home complete (knowledge/ memory/ actions/ instructions/ guardrails/)');
   }
 
-  // faculty modules (the Faculty Module contract): a broken manifest or a
-  // failed hook degrades that faculty to items-only — surface it, never throw.
+  // modules (the Module contract): a broken manifest or a
+  // failed hook degrades that module to items-only — surface it, never throw.
   if (homeExists(root)) {
-    const health = facultyModuleHealth(dir);
+    const health = moduleModuleHealth(dir);
     for (const w of health.warnings) warn(w);
     for (const n of health.notes) info(n);
   }
 
-  // knowledge faculty
+  // knowledge module
   if (homeExists(root)) {
     const reg = loadRegistry(dir);
     if (!reg.ok) bad('knowledge registry unparseable');
@@ -197,11 +197,11 @@ export async function doctor() {
     } else if (drift.error) {
       warn(`generation drift check failed: ${drift.error}`);
     } else if (drift.drifted.length === 0) {
-      ok(`generation ${drift.generationId} — no faculty drift`);
+      ok(`generation ${drift.generationId} — no module drift`);
     } else {
       warn(`generation ${drift.generationId} — ${drift.drifted.length} drifted item(s):`);
       for (const d of drift.drifted) {
-        info(`  drift: ${d.faculty}/${d.id} (${d.reason})`);
+        info(`  drift: ${d.module}/${d.id} (${d.reason})`);
       }
     }
   } catch {

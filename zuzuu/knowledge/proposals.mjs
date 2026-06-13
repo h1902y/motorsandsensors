@@ -15,7 +15,7 @@ import { allItems, readItem, writeItem, slugify } from './items.mjs';
 import { upsertItem } from './index.mjs';
 import { resolve as erResolve, merge } from './er.mjs';
 import { mechanicalScore } from '../eval/score.mjs';
-import { readArchived } from '../faculty/proposal.mjs';
+import { readArchived } from '../module/proposal.mjs';
 
 export const proposalsDir = (agentDir) => join(agentDir, 'knowledge', 'proposals');
 const archiveDir = (agentDir) => join(proposalsDir(agentDir), 'archive');
@@ -94,7 +94,7 @@ function archive(agentDir, proposal, status, extra = {}) {
 
 /**
  * Apply an approved proposal's effects — the canonical write path, extracted so
- * the Knowledge faculty adapter (WS2-T2) can call the *same* logic. This is the
+ * the Knowledge module adapter (WS2-T2) can call the *same* logic. This is the
  * registry-branch + ER-merge + writeItem + upsertItem body; it does NOT archive
  * (the caller decides lifecycle). Behaviour is identical to the old inline body.
  * @returns {{ok:boolean, action:string, item?:string, warnings:string[]}}

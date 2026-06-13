@@ -44,7 +44,7 @@ test('mode 1 — empty dir: greenfield scaffold + AGENTS.md/CLAUDE.md created', 
     assert.ok(existsSync(join(cwd, '.zuzuu', 'agent.json')));
     assert.ok(existsSync(join(cwd, 'AGENTS.md')), 'greenfield creates AGENTS.md');
     assert.ok(existsSync(join(cwd, 'CLAUDE.md')), 'greenfield creates CLAUDE.md');
-    assert.match(readFileSync(join(cwd, 'AGENTS.md'), 'utf8'), /zuzuu:faculties:v\d+/);
+    assert.match(readFileSync(join(cwd, 'AGENTS.md'), 'utf8'), /zuzuu:modules:v\d+/);
     assert.match(readFileSync(join(cwd, '.gitignore'), 'utf8'), /\.zuzuu\/\.traces\//);
   });
 });
@@ -58,10 +58,10 @@ test('mode 2 — existing project: inject into existing CLAUDE.md + guarantee AG
     assert.match(out, /Initialized zuzuu home in existing project/);
     const claude = readFileSync(join(cwd, 'CLAUDE.md'), 'utf8');
     assert.ok(claude.startsWith('# Existing guidance'), 'user content untouched at top');
-    assert.match(claude, /zuzuu:faculties:v\d+/);
+    assert.match(claude, /zuzuu:modules:v\d+/);
     // brownfield now GUARANTEES AGENTS.md — the universal file Codex/OpenCode/pi read.
     assert.ok(existsSync(join(cwd, 'AGENTS.md')), 'brownfield ensures AGENTS.md exists');
-    assert.match(readFileSync(join(cwd, 'AGENTS.md'), 'utf8'), /zuzuu:faculties:v\d+/);
+    assert.match(readFileSync(join(cwd, 'AGENTS.md'), 'utf8'), /zuzuu:modules:v\d+/);
     const gi = readFileSync(join(cwd, '.gitignore'), 'utf8');
     assert.ok(gi.startsWith('node_modules/'), 'gitignore preserved');
     assert.match(gi, /\.zuzuu\/\.live\//);
@@ -75,8 +75,8 @@ test('mode 2 — a project that already has AGENTS.md gets the block injected, n
     run(cwd);
     const agents = readFileSync(join(cwd, 'AGENTS.md'), 'utf8');
     assert.ok(agents.startsWith('# Team conventions'), 'user AGENTS.md content preserved');
-    assert.match(agents, /zuzuu:faculties:v\d+/);
-    assert.equal((agents.match(/zuzuu:faculties:v\d+/g) || []).length, 1, 'exactly one block');
+    assert.match(agents, /zuzuu:modules:v\d+/);
+    assert.equal((agents.match(/zuzuu:modules:v\d+/g) || []).length, 1, 'exactly one block');
   });
 });
 
@@ -98,21 +98,21 @@ test('mode 3 — reinit restores missing pieces only', () => {
     run(cwd);
     rmSync(join(cwd, '.zuzuu', 'actions'), { recursive: true });
     const out = run(cwd);
-    assert.match(out, /restored : 5 missing piece/); // dirs ×2 + README + schema.json + faculty.json
+    assert.match(out, /restored : 5 missing piece/); // dirs ×2 + README + schema.json + module.json
     assert.ok(existsSync(join(cwd, '.zuzuu', 'actions', 'README.md')));
   });
 });
 
-test('reinit upgrades an older faculty block to the current version in place', async () => {
-  const { facultiesBlock, BLOCK_VERSION } = await import('../../zuzuu/home/inject.mjs');
+test('reinit upgrades an older module block to the current version in place', async () => {
+  const { modulesBlock, BLOCK_VERSION } = await import('../../zuzuu/home/inject.mjs');
   withTemp((cwd) => {
-    writeFileSync(join(cwd, 'CLAUDE.md'), '# Mine\n\n' + facultiesBlock(1) + '\n\n## After section\n');
+    writeFileSync(join(cwd, 'CLAUDE.md'), '# Mine\n\n' + modulesBlock(1) + '\n\n## After section\n');
     const out = run(cwd);
     assert.match(out, new RegExp(`upgraded → v${BLOCK_VERSION}`));
     const text = readFileSync(join(cwd, 'CLAUDE.md'), 'utf8');
-    assert.ok(text.includes(`zuzuu:faculties:v${BLOCK_VERSION}`), 'current version present');
-    assert.ok(!text.includes('zuzuu:faculties:v1 '), 'old version gone');
-    assert.equal((text.match(/zuzuu:faculties:v\d+/g) || []).length, 1, 'exactly one block');
+    assert.ok(text.includes(`zuzuu:modules:v${BLOCK_VERSION}`), 'current version present');
+    assert.ok(!text.includes('zuzuu:modules:v1 '), 'old version gone');
+    assert.equal((text.match(/zuzuu:modules:v\d+/g) || []).length, 1, 'exactly one block');
     assert.ok(text.startsWith('# Mine'), 'user heading intact');
     assert.ok(text.includes('## After section'), 'trailing user content intact');
   });

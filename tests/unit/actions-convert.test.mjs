@@ -4,7 +4,7 @@ import { toMcpTool, toOpenAITool, toAnthropicTool } from '../../zuzuu/actions/co
 
 // An ACTION.md envelope manifest, as loadManifest returns it (W24).
 const MANIFEST = {
-  id: 'greet', faculty: 'actions', kind: 'script', title: 'Greet',
+  id: 'greet', module: 'actions', kind: 'script', title: 'Greet',
   status: 'active', created_at: '2026-06-12T00:00:00Z',
   payload: { exec: 'run.mjs' }, body: 'say hi\n\nlonger prose', promptSnippet: 'say hi',
 };

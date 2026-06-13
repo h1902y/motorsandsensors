@@ -1,5 +1,5 @@
 // tests/unit/migrate-items.test.mjs
-// W24 — the Faculty Standard migrator. Goldens seed a REAL pre-standard home:
+// W24 — the Module Standard migrator. Goldens seed a REAL pre-standard home:
 // the rules.json the old scaffold actually shipped, an action.json/run.mjs pair
 // authored by the old `zuzuu act new`, a SKILL.md runbook, legacy knowledge and
 // memory frontmatter, and a filled project.md. Migrate, then assert envelopes,
@@ -11,7 +11,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync, existsSync, readFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { migrateItems, needsItemsMigration } from '../../zuzuu/commands/migrations/items.mjs';
-import { parseEnvelope, validateEnvelope, PAYLOAD_SCHEMAS } from '../../zuzuu/faculty/envelope.mjs';
+import { parseEnvelope, validateEnvelope, PAYLOAD_SCHEMAS } from '../../zuzuu/module/envelope.mjs';
 import { loadRules, evaluate } from '../../zuzuu/guardrails/engine.mjs';
 import { readItem } from '../../zuzuu/knowledge/items.mjs';
 import { runAction } from '../../zuzuu/actions/dispatch.mjs';
@@ -133,7 +133,7 @@ test('needsItemsMigration detects every old shape; clean homes say no', () => {
   });
 });
 
-test('migrateItems converts every faculty and reports the summary', () => {
+test('migrateItems converts every module and reports the summary', () => {
   withOldHome((home) => {
     const r = migrateItems(home);
     assert.deepEqual(r.errors, []);
@@ -151,7 +151,7 @@ test('knowledge: keys standardise, ids and in-memory shape unchanged', () => {
     const raw = readFileSync(join(home, 'knowledge', 'items', 'test-command.md'), 'utf8');
     const { ok, item } = parseEnvelope(raw);
     assert.ok(ok);
-    assert.equal(item.faculty, 'knowledge');
+    assert.equal(item.module, 'knowledge');
     assert.equal(item.payload.type, 'command');
     assert.ok(validateEnvelope(item, PAYLOAD_SCHEMAS.knowledge).ok);
     // the knowledge wrapper still reads the historical shape — same id, same fields
@@ -267,7 +267,7 @@ test('fail-soft: one broken legacy item is reported, the rest convert', () => {
 test('a customized steering item is never clobbered by project.md', () => {
   withOldHome((home) => {
     mkdirSync(join(home, 'instructions', 'items'), { recursive: true });
-    writeFileSync(join(home, 'instructions', 'items', 'steering.md'), '---\nid: steering\nfaculty: instructions\nkind: steering\ntitle: Mine\nstatus: active\ncreated_at: 2026-06-12\n---\nMY steering\n');
+    writeFileSync(join(home, 'instructions', 'items', 'steering.md'), '---\nid: steering\nmodule: instructions\nkind: steering\ntitle: Mine\nstatus: active\ncreated_at: 2026-06-12\n---\nMY steering\n');
     const r = migrateItems(home);
     assert.ok(r.errors.some((e) => /merge by hand/.test(e.error)));
     assert.ok(existsSync(join(home, 'instructions', 'project.md')), 'project.md left for the human');

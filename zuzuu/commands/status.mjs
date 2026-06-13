@@ -5,20 +5,20 @@ import { dirname } from 'node:path';
 import { detected } from '../capture/adapters/registry.mjs';
 import { sessionStatus } from '../sessions/session-git.mjs';
 import { readIndex, paths } from '../core/store.mjs';
-import { FACULTIES } from '../faculty/contract.mjs';
-import { listProposals } from '../faculty/proposal.mjs';
-import { activeGeneration as activeGenerationFn } from '../faculty/generation/read.mjs';
+import { MODULES } from '../module/contract.mjs';
+import { listProposals } from '../module/proposal.mjs';
+import { activeGeneration as activeGenerationFn } from '../module/generation/read.mjs';
 import { detectDrift } from './doctor.mjs';
 
 const fmtDur = (ms) => (ms < 60_000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 60_000).toFixed(1)}m`);
 
-/** Pure: structured status for a faculty home (the zuzuu-web /status source). Fail-soft per field.
+/** Pure: structured status for a module home (the zuzuu-web /status source). Fail-soft per field.
  *  `session` is injectable (like hosts) for hermetic tests; default = the repo above the home. */
 export function statusData(agentDir, { hosts = detected().map((a) => ({ name: a.name })), session } = {}) {
   let active = null, drift = { dirty: false, items: [] };
   const pending = {};
   try { active = activeGenerationFn(agentDir); } catch { active = null; }
-  for (const f of FACULTIES) {
+  for (const f of MODULES) {
     try { pending[f] = listProposals(agentDir, f).length; } catch { pending[f] = 0; }
   }
   try {
@@ -34,24 +34,24 @@ export function statusData(agentDir, { hosts = detected().map((a) => ({ name: a.
 }
 
 /**
- * Pure: the faculties graduation line for `zuzuu status`. Fail-soft — any error in
+ * Pure: the modules graduation line for `zuzuu status`. Fail-soft — any error in
  * a sub-read degrades to a safe default rather than throwing.
  * @param {string} agentDir
  * @returns {string}
  */
-export function facultiesLine(agentDir) {
+export function modulesLine(agentDir) {
   let gen = null, pending = 0, drifted = false;
   try { gen = activeGenerationFn(agentDir); } catch { /* fail-soft */ }
   try {
-    for (const f of FACULTIES) {
-      try { pending += listProposals(agentDir, f).length; } catch { /* per-faculty fail-soft */ }
+    for (const f of MODULES) {
+      try { pending += listProposals(agentDir, f).length; } catch { /* per-module fail-soft */ }
     }
   } catch { /* fail-soft */ }
   try {
     const d = detectDrift(agentDir);
     drifted = Array.isArray(d?.drifted) && d.drifted.length > 0;
   } catch { /* fail-soft */ }
-  let line = `faculties: ${gen || 'no generation yet'} · ${pending} pending review`;
+  let line = `modules: ${gen || 'no generation yet'} · ${pending} pending review`;
   if (drifted) line += ' · ⚠ drift (run zuzuu doctor)';
   return line;
 }
@@ -74,7 +74,7 @@ export function status(args = {}) {
     if (sessions.length > 12) console.log(`  … and ${sessions.length - 12} more`);
   }
 
-  try { console.log('\n' + facultiesLine(paths().dir)); } catch { /* fail-soft */ }
+  try { console.log('\n' + modulesLine(paths().dir)); } catch { /* fail-soft */ }
 
   const hosts = detected();
   console.log('\nhosts detected on this machine:');

@@ -1,12 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseEnvelope, serializeEnvelope, validateEnvelope, deriveTitle, PAYLOAD_SCHEMAS, FACULTY_KINDS } from '../../zuzuu/faculty/envelope.mjs';
+import { parseEnvelope, serializeEnvelope, validateEnvelope, deriveTitle, PAYLOAD_SCHEMAS, MODULE_KINDS } from '../../zuzuu/module/envelope.mjs';
 
 // ── round-trip ──────────────────────────────────────────────────────────────
 
 const KNOWLEDGE_ITEM = {
   id: 'test-command',
-  faculty: 'knowledge',
+  module: 'knowledge',
   kind: 'command',
   title: 'The test command',
   status: 'active',
@@ -30,7 +30,7 @@ test('envelope round-trip: parse(serialize(x)) preserves everything', () => {
 test('envelope round-trip survives regex backslashes and special chars (guardrails)', () => {
   const rule = {
     id: 'no-root-wipe',
-    faculty: 'guardrails',
+    module: 'guardrails',
     kind: 'rule',
     title: 'No root wipe',
     status: 'active',
@@ -50,7 +50,7 @@ test('envelope round-trip survives regex backslashes and special chars (guardrai
 test('envelope round-trip: scalar lists (memory sessions/hosts/tags)', () => {
   const mem = {
     id: 'mem-2026-06-11-flaky-ci',
-    faculty: 'memory',
+    module: 'memory',
     kind: 'episode',
     title: 'Flaky CI fixed by pinning node 22',
     status: 'active',
@@ -66,38 +66,38 @@ test('envelope round-trip: scalar lists (memory sessions/hosts/tags)', () => {
 
 test('parseEnvelope: structural errors collected, never thrown', () => {
   assert.equal(parseEnvelope('no frontmatter').ok, false);
-  const noId = parseEnvelope('---\nfaculty: memory\nkind: episode\n---\nbody');
+  const noId = parseEnvelope('---\nmodule: memory\nkind: episode\n---\nbody');
   assert.equal(noId.ok, false);
   assert.ok(noId.errors.some((e) => /missing id/.test(e)));
-  const rogue = parseEnvelope('---\nid: x\nfaculty: memory\nkind: episode\n  rogue: indent\n---\n');
+  const rogue = parseEnvelope('---\nid: x\nmodule: memory\nkind: episode\n  rogue: indent\n---\n');
   assert.equal(rogue.ok, false);
   assert.ok(rogue.errors.some((e) => /unexpected indented/.test(e)));
 });
 
-// ── validation per faculty schema ───────────────────────────────────────────
+// ── validation per module schema ───────────────────────────────────────────
 
 test('validateEnvelope: envelope field errors', () => {
   const base = { ...KNOWLEDGE_ITEM };
   assert.ok(validateEnvelope(base, PAYLOAD_SCHEMAS.knowledge).ok);
   assert.ok(!validateEnvelope({ ...base, id: 'Bad Id!' }).ok);
-  assert.ok(!validateEnvelope({ ...base, faculty: 'vibes' }).ok);
+  assert.ok(!validateEnvelope({ ...base, module: 'vibes' }).ok);
   assert.ok(!validateEnvelope({ ...base, title: '' }).ok);
   assert.ok(!validateEnvelope({ ...base, status: 'pending' }).ok);
   assert.ok(!validateEnvelope({ ...base, created_at: 'yesterday' }).ok);
 });
 
-test('validateEnvelope: kind is per-faculty (knowledge open / others pinned)', () => {
+test('validateEnvelope: kind is per-module (knowledge open / others pinned)', () => {
   // knowledge kinds are registry-governed → any slug passes the envelope check
   assert.ok(validateEnvelope({ ...KNOWLEDGE_ITEM, kind: 'decision', payload: { type: 'decision' } }, PAYLOAD_SCHEMAS.knowledge).ok);
-  const mem = { id: 'mem-x', faculty: 'memory', kind: 'fact', title: 't', status: 'active', created_at: '2026-06-12', payload: {}, body: '' };
+  const mem = { id: 'mem-x', module: 'memory', kind: 'fact', title: 't', status: 'active', created_at: '2026-06-12', payload: {}, body: '' };
   const v = validateEnvelope(mem, PAYLOAD_SCHEMAS.memory);
   assert.ok(!v.ok);
   assert.ok(v.errors.some((e) => /episode/.test(e)));
-  assert.deepEqual(FACULTY_KINDS.guardrails, ['rule']);
+  assert.deepEqual(MODULE_KINDS.guardrails, ['rule']);
 });
 
 test('validateEnvelope: guardrails payload schema (enum + required)', () => {
-  const rule = (payload) => ({ id: 'r1', faculty: 'guardrails', kind: 'rule', title: 'r', status: 'active', created_at: '2026-06-12', payload, body: '' });
+  const rule = (payload) => ({ id: 'r1', module: 'guardrails', kind: 'rule', title: 'r', status: 'active', created_at: '2026-06-12', payload, body: '' });
   assert.ok(validateEnvelope(rule({ action: 'deny', tool: '*', pattern: 'x', reason: 'why' }), PAYLOAD_SCHEMAS.guardrails).ok);
   const badAction = validateEnvelope(rule({ action: 'explode', pattern: 'x', reason: 'why' }), PAYLOAD_SCHEMAS.guardrails);
   assert.ok(!badAction.ok);
@@ -108,7 +108,7 @@ test('validateEnvelope: guardrails payload schema (enum + required)', () => {
 });
 
 test('validateEnvelope: actions payload schema rejects path-escaping exec', () => {
-  const act = (payload) => ({ id: 'greet', faculty: 'actions', kind: 'script', title: 'g', status: 'active', created_at: '2026-06-12', payload, body: 'x' });
+  const act = (payload) => ({ id: 'greet', module: 'actions', kind: 'script', title: 'g', status: 'active', created_at: '2026-06-12', payload, body: 'x' });
   assert.ok(validateEnvelope(act({ exec: 'run.mjs', args: { name: 'world' } }), PAYLOAD_SCHEMAS.actions).ok);
   assert.ok(!validateEnvelope(act({ exec: '../../etc/passwd' }), PAYLOAD_SCHEMAS.actions).ok);
   assert.ok(!validateEnvelope(act({ exec: 'run.mjs', kindx: 1 }), { ...PAYLOAD_SCHEMAS.actions, required: ['exec', 'missing'] }).ok);

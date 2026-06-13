@@ -1,6 +1,6 @@
 // zuzuu/actions/manifest.mjs
-// Reads the Actions faculty off disk: one action per dir under .zuzuu/actions/,
-// described by an ACTION.md envelope (the Faculty Standard, W24 — SKILL.md-shaped:
+// Reads the Actions module off disk: one action per dir under .zuzuu/actions/,
+// described by an ACTION.md envelope (the Module Standard, W24 — SKILL.md-shaped:
 // frontmatter + instruction prose body; scripts stay siblings):
 //
 //   actions/<slug>/ACTION.md   kind: script|runbook; payload.exec (script entry,
@@ -11,7 +11,7 @@
 
 import { join } from 'node:path';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { parseEnvelope, deriveTitle } from '../faculty/envelope.mjs';
+import { parseEnvelope, deriveTitle } from '../module/envelope.mjs';
 
 // Action slugs: letters/digits start, then letters/digits/-/_. No dots or slashes
 // → cannot escape .zuzuu/actions/ via path traversal.
@@ -42,7 +42,7 @@ export function loadManifest(agentDir, slug) {
   const path = join(actionDir(agentDir, slug), 'ACTION.md');
   try {
     const { ok, item } = parseEnvelope(readFileSync(path, 'utf8'));
-    if (!ok || item.faculty !== 'actions') return null;
+    if (!ok || item.module !== 'actions') return null;
     item.title = item.title ?? deriveTitle(item.body, item.id);
     item.promptSnippet = snippetOf(item);
     return item;
@@ -61,7 +61,7 @@ export function execOf(manifest) {
  * List actions in a base dir as {slug, kind, title, promptSnippet}.
  * An action is a dir carrying ACTION.md; kind comes from its envelope
  * (`script` | `runbook`). Other entries are skipped (READMEs, stray files,
- * unparseable envelopes — the latter surface via `zuzuu faculty items actions`).
+ * unparseable envelopes — the latter surface via `zuzuu module items actions`).
  * Reads directly from each entry dir (works for any baseDir, e.g. the inbox).
  */
 export function listActions(baseDir) {

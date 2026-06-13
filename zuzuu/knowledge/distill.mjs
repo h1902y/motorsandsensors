@@ -46,7 +46,7 @@ const isToolResult = (content) => Array.isArray(content) && content.some((b) => 
 /**
  * Extract raw mining signals from one Claude Code transcript.
  * SUPERSET (WS5-T1): the original `commands/files/failures` keys are unchanged;
- * `sequences/correctionTurns/destructiveFailures` are added for later faculties.
+ * `sequences/correctionTurns/destructiveFailures` are added for later modules.
  */
 export function mineTranscript(file) {
   const out = { commands: [], files: [], failures: [], sequences: [], correctionTurns: [], destructiveFailures: [] };

@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { scaffoldAction } from '../../zuzuu/commands/act-author.mjs';
-import { parseEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { parseEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 function withHome(fn) {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-new-'));
@@ -24,7 +24,7 @@ test('scaffoldAction creates ACTION.md + run.mjs; ACTION.md is a valid envelope 
     const { ok, item } = parseEnvelope(readFileSync(join(dir, 'ACTION.md'), 'utf8'));
     assert.ok(ok, 'ACTION.md parses as an envelope');
     assert.equal(item.id, 'deploy-thing');
-    assert.equal(item.faculty, 'actions');
+    assert.equal(item.module, 'actions');
     assert.equal(item.kind, 'script');
     assert.equal(item.payload.exec, 'run.mjs');
     assert.ok(readFileSync(join(dir, 'run.mjs'), 'utf8').includes('export async function main'));

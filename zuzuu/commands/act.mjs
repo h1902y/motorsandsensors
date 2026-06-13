@@ -1,5 +1,5 @@
 // zuzuu/commands/act.mjs
-// `zuzuu act` — the Actions faculty CLI. The host's Bash invokes this, so each run
+// `zuzuu act` — the Actions module CLI. The host's Bash invokes this, so each run
 // is an observable span already covered by the guardrails gate. Subcommands:
 //   zuzuu act [list]            the index (slug · kind · snippet)
 //   zuzuu act show <slug>       full manifest (script) or SKILL.md (runbook)

@@ -11,7 +11,7 @@ test('addHooks installs all lifecycle events + the narrowed deny rules', () => {
   const s = addHooks({}, commandFor);
   for (const ev of LIFECYCLE_EVENTS) assert.ok(s.hooks[ev].some((m) => m.hooks[0].command.includes(SIGNATURE)));
   for (const rule of NARROW_DENIES) assert.ok(s.permissions.deny.includes(rule), rule);
-  // the faculty home must stay readable — no blanket .zuzuu/ deny
+  // the module home must stay readable — no blanket .zuzuu/ deny
   assert.ok(!s.permissions.deny.includes('Read(./.zuzuu/**)'));
   assert.ok(isInstalled(s));
 });

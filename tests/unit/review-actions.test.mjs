@@ -5,12 +5,12 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
 
 const actionMd = (slug, snippet) => serializeEnvelope({
-  id: slug, faculty: 'actions', kind: 'script', title: slug, status: 'active',
+  id: slug, module: 'actions', kind: 'script', title: slug, status: 'active',
   created_at: '2026-06-12T00:00:00Z', payload: { exec: 'run.mjs' }, body: snippet,
 });
 

@@ -4,10 +4,10 @@ import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../../zuzuu/guardrails/engine.mjs';
-import { serializeEnvelope } from '../../zuzuu/faculty/envelope.mjs';
+import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
 import { LAYOUT } from '../../zuzuu/home/scaffold.mjs';
 
-// Build a throwaway guardrails faculty dir with one envelope item per rule.
+// Build a throwaway guardrails module dir with one envelope item per rule.
 // `files` may also carry raw text values (malformed-item cases).
 function withRuleItems(files, fn) {
   const dir = mkdtempSync(join(tmpdir(), 'zuzuu-guard-'));
@@ -25,7 +25,7 @@ function withRuleItems(files, fn) {
 
 const rule = ({ id, action, tool = '*', pattern, reason }) =>
   serializeEnvelope({
-    id, faculty: 'guardrails', kind: 'rule', title: reason, status: 'active',
+    id, module: 'guardrails', kind: 'rule', title: reason, status: 'active',
     created_at: '2026-06-12T00:00:00Z', payload: { action, tool, pattern, reason }, body: '',
   });
 
