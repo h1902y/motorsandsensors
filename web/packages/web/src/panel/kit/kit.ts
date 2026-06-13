@@ -53,6 +53,25 @@ export const MODULE_ORDER: ModuleKey[] = [
   "knowledge", "memory", "actions", "instructions", "guardrails",
 ];
 
+// ── per-module accent hue ─────────────────────────────────────────────
+
+/** The five built-in modules each own an identity hue (OKLCH tokens in
+ *  index.css). This resolves a module id to its `--color-module-*` CSS
+ *  variable; unknown (declarative third-party) modules fall back to the
+ *  cyan accent so they still read as "a module" without a bespoke hue. */
+const MODULE_HUE_VARS: Record<string, string> = {
+  knowledge: "--color-module-knowledge",
+  memory: "--color-module-memory",
+  actions: "--color-module-actions",
+  instructions: "--color-module-instructions",
+  guardrails: "--color-module-guardrails",
+};
+
+/** The CSS color value (`var(--color-module-*)`) for a module's hue. */
+export function moduleHue(id: string): string {
+  return `var(${MODULE_HUE_VARS[id] ?? "--color-accent"})`;
+}
+
 export interface ModuleMeta {
   label: string;
   /** 16×16 stroke icon path */

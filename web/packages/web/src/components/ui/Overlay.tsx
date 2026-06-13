@@ -78,7 +78,7 @@ export function Dialog({
 export function DialogHeader({ title, onClose }: { title: ReactNode; onClose?: () => void }) {
   return (
     <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
-      <span className="text-body font-semibold text-ink-100">{title}</span>
+      <span className="wc-sans text-title font-semibold text-ink-100">{title}</span>
       {onClose && (
         <button onClick={onClose} className="ml-auto rounded-[var(--radius-sm)] p-1 text-ink-500 hover:text-ink-100" title="Close">
           <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.5">

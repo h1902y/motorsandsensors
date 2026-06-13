@@ -13,7 +13,7 @@ export function GenerationsTimeline() {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-meta uppercase tracking-wide text-ink-500">checkpoints</div>
+      <div className="wc-eyebrow">checkpoints</div>
       {cps.length === 0 ? (
         <div className="text-meta text-ink-600">no checkpoints yet — approving proposals mints per-module generations; compose them into a checkpoint</div>
       ) : (

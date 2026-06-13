@@ -12,9 +12,9 @@ export function Section({
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className="flex flex-col gap-2">
       <div className="flex items-baseline gap-2">
-        <div className="text-meta uppercase tracking-wide text-ink-500">{label}</div>
+        <div className="wc-eyebrow">{label}</div>
         {trailing && <div className="ml-auto flex shrink-0 items-center gap-2">{trailing}</div>}
       </div>
       {children}

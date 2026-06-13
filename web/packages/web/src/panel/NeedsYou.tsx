@@ -5,7 +5,7 @@ import type { ModuleOverviewEntry, ZuzuuStatus } from "@zuzuu-web/protocol";
 import { Button } from "../components/ui";
 import { useRightPanel } from "../state/right-panel";
 import { useReviewOpen } from "../state/review";
-import { MetricChip, Section, moduleDisplay } from "./kit";
+import { MetricChip, Section, moduleDisplay, moduleHue } from "./kit";
 import { needsYouGroups, pendingTotal } from "./sections";
 
 export function NeedsYou({
@@ -53,24 +53,30 @@ export function NeedsYou({
         </div>
       )}
       {groups.length > 0 && (
-        <div className="flex flex-col">
+        <div className="flex flex-col gap-1.5">
           {groups.map((g) => {
             const display = moduleDisplay(g.id, modules.find((f) => f.id === g.id));
             return (
               <button
                 key={g.id}
                 onClick={() => openModule(g.id as Parameters<typeof openModule>[0])}
-                className="flex w-full items-center gap-2 border-b border-border py-1.5 text-left text-ui transition-colors last:border-0 hover:bg-hover"
+                className="group flex w-full items-center gap-2.5 rounded-ui border border-border bg-surface px-2.5 py-2 text-left text-ui transition-colors hover:border-border-strong hover:bg-hover"
                 title={`Open ${g.title}`}
               >
-                <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 text-ink-500" fill="none" stroke="currentColor" strokeWidth="1.4">
-                  <path d={display.icon} strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="text-ink-100">{g.title}</span>
-                <span className="text-status-pending">
-                  · {g.pending} to review
+                <span
+                  className="flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px]"
+                  style={{
+                    background: `color-mix(in oklab, ${moduleHue(g.id)} 14%, transparent)`,
+                    boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${moduleHue(g.id)} 22%, transparent)`,
+                  }}
+                >
+                  <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.4" style={{ color: moduleHue(g.id) }}>
+                    <path d={display.icon} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 </span>
-                <span className="ml-auto text-ink-600">›</span>
+                <span className="wc-sans font-medium text-ink-100">{g.title}</span>
+                <span className="text-status-pending">{g.pending} to review</span>
+                <span className="ml-auto text-ink-600 transition-transform group-hover:translate-x-0.5">›</span>
               </button>
             );
           })}

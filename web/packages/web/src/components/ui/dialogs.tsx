@@ -63,7 +63,7 @@ export function DialogHost() {
   return (
     <Overlay z={90} onClose={() => close(current.kind === "prompt" ? null : false)}>
       <Dialog width="sm" className="p-4">
-        <div className="mb-3 text-body font-semibold text-ink-100">{current.title}</div>
+        <div className="wc-sans mb-3 text-title font-semibold text-ink-100">{current.title}</div>
         {current.kind === "prompt" ? (
           <Field
             autoFocus

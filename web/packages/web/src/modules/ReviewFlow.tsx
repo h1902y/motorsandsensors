@@ -8,6 +8,7 @@ import {
   type ReviewEvent, type ReviewItem, type ReviewState,
 } from "./review-queue";
 import { ProposalDetail } from "../panel/ProposalDetail";
+import { moduleHue } from "../panel/kit";
 
 /** The review ceremony: eval-ranked proposals then pending actions, one card at
  *  a time — approve / reject / skip — ending in a generation mint. */
@@ -154,9 +155,18 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
 
           {state !== null && !finished && item && (
             <>
-              <div className="rounded-ui border border-border bg-surface p-3">
+              <div
+                key={item.id}
+                className="wc-pop-in rounded-ui border border-border bg-surface p-3"
+                style={{ ["--hue" as string]: moduleHue(item.module), borderLeft: "3px solid color-mix(in oklab, var(--hue) 55%, var(--color-border))" }}
+              >
                 <div className="mb-2 flex items-center gap-2">
-                  <span className="rounded-[var(--radius-sm)] bg-hover px-1.5 py-0.5 text-meta text-accent-dim">{item.module}</span>
+                  <span
+                    className="wc-sans rounded-[var(--radius-sm)] px-1.5 py-0.5 text-meta font-medium capitalize"
+                    style={{ background: "color-mix(in oklab, var(--hue) 14%, transparent)", color: "color-mix(in oklab, var(--hue) 82%, white)" }}
+                  >
+                    {item.module}
+                  </span>
                   {item.kind === "action" && (
                     <span className="rounded-[var(--radius-sm)] border border-border px-1.5 py-0.5 text-meta text-ink-400">action inbox</span>
                   )}
@@ -206,7 +216,12 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
                     Skip
                   </Button>
                   {busy && <Spinner />}
-                  <span className="ml-auto text-meta text-ink-500">{approvedIds.length} approved</span>
+                  <span className="ml-auto text-meta text-ink-500">
+                    <span key={approvedIds.length} className="wc-pulse-once inline-block font-mono tabular-nums" style={{ color: "color-mix(in oklab, var(--color-success) 82%, white)" }}>
+                      {approvedIds.length}
+                    </span>{" "}
+                    approved
+                  </span>
                 </div>
               )}
             </>
@@ -232,22 +247,27 @@ function EndState({
         <div className="flex items-center gap-2 text-ui text-ink-300"><Spinner /> minting generations…</div>
       )}
       {mint.phase === "done" && (
-        <div className="text-ui text-ink-100">
+        <div className="wc-rise-in text-ui text-ink-100">
           {mint.minted.length === 0
             ? `${approvedCount} approval${approvedCount === 1 ? "" : "s"} applied`
             : (
-              <div className="flex flex-col gap-1">
-                <span className="text-meta text-ink-500">generations advanced</span>
-                <span>
-                  {mint.minted.map((m, i) => (
-                    <span key={m.module}>
-                      {i > 0 ? <span className="text-ink-600"> · </span> : null}
-                      <span className="capitalize text-ink-200">{m.module}</span>
-                      <span className="text-ink-600"> → </span>
-                      <span className="font-mono text-accent">{m.id}</span>
+              <div className="flex flex-col gap-2">
+                <span className="wc-eyebrow flex items-center gap-1.5">
+                  <span style={{ color: "var(--color-success)" }}>✓</span> generations advanced
+                </span>
+                <div className="flex flex-col gap-1">
+                  {mint.minted.map((m) => (
+                    <span key={m.module} className="flex items-center gap-1.5 text-ui">
+                      <span
+                        className="h-2 w-2 shrink-0 rounded-full"
+                        style={{ background: moduleHue(m.module) }}
+                      />
+                      <span className="wc-sans font-medium capitalize text-ink-100">{m.module}</span>
+                      <span className="text-ink-600">→</span>
+                      <span className="font-mono" style={{ color: "color-mix(in oklab, var(--color-success) 82%, white)" }}>{m.id}</span>
                     </span>
                   ))}
-                </span>
+                </div>
               </div>
             )}
         </div>

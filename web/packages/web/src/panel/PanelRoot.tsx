@@ -26,26 +26,34 @@ export function PanelRoot({ zuzuuBin }: { zuzuuBin: boolean }) {
   ];
 
   return (
-    <div className="flex flex-col gap-5 p-3">
-      <NeedsYou modules={entries} status={status.data} zuzuuBin={zuzuuBin} />
-      <SessionsSection />
+    <div className="flex flex-col p-3.5">
+      <div className="pb-5">
+        <NeedsYou modules={entries} status={status.data} zuzuuBin={zuzuuBin} />
+      </div>
+      <div className="border-t border-border/70 py-5">
+        <SessionsSection />
+      </div>
+      <div className="border-t border-border/70 pt-5">
       <Section label="modules">
         <div className="grid grid-cols-2 gap-2">
-          {ids.map((id) => {
+          {ids.map((id, i) => {
             const entry = entries.find((e) => e.id === id);
             return (
-              <ModuleTile
-                key={id}
-                display={moduleDisplay(id, entry)}
-                count={entry?.counts.items ?? 0}
-                pending={entry?.counts.pending ?? 0}
-                onOpen={() => openModule(id as Parameters<typeof openModule>[0])}
-              />
+              <div key={id} className="wc-rise-in" style={{ animationDelay: `${i * 28}ms` }}>
+                <ModuleTile
+                  id={id}
+                  display={moduleDisplay(id, entry)}
+                  count={entry?.counts.items ?? 0}
+                  pending={entry?.counts.pending ?? 0}
+                  onOpen={() => openModule(id as Parameters<typeof openModule>[0])}
+                />
+              </div>
             );
           })}
         </div>
         <GenerationsTimeline />
       </Section>
+      </div>
     </div>
   );
 }

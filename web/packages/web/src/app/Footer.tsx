@@ -94,7 +94,7 @@ export function Footer({
       <div className="relative shrink-0">
         <button
           onClick={() => setVaultMenuOpen((v) => !v)}
-          className="max-w-72 truncate rounded-[var(--radius-sm)] px-1 text-ink-300 hover:text-accent"
+          className="wc-sans max-w-72 truncate rounded-[var(--radius-sm)] px-1 text-ink-300 hover:text-accent"
           title={workspace.data?.root}
         >
           {workspace.data?.name ?? "…"} ▾
