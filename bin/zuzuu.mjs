@@ -27,7 +27,7 @@ import { distill } from '../zuzuu/commands/distill.mjs';
 import { digest } from '../zuzuu/commands/digest.mjs';
 import { act } from '../zuzuu/commands/act.mjs';
 import { migrate } from '../zuzuu/commands/migrations/index.mjs';
-import { generation } from '../zuzuu/commands/generation.mjs';
+import { checkpoint } from '../zuzuu/commands/checkpoint.mjs';
 import { evalCmd } from '../zuzuu/commands/eval.mjs';
 import { code } from '../zuzuu/commands/code.mjs';
 import { web } from '../zuzuu/commands/web.mjs';
@@ -84,6 +84,10 @@ usage: zuzuu <command> [options]
   module manifest <f> [--json]
                             print a module's manifest (module.json)
   module overview [--json] every module in one shot: ui + counts + top items + pending
+  module <m> generations [--json]
+                            ONE module's generation lineage (● = active)
+  module <m> generation show|rollback <id> [--json]
+                            inspect or roll back ONE module by content (byte-exact)
   digest [--json] [--budget N]
                             print the session-start grounding brief
   act [list|show <slug>|new <slug>|schema <slug>]
@@ -98,8 +102,9 @@ usage: zuzuu <command> [options]
   review                    walk pending actions + knowledge proposals (y/n/e/s/q)
   proposals list|show|approve|reject <id>
                             the same gate, non-interactive
-  generation [list|show <id>|mint|rollback <id>]
-                            pin/list/show/roll back module generations (lockfiles)
+  checkpoint [list|mint [--label X]|show <id>|rollback <id>]
+                            whole-brain checkpoints: pin/roll back every module's
+                            active generation together (compose per-module lineages)
   enable                    background hooks: invisible live capture + guardrails gate
   disable                   remove the background hooks
   session [status|merge|continue|discard]
@@ -108,10 +113,11 @@ usage: zuzuu <command> [options]
   session inspect <id> [--json]
                             one session: trace summary + per-module mined signals
   eval [--module f]        rank pending proposals by eval score, highest first
-  migrate [--home|--items|--modules]
+  migrate [--home|--items|--modules|--generations]
                             one-time migrators: proposal schema · --home moves agent/ → .zuzuu/
                             · --items rewrites legacy module shapes → the envelope standard
                             · --modules renames faculty → module (keys, manifests, lockfiles)
+                            · --generations splits the global generation → per-module + a checkpoint
   doctor                    environment + session health (reconciles lost sessions)
   explain [topic]           the 5 modules + how graduation works
   version                   print version
@@ -148,7 +154,7 @@ switch (cmd) {
   case 'module': module(args); break;
   case 'eval': evalCmd(args); break;
   case 'migrate': migrate(args); break;
-  case 'generation': generation(args); break;
+  case 'checkpoint': checkpoint(args); break;
   case 'doctor': await doctor(); break;
   case 'explain': explain(args); break;
   case 'version': case '--version': case '-v': version(); break;

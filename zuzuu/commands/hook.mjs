@@ -21,7 +21,14 @@ import { sessionGitEnabled, openSession, checkpoint, closeSession } from '../ses
 import { loadRules, evaluate, toPreToolUseDecision, toGeminiDecision } from '../guardrails/engine.mjs';
 import { paths, liveDir as liveDirOf } from '../core/store.mjs';
 import { computeDigest } from '../digest/compose.mjs';
-import { activeGeneration } from '../module/generation/read.mjs';
+import { listCheckpointIds } from '../module/generation/checkpoint.mjs';
+
+/** The latest checkpoint id (the whole-brain pin) at session open, or null.
+ *  Generations are per-module now; the session record pins the composing
+ *  checkpoint as its coherent-state marker. Fail-open. */
+function sessionGenerationMarker(agentDir) {
+  try { return listCheckpointIds(agentDir).slice(-1)[0] ?? null; } catch { return null; }
+}
 
 // Lifecycle events, normalized across hosts (verified by observing each host):
 //   open  — session starts
@@ -69,7 +76,7 @@ export function handleHook({ event, payload = {}, cwd = process.cwd(), now = Dat
     // Pin the active generation at session open (WS3-T3). Fail-open: a missing
     // generation is null — never throws, never blocks the host.
     let generation = null;
-    try { generation = activeGeneration(paths(cwd).dir); } catch { /* fail-open */ }
+    try { generation = sessionGenerationMarker(paths(cwd).dir); } catch { /* fail-open */ }
     try {
       openLive({ id, host, transcriptPath: ref, startedAt: new Date(now).toISOString(), now, generation }, cwd);
       safeCapture(adapter, ref, SessionState.ACTIVE, cwd, generation);

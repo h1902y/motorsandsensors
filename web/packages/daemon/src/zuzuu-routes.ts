@@ -1,10 +1,15 @@
 // /api/zuzuu/* — observe + act routes over a project's zuzuu `.zuzuu/` home.
-// Reads: raw data (proposals, generations, sessions, digest) comes from disk;
-// computed views (status, inbox, eval, generation diff) shell out to
-// `zuzuu <cmd> --json` (the spawn layer lives in zuzuu-cli.ts) and fall back
-// to file-reads when the binary is absent.
-// Writes: mutations (approve/reject, mint, rollback) are CLI-ONLY — the daemon
-// never reimplements module writes; no CLI → 503. Mirrors fs-api.ts.
+// Reads: raw data (proposals, per-module generations, checkpoints, sessions,
+// digest) comes from disk; computed views (status, inbox, eval, generation diff)
+// shell out to `zuzuu <cmd> --json` (the spawn layer lives in zuzuu-cli.ts) and
+// fall back to file-reads when the binary is absent.
+// Writes: mutations (approve/reject, per-module mint/rollback, checkpoint
+// mint/rollback) are CLI-ONLY — the daemon never reimplements module writes; no
+// CLI → 503. Mirrors fs-api.ts.
+//
+// Generations are PER-MODULE atoms (W2.5 Phase 2): each module owns its lineage
+// under .zuzuu/<module>/generations/; a checkpoint (.zuzuu/checkpoints/) composes
+// the per-module actives for whole-brain coherence.
 
 import fsp from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -203,15 +208,41 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
     }
   });
 
-  app.get("/generations", async (c) => {
+  // Per-module generation lineage (W2.5 Phase 2). Generations are per-module
+  // atoms now; this lists ONE module's lineage + active. CLI-first; falls back
+  // to reading that module's generations/ dir directly.
+  app.get("/module/:key/generations", async (c) => {
+    const key = c.req.param("key");
+    if (!MODULES.includes(key as typeof MODULES[number])) return c.json({ error: "unknown module" }, 404);
+    const viaCli = await runZuzuu(root, ["module", key, "generations"], { binary: opts.binary });
+    if (viaCli) return c.json(viaCli);
     const agent = await agentDir();
-    const gens = (await readJsonDir(path.join(agent, "generations")))
+    const gens = (await readJsonDir(path.join(agent, key, "generations")))
       .filter((g) => typeof g.id === "string" && /^gen_\d+$/.test(g.id as string));
     let active: string | null = null;
-    try { active = (JSON.parse(await fsp.readFile(path.join(agent, "generations", "active"), "utf8")).active) ?? null; } catch { active = null; }
+    try { active = (JSON.parse(await fsp.readFile(path.join(agent, key, "generations", "active"), "utf8")).active) ?? null; } catch { active = null; }
     return c.json({
+      module: key,
       active,
       generations: gens.map((g) => ({ id: String(g.id), mintedAt: (g.mintedAt as string) ?? null, mintedFrom: (g.mintedFrom as string[]) ?? [] })),
+    });
+  });
+
+  // Whole-brain checkpoints (compose per-module actives). CLI-first; falls back
+  // to reading the checkpoints/ dir.
+  app.get("/checkpoints", async (c) => {
+    const viaCli = await runZuzuu(root, ["checkpoint", "list"], { binary: opts.binary });
+    if (viaCli) return c.json(viaCli);
+    const agent = await agentDir();
+    const cps = (await readJsonDir(path.join(agent, "checkpoints")))
+      .filter((cp) => typeof cp.id === "string" && /^cp_\d+$/.test(cp.id as string));
+    return c.json({
+      checkpoints: cps.map((cp) => ({
+        id: String(cp.id),
+        createdAt: (cp.createdAt as string) ?? null,
+        label: (cp.label as string) ?? null,
+        pins: (cp.pins as Record<string, string>) ?? {},
+      })),
     });
   });
 
@@ -256,9 +287,13 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
     const agent = await agentDir();
     const pending: Record<string, number> = {};
     for (const key of MODULES) pending[key] = (await proposalsOf(agent, key)).length;
-    let active: string | null = null;
-    try { active = (JSON.parse(await fsp.readFile(path.join(agent, "generations", "active"), "utf8")).active) ?? null; } catch { active = null; }
-    return c.json({ home: existsSync(agent), activeGeneration: active, pending, drift: { dirty: false, items: [] } });
+    const generations: Record<string, string | null> = {};
+    for (const key of MODULES) {
+      try { generations[key] = (JSON.parse(await fsp.readFile(path.join(agent, key, "generations", "active"), "utf8")).active) ?? null; } catch { generations[key] = null; }
+    }
+    let checkpoints = 0;
+    try { checkpoints = (await readJsonDir(path.join(agent, "checkpoints"))).filter((cp) => /^cp_\d+$/.test(String(cp.id))).length; } catch { checkpoints = 0; }
+    return c.json({ home: existsSync(agent), generations, checkpoints, pending, drift: { dirty: false, items: [] } });
   });
 
   app.get("/inbox", async (c) => {
@@ -271,10 +306,13 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
     return c.json({ pending, total: pending.length });
   });
 
-  app.get("/generation/:id", async (c) => {
+  // Per-module generation diff (show). CLI-only (the diff needs the parser).
+  app.get("/module/:key/generation/:id", async (c) => {
+    const key = c.req.param("key");
+    if (!MODULES.includes(key as typeof MODULES[number])) return c.json({ error: "unknown module" }, 404);
     const id = c.req.param("id");
-    if (!/^[A-Za-z0-9_-]+$/.test(id)) return c.json({ error: "bad id" }, 400);
-    const viaCli = await runZuzuu(root, ["generation", "show", id], { binary: opts.binary });
+    if (!SAFE_ID.test(id)) return c.json({ error: "bad id" }, 400);
+    const viaCli = await runZuzuu(root, ["module", key, "generation", "show", id], { binary: opts.binary });
     if (viaCli) return c.json(viaCli);
     return c.json({ error: "generation diff needs the zuzuu CLI" }, 503);
   });
@@ -326,19 +364,40 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
     });
   }
 
-  app.post("/generation/mint", async (c) => {
+  // Per-module mint (freeze ONE module's current items into its next gen). The
+  // review ceremony does this automatically; this is the explicit/web surface.
+  app.post("/module/:key/generation/mint", async (c) => {
+    const key = c.req.param("key");
+    if (!isModule(key)) return c.json({ error: "bad module" }, 400);
     const { from } = await readBody(c);
     if (from !== undefined &&
         (!Array.isArray(from) || from.length > 200 || !from.every((f) => typeof f === "string" && SAFE_ID.test(f))))
       return c.json({ error: "bad from ids" }, 400);
     const fromIds = (from as string[] | undefined) ?? [];
-    return mutate(c, ["generation", "mint", ...(fromIds.length ? ["--from", fromIds.join(",")] : [])]);
+    return mutate(c, ["module", key, "generation", "mint", ...(fromIds.length ? ["--from", fromIds.join(",")] : [])]);
   });
 
-  app.post("/generation/:id/rollback", async (c) => {
+  // Per-module rollback (restore ONE module's bytes + active to a past gen).
+  app.post("/module/:key/generation/:id/rollback", async (c) => {
+    const key = c.req.param("key");
+    if (!isModule(key)) return c.json({ error: "bad module" }, 400);
     const id = c.req.param("id");
     if (!SAFE_ID.test(id)) return c.json({ error: "bad id" }, 400);
-    return mutate(c, ["generation", "rollback", id]);
+    return mutate(c, ["module", key, "generation", "rollback", id]);
+  });
+
+  // Checkpoint mint (pin current per-module actives) + rollback (restore all).
+  app.post("/checkpoint/mint", async (c) => {
+    const { label } = await readBody(c);
+    if (label !== undefined && (typeof label !== "string" || label.length > MAX_REASON_LEN))
+      return c.json({ error: "bad label" }, 400);
+    return mutate(c, ["checkpoint", "mint", ...(label ? ["--label", label as string] : [])]);
+  });
+
+  app.post("/checkpoint/:id/rollback", async (c) => {
+    const id = c.req.param("id");
+    if (!SAFE_ID.test(id)) return c.json({ error: "bad id" }, 400);
+    return mutate(c, ["checkpoint", "rollback", id]);
   });
 
   // ── Session-git (the invisible zz/session-* branch) — CLI-only, no

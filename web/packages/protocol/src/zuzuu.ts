@@ -9,9 +9,12 @@ export interface ZuzuuHealth {
 
 export interface ZuzuuStatus {
   home: boolean;
-  activeGeneration: string | null;
+  /** per-module active generation ids (W2.5 Phase 2): { knowledge: "gen_006" | null, … } */
+  generations: Record<string, string | null>;
+  /** number of whole-brain checkpoints minted */
+  checkpoints: number;
   pending: Record<string, number>;
-  drift: { dirty: boolean; items: string[] };
+  drift: { dirty: boolean; items: unknown[] };
 }
 
 export interface ModuleSummary {
@@ -81,16 +84,38 @@ export interface GenerationSummary {
   mintedFrom: string[];
 }
 
-export interface GenerationList {
+/** GET /module/:key/generations — ONE module's generation lineage + active
+ *  (W2.5 Phase 2: generations are per-module atoms). */
+export interface ModuleGenerationList {
+  module: string;
   active: string | null;
   generations: GenerationSummary[];
 }
 
-export interface GenerationDiff {
+/** GET /module/:key/generation/:id — that generation's diff vs its parent. */
+export interface ModuleGenerationDiff {
   id: string;
+  module: string;
   forkedFrom: string | null;
+  against: string | null;
   mintedFrom: string[];
-  modules: Record<string, { added?: string[]; changed?: string[] | boolean; removed?: string[] }>;
+  mintedAt: string | null;
+  added: string[];
+  changed: string[];
+  removed: string[];
+}
+
+/** One whole-brain checkpoint: a pin of each module's active generation. */
+export interface CheckpointSummary {
+  id: string;
+  createdAt: string | null;
+  label: string | null;
+  pins: Record<string, string>;
+}
+
+/** GET /checkpoints — the minted checkpoints (compose per-module lineages). */
+export interface CheckpointList {
+  checkpoints: CheckpointSummary[];
 }
 
 // ── Module overview (ONE CLI spawn for the whole panel root) ──────────
@@ -202,18 +227,27 @@ export interface RejectResult {
   id?: string;
 }
 
-/** POST /generation/mint */
-export interface MintResult {
-  id: string;
-  mintedFrom: string[];
-  forkedFrom: string | null;
-}
-
-/** POST /generation/:id/rollback */
+/** POST /module/:key/generation/:id/rollback — restore ONE module by content. */
 export interface RollbackResult {
   ok: boolean;
+  module?: string;
   restored: number;
   active: string;
+}
+
+/** POST /checkpoint/mint — pin the current per-module actives. */
+export interface CheckpointMintResult {
+  id: string;
+  createdAt: string;
+  label?: string;
+  pins: Record<string, string>;
+}
+
+/** POST /checkpoint/:id/rollback — restore every pinned module to its pin. */
+export interface CheckpointRollbackResult {
+  ok: boolean;
+  id: string;
+  results: { module: string; generation: string; restored?: number; ok: boolean; error?: string }[];
 }
 
 // ── Session-git (invisible session branch: agent session = zz/session-*) ──

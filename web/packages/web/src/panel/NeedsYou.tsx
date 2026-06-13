@@ -23,14 +23,17 @@ export function NeedsYou({
   const total = pendingTotal(modules);
   const drift = status?.drift?.dirty ?? false;
   const calm = groups.length === 0 && !drift && zuzuuBin;
+  // per-module generations now: count how many modules have a pinned generation
+  const pinnedModules = status?.generations ? Object.values(status.generations).filter(Boolean).length : 0;
+  const genValue = pinnedModules > 0 ? `${pinnedModules} pinned` : "no gen";
 
   return (
     <Section
       label="needs you"
       trailing={
         <>
-          {/* the ⟡ generation chip — moved here from the footer */}
-          <MetricChip label="⟡" value={status?.activeGeneration ?? "no gen"} title="active generation" />
+          {/* the ⟡ generation chip — per-module generations pinned */}
+          <MetricChip label="⟡" value={genValue} title="modules with a pinned generation" />
           {total > 0 && (
             <Button size="sm" variant="primary" onClick={() => openReview(true)}>
               Review {total}

@@ -45,13 +45,15 @@ surfaced by \`zuzuu status\` / \`zuzuu explain\` / \`zuzuu digest\`.
                                                     zuzuu review  (y / n / edit)
                                                               ▼
                                           approved → the module + a new *generation*
-A **generation** is a pinned checkpoint of every module. Approving proposals mints
-one; \`zuzuu generation rollback <id>\` restores any earlier checkpoint.
+A **generation** is a per-module pinned lineage; approving proposals mints one per
+affected module. A **checkpoint** composes them for whole-brain coherence —
+\`zuzuu checkpoint rollback <id>\` restores every module to that pinned moment.
 
 ## Get in the loop
 - \`zuzuu inbox\`            — what's waiting for your approval
 - \`zuzuu review\`          — approve / reject, one at a time
-- \`zuzuu generation list\` — your checkpoints (· = active)
+- \`zuzuu checkpoint list\` — your whole-brain checkpoints
+- \`zuzuu module <m> generations\` — one module's lineage (● = active)
 - \`zuzuu explain\`         — this model, any time
 
 ## What to ignore
@@ -201,7 +203,7 @@ export const manifestSeed = (f) => JSON.stringify(BUILTIN_MODULES[f].manifest, n
 
 /** The layout contract: dirs + seed files (relative to the project root). */
 export const LAYOUT = {
-  dirs: ['.zuzuu', '.zuzuu/knowledge', '.zuzuu/knowledge/registry', '.zuzuu/knowledge/items', '.zuzuu/knowledge/inbox', '.zuzuu/knowledge/proposals', '.zuzuu/memory', '.zuzuu/memory/entries', '.zuzuu/memory/inbox', '.zuzuu/memory/proposals', '.zuzuu/actions', '.zuzuu/actions/inbox', '.zuzuu/instructions', '.zuzuu/instructions/items', '.zuzuu/instructions/inbox', '.zuzuu/instructions/proposals', '.zuzuu/guardrails', '.zuzuu/guardrails/items', '.zuzuu/guardrails/inbox', '.zuzuu/guardrails/proposals', '.zuzuu/generations', '.zuzuu/generations/snapshots'],
+  dirs: ['.zuzuu', '.zuzuu/knowledge', '.zuzuu/knowledge/registry', '.zuzuu/knowledge/items', '.zuzuu/knowledge/inbox', '.zuzuu/knowledge/proposals', '.zuzuu/memory', '.zuzuu/memory/entries', '.zuzuu/memory/inbox', '.zuzuu/memory/proposals', '.zuzuu/actions', '.zuzuu/actions/inbox', '.zuzuu/instructions', '.zuzuu/instructions/items', '.zuzuu/instructions/inbox', '.zuzuu/instructions/proposals', '.zuzuu/guardrails', '.zuzuu/guardrails/items', '.zuzuu/guardrails/inbox', '.zuzuu/guardrails/proposals'],
   files: {
     '.zuzuu/README.md': AGENT_README,
     '.zuzuu/schema.json': ENVELOPE_SPEC,

@@ -7,20 +7,32 @@ import { sessionStatus } from '../sessions/session-git.mjs';
 import { readIndex, paths } from '../core/store.mjs';
 import { MODULES } from '../module/contract.mjs';
 import { listProposals } from '../module/proposal.mjs';
-import { activeGeneration as activeGenerationFn } from '../module/generation/read.mjs';
+import { activeModuleGeneration } from '../module/generation/read.mjs';
+import { listCheckpointIds } from '../module/generation/checkpoint.mjs';
 import { detectDrift } from './doctor.mjs';
 
 const fmtDur = (ms) => (ms < 60_000 ? `${(ms / 1000).toFixed(0)}s` : `${(ms / 60_000).toFixed(1)}m`);
 
+/** Pure: per-module active generations { knowledge: 'gen_006' | null, … }. Fail-soft. */
+export function activeGenerations(agentDir) {
+  const out = {};
+  for (const f of MODULES) {
+    try { out[f] = activeModuleGeneration(agentDir, f); } catch { out[f] = null; }
+  }
+  return out;
+}
+
 /** Pure: structured status for a module home (the zuzuu-web /status source). Fail-soft per field.
  *  `session` is injectable (like hosts) for hermetic tests; default = the repo above the home. */
 export function statusData(agentDir, { hosts = detected().map((a) => ({ name: a.name })), session } = {}) {
-  let active = null, drift = { dirty: false, items: [] };
+  let drift = { dirty: false, items: [] };
   const pending = {};
-  try { active = activeGenerationFn(agentDir); } catch { active = null; }
+  const generations = activeGenerations(agentDir);
   for (const f of MODULES) {
     try { pending[f] = listProposals(agentDir, f).length; } catch { pending[f] = 0; }
   }
+  let checkpoints = 0;
+  try { checkpoints = listCheckpointIds(agentDir).length; } catch { checkpoints = 0; }
   try {
     const d = detectDrift(agentDir);
     const items = Array.isArray(d?.drifted) ? d.drifted : [];
@@ -30,28 +42,32 @@ export function statusData(agentDir, { hosts = detected().map((a) => ({ name: a.
   if (sess === undefined) {
     try { sess = sessionStatus(dirname(agentDir)); } catch { sess = null; } // sessionStatus never throws — belt + braces
   }
-  return { home: existsSync(agentDir), activeGeneration: active, pending, drift, hosts, session: sess };
+  return { home: existsSync(agentDir), generations, checkpoints, pending, drift, hosts, session: sess };
 }
 
 /**
  * Pure: the modules graduation line for `zuzuu status`. Fail-soft — any error in
- * a sub-read degrades to a safe default rather than throwing.
+ * a sub-read degrades to a safe default rather than throwing. Per-module now:
+ * "modules: knowledge@gen_006 guardrails@gen_002 · 3 pending · 1 checkpoint".
  * @param {string} agentDir
  * @returns {string}
  */
 export function modulesLine(agentDir) {
-  let gen = null, pending = 0, drifted = false;
-  try { gen = activeGenerationFn(agentDir); } catch { /* fail-soft */ }
+  let pending = 0, drifted = false, checkpoints = 0;
+  const gens = activeGenerations(agentDir);
+  const pinned = MODULES.filter((f) => gens[f]).map((f) => `${f}@${gens[f]}`);
   try {
     for (const f of MODULES) {
       try { pending += listProposals(agentDir, f).length; } catch { /* per-module fail-soft */ }
     }
   } catch { /* fail-soft */ }
+  try { checkpoints = listCheckpointIds(agentDir).length; } catch { /* fail-soft */ }
   try {
     const d = detectDrift(agentDir);
     drifted = Array.isArray(d?.drifted) && d.drifted.length > 0;
   } catch { /* fail-soft */ }
-  let line = `modules: ${gen || 'no generation yet'} · ${pending} pending review`;
+  let line = `modules: ${pinned.length ? pinned.join(' ') : 'no generations yet'} · ${pending} pending review`;
+  if (checkpoints) line += ` · ${checkpoints} checkpoint${checkpoints === 1 ? '' : 's'}`;
   if (drifted) line += ' · ⚠ drift (run zuzuu doctor)';
   return line;
 }

@@ -3,33 +3,34 @@ import { useQuery } from "@tanstack/react-query";
 import { zuzuuApi } from "../lib/zuzuu-api";
 import { GenerationDiff } from "./GenerationDiff";
 
-/** The generations timeline (dots, active marked); click → the diff. */
+/** Whole-brain checkpoint timeline (W2.5 Phase 2: generations are per-module now;
+ *  a checkpoint composes them). Dots = minted checkpoints; click → its pins.
+ *  Phase 3 builds the rich per-module lineage drill-in. */
 export function GenerationsTimeline() {
   const [selected, setSelected] = useState<string | null>(null);
-  const q = useQuery({ queryKey: ["zuzuu", "generations"], queryFn: zuzuuApi.generations, refetchInterval: 4000 });
-  const gens = q.data?.generations ?? [];
+  const q = useQuery({ queryKey: ["zuzuu", "checkpoints"], queryFn: zuzuuApi.checkpoints, refetchInterval: 4000 });
+  const cps = q.data?.checkpoints ?? [];
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="text-meta uppercase tracking-wide text-ink-500">generations</div>
-      {gens.length === 0 ? (
-        <div className="text-meta text-ink-600">no generations yet — approving proposals mints one</div>
+      <div className="text-meta uppercase tracking-wide text-ink-500">checkpoints</div>
+      {cps.length === 0 ? (
+        <div className="text-meta text-ink-600">no checkpoints yet — approving proposals mints per-module generations; compose them into a checkpoint</div>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          {gens.map((g) => {
-            const isActive = g.id === q.data?.active;
-            const isSel = g.id === selected;
+          {cps.map((cp) => {
+            const isSel = cp.id === selected;
             return (
               <button
-                key={g.id}
-                onClick={() => setSelected(isSel ? null : g.id)}
+                key={cp.id}
+                onClick={() => setSelected(isSel ? null : cp.id)}
                 className={`flex items-center gap-1 rounded-ui border px-2 py-1 text-meta transition-colors ${
                   isSel ? "border-accent bg-elevated" : "border-border bg-surface hover:bg-hover"
                 }`}
-                title={g.mintedAt ?? ""}
+                title={cp.label ?? cp.createdAt ?? ""}
               >
-                <span className={isActive ? "text-accent" : "text-ink-500"}>●</span>
-                <span className="text-ink-300">{g.id}</span>
+                <span className="text-accent">◆</span>
+                <span className="text-ink-300">{cp.id}</span>
               </button>
             );
           })}

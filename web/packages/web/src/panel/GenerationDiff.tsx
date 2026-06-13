@@ -1,30 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { zuzuuApi } from "../lib/zuzuu-api";
 
-function moduleLine(name: string, d: { added?: string[]; changed?: string[] | boolean; removed?: string[] }): string {
-  const parts: string[] = [];
-  if (Array.isArray(d.added) && d.added.length) parts.push(`+${d.added.length} added`);
-  if (Array.isArray(d.changed) && d.changed.length) parts.push(`~${d.changed.length} changed`);
-  else if (d.changed === true) parts.push("changed");
-  if (Array.isArray(d.removed) && d.removed.length) parts.push(`-${d.removed.length} removed`);
-  return `${name}: ${parts.length ? parts.join(" · ") : "no change"}`;
-}
-
-/** The per-module diff for one generation (needs the zuzuu CLI). */
+/** One checkpoint's pins: module → pinned generation (W2.5 Phase 2). Phase 3
+ *  builds the rich per-module generation diff drill-in. */
 export function GenerationDiff({ id }: { id: string }) {
-  const q = useQuery({ queryKey: ["zuzuu", "generation", id], queryFn: () => zuzuuApi.generation(id) });
-  if (q.isLoading) return <div className="text-meta text-ink-500">loading diff…</div>;
-  if (q.error) return <div className="text-meta text-ink-500">diff needs the zuzuu CLI on PATH</div>;
-  const d = q.data;
-  if (!d) return null;
+  const q = useQuery({ queryKey: ["zuzuu", "checkpoints"], queryFn: zuzuuApi.checkpoints });
+  if (q.isLoading) return <div className="text-meta text-ink-500">loading checkpoint…</div>;
+  if (q.error) return <div className="text-meta text-ink-500">checkpoints need the zuzuu CLI on PATH</div>;
+  const cp = q.data?.checkpoints.find((c) => c.id === id);
+  if (!cp) return null;
+  const pins = Object.entries(cp.pins);
   return (
     <div className="rounded-ui border border-border bg-surface p-3 text-ui">
-      <div className="mb-1 font-medium text-ink-100">{d.id}</div>
-      <div className="mb-2 text-meta text-ink-500">
-        forkedFrom {d.forkedFrom ?? "(none)"} · from {d.mintedFrom.length} proposal(s)
-      </div>
+      <div className="mb-1 font-medium text-ink-100">{cp.id}{cp.label ? ` — ${cp.label}` : ""}</div>
+      <div className="mb-2 text-meta text-ink-500">{cp.createdAt ?? ""} · pins {pins.length} module(s)</div>
       <div className="flex flex-col gap-0.5 text-meta text-ink-300">
-        {Object.entries(d.modules).map(([name, fd]) => <div key={name}>{moduleLine(name, fd)}</div>)}
+        {pins.map(([module, gen]) => <div key={module}>{module}: {gen}</div>)}
       </div>
     </div>
   );

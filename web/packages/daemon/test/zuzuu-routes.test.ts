@@ -107,14 +107,25 @@ describe("createZuzuuApi file routes", () => {
     const body = await (await app.request("/sessions")).json();
     expect(body).toEqual(labelled);
   });
-  it("GET /generations reads lockfiles + active pointer", async () => {
+  it("GET /module/:key/generations reads that module's lockfiles + active pointer", async () => {
     const agent = fixtureHome(root);
-    writeFileSync(path.join(agent, "generations", "gen_001.json"), JSON.stringify({ id: "gen_001", mintedAt: "2026-06-12", mintedFrom: ["p1"] }));
-    writeFileSync(path.join(agent, "generations", "active"), JSON.stringify({ active: "gen_001" }));
+    mkdirSync(path.join(agent, "knowledge", "generations"), { recursive: true });
+    writeFileSync(path.join(agent, "knowledge", "generations", "gen_001.json"), JSON.stringify({ id: "gen_001", module: "knowledge", mintedAt: "2026-06-12", mintedFrom: ["p1"] }));
+    writeFileSync(path.join(agent, "knowledge", "generations", "active"), JSON.stringify({ active: "gen_001" }));
     const app = createZuzuuApi(() => root, { binary: "x" });
-    const body = await (await app.request("/generations")).json();
+    const body = await (await app.request("/module/knowledge/generations")).json();
+    expect(body.module).toBe("knowledge");
     expect(body.active).toBe("gen_001");
     expect(body.generations[0].id).toBe("gen_001");
+  });
+  it("GET /checkpoints reads the checkpoints dir", async () => {
+    const agent = fixtureHome(root);
+    mkdirSync(path.join(agent, "checkpoints"), { recursive: true });
+    writeFileSync(path.join(agent, "checkpoints", "cp_001.json"), JSON.stringify({ id: "cp_001", createdAt: "2026-06-12", label: "m", pins: { knowledge: "gen_001" } }));
+    const app = createZuzuuApi(() => root, { binary: "x" });
+    const body = await (await app.request("/checkpoints")).json();
+    expect(body.checkpoints[0].id).toBe("cp_001");
+    expect(body.checkpoints[0].pins.knowledge).toBe("gen_001");
   });
   it("GET /digest reads the live digest", async () => {
     fixtureHome(root);
@@ -196,10 +207,10 @@ describe("createZuzuuApi overview + session-inspect", () => {
 describe("createZuzuuApi computed routes", () => {
   it("GET /status uses zuzuu --json when available", async () => {
     fixtureHome(root);
-    const stub = jsonStub(root, '{"home":true,"activeGeneration":"gen_001","pending":{"knowledge":2},"drift":{"dirty":false,"items":[]}}');
+    const stub = jsonStub(root, '{"home":true,"generations":{"knowledge":"gen_001"},"checkpoints":1,"pending":{"knowledge":2},"drift":{"dirty":false,"items":[]}}');
     const app = createZuzuuApi(() => root, { binary: stub });
     const body = await (await app.request("/status")).json();
-    expect(body.activeGeneration).toBe("gen_001");
+    expect(body.generations.knowledge).toBe("gen_001");
     expect(body.pending.knowledge).toBe(2);
   });
   it("GET /status falls back to file-reads when zuzuu is absent", async () => {
@@ -231,8 +242,10 @@ const MUTATIONS: [string, unknown, Record<string, unknown>][] = [
   ["/proposals/p1/reject", { module: "knowledge", reason: "dup of k1" }, { ok: true, id: "p1" }],
   ["/actions/my-slug/approve", {}, { ok: true, action: "approve", slug: "my-slug" }],
   ["/actions/my-slug/reject", {}, { ok: true, action: "reject", slug: "my-slug" }],
-  ["/generation/mint", { from: ["p1", "p2"] }, { id: "gen_002", mintedFrom: ["p1", "p2"], forkedFrom: "gen_001" }],
-  ["/generation/gen_001/rollback", {}, { ok: true, restored: 3, active: "gen_001" }],
+  ["/module/knowledge/generation/mint", { from: ["p1", "p2"] }, { id: "gen_002", module: "knowledge", mintedFrom: ["p1", "p2"], forkedFrom: "gen_001" }],
+  ["/module/knowledge/generation/gen_001/rollback", {}, { ok: true, module: "knowledge", restored: 3, active: "gen_001" }],
+  ["/checkpoint/mint", { label: "x" }, { id: "cp_001", createdAt: "t", pins: { knowledge: "gen_001" } }],
+  ["/checkpoint/cp_001/rollback", {}, { ok: true, id: "cp_001", results: [] }],
   ["/session/merge", {}, { ok: true, mergedAs: "abc12345", mergedTo: "main", commits: 2, branch: "zz/session-ab" }],
   ["/session/continue", {}, { ok: true, branch: "zz/session-ab" }],
   ["/session/discard", {}, { ok: true, branch: "zz/session-ab" }],
@@ -274,7 +287,8 @@ describe("createZuzuuApi mutation routes", () => {
       "/proposals/..%2fx/reject",
       "/actions/..%2fx/approve",
       "/actions/..%2fx/reject",
-      "/generation/..%2fx/rollback",
+      "/module/knowledge/generation/..%2fx/rollback",
+      "/checkpoint/..%2fx/rollback",
     ]) {
       const res = await post(app, route, { module: "knowledge" });
       expect(res.status).toBe(400);
@@ -319,7 +333,7 @@ describe("createZuzuuApi mutation routes", () => {
     const { stub, marker } = markerStub(root);
     const app = createZuzuuApi(() => root, { binary: stub });
     const ids = Array.from({ length: 201 }, (_, i) => `id${i}`);
-    expect((await post(app, "/generation/mint", { from: ids })).status).toBe(400);
+    expect((await post(app, "/module/knowledge/generation/mint", { from: ids })).status).toBe(400);
     expect(existsSync(marker)).toBe(false);
   });
   it("reject reason rides as one argv element (shell-meta inert)", async () => {
@@ -333,11 +347,11 @@ describe("createZuzuuApi mutation routes", () => {
     fixtureHome(root);
     const { stub, marker } = markerStub(root);
     const app = createZuzuuApi(() => root, { binary: stub });
-    expect((await post(app, "/generation/mint", { from: ["ok-id", "../evil"] })).status).toBe(400);
-    expect((await post(app, "/generation/mint", { from: "p1" })).status).toBe(400);
+    expect((await post(app, "/module/knowledge/generation/mint", { from: ["ok-id", "../evil"] })).status).toBe(400);
+    expect((await post(app, "/module/knowledge/generation/mint", { from: "p1" })).status).toBe(400);
     expect(existsSync(marker)).toBe(false);
-    const ok = createZuzuuApi(() => root, { binary: jsonStub(root, '{"id":"gen_002","mintedFrom":[],"forkedFrom":null}') });
-    expect((await post(ok, "/generation/mint")).status).toBe(200);
+    const ok = createZuzuuApi(() => root, { binary: jsonStub(root, '{"id":"gen_002","module":"knowledge","mintedFrom":[],"forkedFrom":null}') });
+    expect((await post(ok, "/module/knowledge/generation/mint")).status).toBe(200);
   });
 });
 

@@ -2,8 +2,10 @@
 import type {
   ZuzuuHealth, ZuzuuStatus, ModuleSummary, ModuleDetail, ModuleSchema, InboxResponse,
   ModuleOverviewResponse, SessionInspectResponse,
-  GenerationList, GenerationDiff, SessionsResponse, DigestResponse,
-  EvalResponse, HostsResponse, ApproveResult, RejectResult, MintResult, RollbackResult,
+  ModuleGenerationList, ModuleGenerationDiff, CheckpointList,
+  CheckpointMintResult, CheckpointRollbackResult,
+  SessionsResponse, DigestResponse,
+  EvalResponse, HostsResponse, ApproveResult, RejectResult, RollbackResult,
   SessionGitStatus, SessionMergeResult,
 } from "@zuzuu-web/protocol";
 
@@ -56,8 +58,12 @@ export const zuzuuApi = {
   module: (key: string) => request<ModuleDetail>(`/module/${encodeURIComponent(key)}`),
   moduleSchema: (key: string) => request<ModuleSchema>(`/module/${encodeURIComponent(key)}/schema`),
   inbox: () => request<InboxResponse>("/inbox"),
-  generations: () => request<GenerationList>("/generations"),
-  generation: (id: string) => request<GenerationDiff>(`/generation/${encodeURIComponent(id)}`),
+  /** ONE module's generation lineage + active (W2.5 Phase 2: per-module atoms) */
+  moduleGenerations: (key: string) => request<ModuleGenerationList>(`/module/${encodeURIComponent(key)}/generations`),
+  moduleGeneration: (key: string, id: string) =>
+    request<ModuleGenerationDiff>(`/module/${encodeURIComponent(key)}/generation/${encodeURIComponent(id)}`),
+  /** whole-brain checkpoints (compose the per-module lineages) */
+  checkpoints: () => request<CheckpointList>("/checkpoints"),
   sessions: () => request<SessionsResponse>("/sessions"),
   /** one session's trace summary + per-module signals (503 = CLI absent) */
   sessionInspect: (id: string) => request<SessionInspectResponse>(`/session-inspect/${encodeURIComponent(id)}`),
@@ -74,10 +80,19 @@ export const zuzuuApi = {
     request<ApproveResult>(`/actions/${encodeURIComponent(slug)}/approve`, json({})),
   rejectAction: (slug: string) =>
     request<RejectResult>(`/actions/${encodeURIComponent(slug)}/reject`, json({})),
-  mintGeneration: (from: string[]) =>
-    request<MintResult>("/generation/mint", json({ from })),
-  rollback: (id: string) =>
-    request<RollbackResult>(`/generation/${encodeURIComponent(id)}/rollback`, json({})),
+  /** freeze ONE module's current items into its next generation */
+  mintModuleGeneration: (key: string, from: string[]) =>
+    request<{ id: string; module: string; mintedFrom: string[]; forkedFrom: string | null }>(
+      `/module/${encodeURIComponent(key)}/generation/mint`, json({ from })),
+  /** roll ONE module back to a past generation (byte-exact restore) */
+  rollbackModule: (key: string, id: string) =>
+    request<RollbackResult>(`/module/${encodeURIComponent(key)}/generation/${encodeURIComponent(id)}/rollback`, json({})),
+  /** pin the current per-module actives into a whole-brain checkpoint */
+  mintCheckpoint: (label?: string) =>
+    request<CheckpointMintResult>("/checkpoint/mint", json(label ? { label } : {})),
+  /** restore every pinned module to a checkpoint */
+  rollbackCheckpoint: (id: string) =>
+    request<CheckpointRollbackResult>(`/checkpoint/${encodeURIComponent(id)}/rollback`, json({})),
 
   // ── Session-git (the invisible zz/session-* branch; footer + Phase ④ cards) ──
   sessionGit: () => request<SessionGitStatus>("/session"),

@@ -1,0 +1,12 @@
+{
+  "id": "cp_001",
+  "createdAt": "2026-06-12T10:47:36.447Z",
+  "label": "migrated from gen_001",
+  "pins": {
+    "knowledge": "gen_001",
+    "memory": "gen_001",
+    "actions": "gen_001",
+    "instructions": "gen_001",
+    "guardrails": "gen_001"
+  }
+}

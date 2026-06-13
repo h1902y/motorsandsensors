@@ -19,6 +19,7 @@ import { repoRoot } from '../core/store.mjs';
 import { migrateHome } from './migrations/home.mjs';
 import { migrateItems, needsItemsMigration } from './migrations/items.mjs';
 import { migrateModules, needsModulesMigration } from './migrations/modules.mjs';
+import { migrateGenerations, needsGenerationsMigration } from './migrations/generations.mjs';
 
 const HOST_FILES = ['CLAUDE.md', 'AGENTS.md', 'GEMINI.md'];
 // dotfiles/dirs that don't make a directory "a project" for emptiness purposes
@@ -106,6 +107,20 @@ export function init(args = {}) {
       const total = r.items + r.manifests + r.proposals + r.generations + r.seeded;
       if (total) console.log(`Migrated faculty → module (${r.items} item(s) · ${r.manifests} manifest(s) · ${r.proposals} proposal(s) · ${r.generations} generation lockfile(s))`);
       for (const e of r.errors) console.log(`  ✗ ${e.file}: ${e.error} — left in place; fix and rerun \`zuzuu migrate --modules\``);
+    }
+  } catch { /* fail-open */ }
+
+  // One-shot global→per-module generation migration (W2.5 Phase 2): an existing
+  // home with a global .zuzuu/generations/ is split into per-module generations
+  // (gen_001 each, snapshot bytes faculty:→module:) + one composing checkpoint.
+  // Runs AFTER --modules so the lockfile section is already `modules`. Gated on
+  // detection, idempotent, fail-open.
+  try {
+    const home = join(cwd, '.zuzuu');
+    if (existsSync(home) && needsGenerationsMigration(home)) {
+      const r = migrateGenerations(home);
+      if (r.modules.length) console.log(`Migrated global generation → per-module (${r.modules.map((m) => `${m.module}→${m.generation}`).join(' · ')})${r.checkpoint ? ` + checkpoint ${r.checkpoint}` : ''}`);
+      for (const e of r.errors) console.log(`  ✗ ${e.file}: ${e.error} — left in place; rerun \`zuzuu migrate --generations\``);
     }
   } catch { /* fail-open */ }
 

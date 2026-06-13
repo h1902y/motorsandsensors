@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { modulesLine } from '../../zuzuu/commands/status.mjs';
-import { mintGeneration } from '../../zuzuu/module/generation/write.mjs';
+import { mintModuleGeneration } from '../../zuzuu/module/generation/write.mjs';
 
 function freshHome() {
   const root = mkdtempSync(join(tmpdir(), 'zuzuu-status-'));
@@ -16,7 +16,6 @@ function freshHome() {
   mkdirSync(join(home, 'knowledge', 'items'), { recursive: true });
   mkdirSync(join(home, 'knowledge', 'proposals'), { recursive: true });
   mkdirSync(join(home, 'knowledge', 'registry'), { recursive: true });
-  mkdirSync(join(home, 'generations', 'snapshots'), { recursive: true });
   writeFileSync(join(home, 'agent.json'), JSON.stringify({ version: 1 }) + '\n');
   return { root, home };
 }
@@ -29,26 +28,26 @@ function addProposal(home, i) {
   );
 }
 
-test('no generation + no pending → "no generation yet · 0 pending review"', () => {
+test('no generation + no pending → "no generations yet · 0 pending review"', () => {
   const { root, home } = freshHome();
   try {
     const line = modulesLine(home);
-    assert.match(line, /no generation yet/);
+    assert.match(line, /no generations yet/);
     assert.match(line, /0 pending review/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('active generation + pending count are reflected', () => {
+test('per-module active generation + pending count are reflected', () => {
   const { root, home } = freshHome();
   try {
     writeFileSync(join(home, 'knowledge', 'items', 'alpha.md'), '---\nid: alpha\ntype: fact\n---\nA.\n');
-    mintGeneration(home);
+    mintModuleGeneration(home, 'knowledge');
     addProposal(home, 0);
     addProposal(home, 1);
     const line = modulesLine(home);
-    assert.match(line, /gen_001/);
+    assert.match(line, /knowledge@gen_001/);
     assert.match(line, /2 pending review/);
   } finally {
     rmSync(root, { recursive: true, force: true });

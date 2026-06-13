@@ -21,7 +21,7 @@ export function ReviewFlow() {
 type MintState =
   | { phase: "idle" }
   | { phase: "minting" }
-  | { phase: "done"; id: string }
+  | { phase: "done"; minted: { module: string; id: string }[] }
   | { phase: "error"; message: string };
 
 function ReviewCeremony({ onClose }: { onClose: () => void }) {
@@ -72,16 +72,32 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
   };
 
   const approvedIds = state?.approvedIds ?? [];
+  // Per-module mint (W2.5 Phase 2): group approved ids by their module (from the
+  // queue), then mint each affected module's generation. Actions don't carry a
+  // generation lineage the same way; mint generations for non-action modules.
   const runMint = useCallback(async (ids: string[]) => {
     setMint({ phase: "minting" });
     try {
-      const r = await zuzuuApi.mintGeneration(ids);
-      setMint({ phase: "done", id: r.id });
+      const byModule = new Map<string, string[]>();
+      const queue = state?.queue ?? [];
+      for (const id of ids) {
+        const item = queue.find((q) => q.id === id);
+        const module = item?.module ?? "knowledge";
+        if (item?.kind === "action") continue; // actions activate, not mint
+        if (!byModule.has(module)) byModule.set(module, []);
+        byModule.get(module)!.push(id);
+      }
+      const minted: { module: string; id: string }[] = [];
+      for (const [module, mids] of byModule) {
+        const r = await zuzuuApi.mintModuleGeneration(module, mids);
+        minted.push({ module, id: r.id });
+      }
+      setMint({ phase: "done", minted });
       void queryClient.invalidateQueries({ queryKey: ["zuzuu"] });
     } catch (err) {
       setMint({ phase: "error", message: describeZuzuuError(err) });
     }
-  }, [queryClient]);
+  }, [queryClient, state]);
 
   // Reaching the end with approvals → mint once, automatically. The ref is a
   // belt-and-braces guard against any future re-fire (e.g. a phase reset);
@@ -211,11 +227,23 @@ function EndState({
     <div className="flex flex-col items-start gap-3 py-2">
       {approvedCount === 0 && <div className="text-ui text-ink-300">All caught up — nothing pending review.</div>}
       {mint.phase === "minting" && (
-        <div className="flex items-center gap-2 text-ui text-ink-300"><Spinner /> minting generation…</div>
+        <div className="flex items-center gap-2 text-ui text-ink-300"><Spinner /> minting generations…</div>
       )}
       {mint.phase === "done" && (
         <div className="text-ui text-ink-100">
-          generation <span className="text-accent">{mint.id}</span> minted from {approvedCount} approval{approvedCount === 1 ? "" : "s"}
+          {mint.minted.length === 0
+            ? `${approvedCount} approval${approvedCount === 1 ? "" : "s"} applied`
+            : (
+              <>
+                minted{" "}
+                {mint.minted.map((m, i) => (
+                  <span key={m.module}>
+                    {i > 0 ? " · " : ""}
+                    <span className="capitalize">{m.module}</span> <span className="text-accent">{m.id}</span>
+                  </span>
+                ))}
+              </>
+            )}
         </div>
       )}
       {mint.phase === "error" && (

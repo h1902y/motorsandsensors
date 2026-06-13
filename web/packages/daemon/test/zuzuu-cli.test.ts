@@ -45,7 +45,7 @@ describe("runZuzuuMut", () => {
   });
   it("unparseable stdout on exit 0 → 'failed'", async () => {
     const stub = jsonStub(root, "not json at all");
-    const r = await runZuzuuMut(root, ["generation", "mint"], { binary: stub });
+    const r = await runZuzuuMut(root, ["checkpoint", "mint"], { binary: stub });
     expect(r).toMatchObject({ ok: false, code: "failed" });
   });
   it("non-ENOENT spawn error (EACCES) → {ok:false, code:'failed'} not 'absent'", async () => {

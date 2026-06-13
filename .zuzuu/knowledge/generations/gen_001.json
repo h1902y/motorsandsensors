@@ -1,0 +1,16 @@
+{
+  "id": "gen_001",
+  "module": "knowledge",
+  "agent": "agt_2f237aa8f3e5",
+  "mintedAt": "2026-06-12T10:47:36.447Z",
+  "forkedFrom": null,
+  "mintedFrom": [
+    "file-commands-hook-mjs-a5c28c"
+  ],
+  "items": [
+    {
+      "id": "file-commands-hook-mjs",
+      "hash": "fdc54caf83ef39c53508e65729f4070f0d28365dc156ea545d0235da1ecc5bff"
+    }
+  ]
+}

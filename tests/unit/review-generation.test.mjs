@@ -1,5 +1,7 @@
 // tests/unit/review-generation.test.mjs
-// WS3-T2: batch-mint a generation on review close.
+// W2.5 Phase 2: review groups approvals by module → mints a PER-MODULE
+// generation for each affected module on review close (the old single global
+// mint is gone). These facts are knowledge, so the affected module is knowledge.
 //
 // Uses spawnSync with piped stdin (same pattern as review-actions.test.mjs) so
 // the test is fully hermetic — it exercises the real CLI entry point end-to-end.
@@ -11,7 +13,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { listGenerations, readGeneration, activeGeneration } from '../../zuzuu/module/generation/read.mjs';
+import { listModuleGenerations, readModuleGeneration, activeModuleGeneration } from '../../zuzuu/module/generation/read.mjs';
 
 const BIN = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'zuzuu.mjs');
 
@@ -50,21 +52,22 @@ test('review: approve both proposals → exactly one generation minted, mintedFr
     const r = spawnSync(process.execPath, [BIN, 'review'], { cwd: root, input: 'y\ny\n', encoding: 'utf8' });
     assert.equal(r.status, 0, `process exited non-zero: ${r.stderr}`);
 
-    // exactly ONE generation
-    const gens = listGenerations(home);
-    assert.equal(gens.length, 1, `expected 1 generation, got ${gens.length}`);
+    // exactly ONE knowledge generation (both facts are knowledge)
+    const gens = listModuleGenerations(home, 'knowledge');
+    assert.equal(gens.length, 1, `expected 1 knowledge generation, got ${gens.length}`);
 
-    const gen = readGeneration(home, gens[0]);
+    const gen = readModuleGeneration(home, 'knowledge', gens[0]);
     assert.ok(gen, 'generation lockfile readable');
+    assert.equal(gen.module, 'knowledge');
     assert.ok(Array.isArray(gen.mintedFrom), 'mintedFrom is an array');
     assert.equal(gen.mintedFrom.length, 2, `mintedFrom should contain 2 ids, got ${gen.mintedFrom.length}`);
 
-    // activeGeneration should be this generation
-    assert.equal(activeGeneration(home), gens[0], 'active generation updated');
+    // active knowledge generation should be this generation
+    assert.equal(activeModuleGeneration(home, 'knowledge'), gens[0], 'active knowledge generation updated');
 
-    // stdout should mention the mint as a graduation ceremony
-    assert.match(r.stdout, /generation gen_001 minted/);
-    assert.match(r.stdout, /zuzuu generation show/);
+    // stdout should mention the per-module mint as a graduation ceremony
+    assert.match(r.stdout, /Knowledge → gen_001/);
+    assert.match(r.stdout, /zuzuu module knowledge generation show/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -83,7 +86,7 @@ test('review: reject all proposals → no generation minted', () => {
     const r = spawnSync(process.execPath, [BIN, 'review'], { cwd: root, input: 'n\n\nn\n\n', encoding: 'utf8' });
     assert.equal(r.status, 0, `process exited non-zero: ${r.stderr}`);
 
-    const gens = listGenerations(home);
+    const gens = listModuleGenerations(home, 'knowledge');
     assert.equal(gens.length, 0, `expected 0 generations, got ${gens.length}`);
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -103,14 +106,14 @@ test('review: approve first, quit before second → one generation with one appr
     const r = spawnSync(process.execPath, [BIN, 'review'], { cwd: root, input: 'y\nq\n', encoding: 'utf8' });
     assert.equal(r.status, 0, `process exited non-zero: ${r.stderr}`);
 
-    const gens = listGenerations(home);
+    const gens = listModuleGenerations(home, 'knowledge');
     assert.equal(gens.length, 1, `expected 1 generation, got ${gens.length}`);
 
-    const gen = readGeneration(home, gens[0]);
+    const gen = readModuleGeneration(home, 'knowledge', gens[0]);
     assert.ok(gen, 'generation lockfile readable');
     assert.equal(gen.mintedFrom.length, 1, 'mintedFrom has exactly one approved id');
 
-    assert.match(r.stdout, /generation gen_001 minted from 1 approval/);
+    assert.match(r.stdout, /Knowledge → gen_001 \(1\)/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

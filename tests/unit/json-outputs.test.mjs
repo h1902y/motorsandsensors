@@ -7,7 +7,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { statusData } from '../../zuzuu/commands/status.mjs';
 import { inboxData } from '../../zuzuu/commands/inbox.mjs';
-import { generationListData, generationShowData, mintGenerationData, rollbackData } from '../../zuzuu/commands/generation.mjs';
+import { moduleGenerationsData, moduleGenerationShowData } from '../../zuzuu/commands/module.mjs';
+import { checkpointListData } from '../../zuzuu/commands/checkpoint.mjs';
 import { evalData } from '../../zuzuu/commands/eval.mjs';
 import { proposalsListData, approveData, rejectData } from '../../zuzuu/commands/proposals.mjs';
 import { serializeEnvelope } from '../../zuzuu/module/envelope.mjs';
@@ -17,7 +18,8 @@ const actionMd = (slug, snippet) => serializeEnvelope({
   created_at: '2026-06-12T00:00:00Z', payload: { exec: 'run.mjs' }, body: snippet,
 });
 import { actInboxData, actApproveData, actRejectData } from '../../zuzuu/commands/act.mjs';
-import { mintGeneration } from '../../zuzuu/module/generation/write.mjs';
+import { mintModuleGeneration } from '../../zuzuu/module/generation/write.mjs';
+import { mintCheckpoint } from '../../zuzuu/module/generation/checkpoint.mjs';
 import { writeProposal, makeProposal } from '../../zuzuu/module/proposal.mjs';
 import { processInbox } from '../../zuzuu/knowledge/inbox.mjs';
 import { digestData } from '../../zuzuu/commands/digest.mjs';
@@ -56,11 +58,13 @@ function withActHome(slug, fn) {
 
 // ── Task 5: statusData now includes hosts ────────────────────────────────────
 
-test('statusData reports home, generation, pending map, drift', () => {
+test('statusData reports home, per-module generations, pending map, drift, checkpoints', () => {
   withHome((dir) => {
     const d = statusData(dir, { hosts: [] });
     assert.equal(d.home, true);
-    assert.equal(d.activeGeneration, null);          // none minted
+    assert.equal(typeof d.generations, 'object');     // per-module actives
+    assert.equal(d.generations.knowledge, null);      // none minted
+    assert.equal(d.checkpoints, 0);
     assert.equal(typeof d.pending, 'object');
     assert.equal(d.pending.knowledge, 0);
     assert.equal(d.drift.dirty, false);
@@ -259,36 +263,48 @@ test('actRejectData: reject a seeded inbox action → {ok:true, action, slug}', 
   });
 });
 
-// ── Task 4: generation mint --json + rollback --json ─────────────────────────
+// ── Per-module generation + checkpoint --json data ───────────────────────────
 
-test('mintGenerationData returns {id,mintedFrom,forkedFrom}', () => {
+test('mintModuleGeneration returns a per-module lockfile {id,module,mintedFrom,items}', () => {
   withHome((dir) => {
-    const d = mintGenerationData(dir, { mintedFrom: [] });
-    assert.ok(d && typeof d === 'object', 'returns object');
-    assert.match(d.id, /^gen_/, 'id matches gen_ pattern');
-    assert.ok(Array.isArray(d.mintedFrom), 'mintedFrom is array');
-    assert.ok('forkedFrom' in d, 'has forkedFrom');
+    const lf = mintModuleGeneration(dir, 'knowledge', { mintedFrom: ['p1', 'p2'] });
+    assert.match(lf.id, /^gen_/, 'id matches gen_ pattern');
+    assert.equal(lf.module, 'knowledge');
+    assert.deepEqual(lf.mintedFrom, ['p1', 'p2']);
+    assert.ok(Array.isArray(lf.items), 'items is array');
+    assert.ok('forkedFrom' in lf, 'has forkedFrom');
   });
 });
 
-test('mintGenerationData --from p1,p2 passes through mintedFrom [p1,p2]', () => {
+test('moduleGenerationsData returns {module,active,generations}', () => {
   withHome((dir) => {
-    const d = mintGenerationData(dir, { mintedFrom: ['p1', 'p2'] });
-    assert.deepEqual(d.mintedFrom, ['p1', 'p2']);
+    const lf = mintModuleGeneration(dir, 'knowledge', { mintedFrom: [] });
+    const d = moduleGenerationsData(dir, 'knowledge');
+    assert.equal(d.module, 'knowledge');
+    assert.equal(d.active, lf.id);
+    assert.equal(d.generations[0].id, lf.id);
   });
 });
 
-test('rollbackData returns {ok,restored,active} with gen_ id', () => {
+test('moduleGenerationShowData returns the diff; unknown id → null', () => {
   withHome((dir) => {
-    const minted = mintGeneration(dir, { forkedFrom: null });
-    const d = rollbackData(dir, minted.id);
-    assert.equal(d.ok, true, 'ok is true');
-    assert.equal(typeof d.restored, 'number', 'restored is number');
-    assert.ok(d.active, 'has active');
-    assert.match(d.active, /^gen_/, 'active matches gen_ pattern');
-    // JSON-serialisable
-    const parsed = JSON.parse(JSON.stringify(d));
-    assert.equal(parsed.ok, true);
+    const lf = mintModuleGeneration(dir, 'knowledge', { mintedFrom: [] });
+    const show = moduleGenerationShowData(dir, 'knowledge', lf.id);
+    assert.equal(show.id, lf.id);
+    assert.equal(show.module, 'knowledge');
+    assert.ok(Array.isArray(show.added));
+    assert.equal(moduleGenerationShowData(dir, 'knowledge', 'gen_999'), null);
+  });
+});
+
+test('checkpointListData returns checkpoints pinning per-module actives', () => {
+  withHome((dir) => {
+    mintModuleGeneration(dir, 'knowledge', { mintedFrom: [] });
+    const cp = mintCheckpoint(dir, { label: 'x' });
+    const d = checkpointListData(dir);
+    assert.equal(d.checkpoints.length, 1);
+    assert.equal(d.checkpoints[0].id, cp.id);
+    assert.equal(d.checkpoints[0].pins.knowledge, 'gen_001');
   });
 });
 
@@ -304,19 +320,6 @@ test('inboxData lists pending proposals with module + title + total', () => {
     assert.equal(d.pending[0].module, 'knowledge');
     assert.equal(d.pending[0].id, 'p1');
     assert.match(d.pending[0].title, /node:sqlite/);
-  });
-});
-
-test('generationListData returns active + list; showData returns the diff', () => {
-  withHome((dir) => {
-    const lf = mintGeneration(dir, { forkedFrom: null });
-    const list = generationListData(dir);
-    assert.equal(list.active, lf.id);
-    assert.equal(list.generations[0].id, lf.id);
-    const show = generationShowData(dir, lf.id);
-    assert.equal(show.id, lf.id);
-    assert.ok(show.modules && typeof show.modules === 'object');
-    assert.equal(generationShowData(dir, 'gen_999'), null);   // unknown id
   });
 });
 
