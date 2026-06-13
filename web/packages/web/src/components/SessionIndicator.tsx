@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { zuzuuApi, describeZuzuuError } from "../lib/zuzuu-api";
 import { sessionIndicator } from "../modules/session-git";
 import { mergeSessionWithFallback, refreshSessionGit } from "../lib/session-git-actions";
-import { MenuPopover, type MenuItem } from "./ui";
+import { MenuPopover, StatusDot, type MenuItem } from "./ui";
 
 /**
  * Footer session-git affordance (replaces the old git-branch item):
@@ -47,19 +47,23 @@ export function SessionIndicator({ enabled }: { enabled: boolean }) {
       : []),
   ];
 
+  // the pure label carries a leading ●/◌ glyph; the restyle replaces it with a
+  // StatusDot primitive (warn when a session was left behind, ok when active)
+  const text = ind.label.replace(/^[●◌]\s*/, "");
   return (
     <>
       <button
         ref={btnRef}
         onClick={() => setMenuOpen((v) => !v)}
-        className={`shrink-0 ${ind.kind === "leftover" ? "text-warn hover:text-warn/80" : "text-ink-300 hover:text-accent"}`}
+        className={`flex shrink-0 items-center gap-1.5 ${ind.kind === "leftover" ? "text-warn hover:text-warn/80" : "text-ink-300 hover:text-accent"}`}
         title={
           ind.kind === "leftover"
             ? "A session branch was left unmerged — merge or continue it"
             : "zuzuu session branch — checkpoints land here, merge squashes to main"
         }
       >
-        {ind.label}
+        <StatusDot tone={ind.kind === "leftover" ? "warn" : "ok"} pulse={ind.kind === "leftover"} />
+        {text}
       </button>
       {menuOpen && (
         <MenuPopover items={items} onClose={() => setMenuOpen(false)} anchorEl={btnRef.current} ignore={btnRef} />

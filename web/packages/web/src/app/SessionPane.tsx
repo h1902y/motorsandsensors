@@ -1,15 +1,20 @@
-// The center session pane: agent-session tabs, the always-mounted terminals,
-// the load-time center cards (recovery / setup) and the bottom session
-// composer — the start surface ("Start a session with…" + host chips).
-import { useRef } from "react";
+// The center session pane. Each session is rendered as a CONVERSATION first:
+// a calm transcript of one-line receipts (the default tab) with the live
+// xterm terminal demoted to a sibling "Terminal" tab in the same work pane.
+// Also: the agent-session tab strip, the load-time center cards (recovery /
+// setup) and the bottom session composer ("Start a session with…").
+import { useRef, useState } from "react";
 import { useSessions } from "../state/sessions";
 import { TermView } from "../term/TermView";
 import { Bar, Tab, TabBar, IconButton, StatusDot } from "../components/ui";
-import { RecoveryCard, SetupZuzuuCard } from "../components/SessionCards";
+import { RecoveryCard, SetupZuzuuCard, SessionTranscript } from "../components/SessionCards";
 import { SessionComposer } from "../components/SessionComposer";
 import { centerCard } from "../lib/session-cards";
 import { agentTabTitle } from "../modules/host-launch";
 import { useSessionGitQuery, useZuzuuHealthQuery } from "./queries";
+
+/** Which sub-surface of a session's work pane is showing. */
+type WorkTab = "conversation" | "terminal";
 
 export function SessionPane() {
   const { tabs, activeId, loaded: sessionsLoaded, close, setActive } = useSessions();
@@ -19,6 +24,12 @@ export function SessionPane() {
   const sessionGit = useSessionGitQuery(zuzuuHome);
   const composerRef = useRef<HTMLDivElement>(null);
   const focusComposer = () => composerRef.current?.focus();
+
+  // per-session work-pane tab — conversation is the hero default; the terminal
+  // is on-demand. Tracked per id so switching sessions keeps each one's view.
+  const [workTab, setWorkTab] = useState<Record<string, WorkTab>>({});
+  const tabOf = (id: string): WorkTab => workTab[id] ?? "conversation";
+  const setTabOf = (id: string, t: WorkTab) => setWorkTab((m) => ({ ...m, [id]: t }));
 
   // hold the boot-time card until health + session-git have answered once, so
   // a leftover branch renders recovery directly instead of flashing the rest state
@@ -58,24 +69,65 @@ export function SessionPane() {
           onClick={focusComposer}
         />
       </Bar>
-      {/* terminals — all kept mounted so sessions survive tab switches */}
+      {/* the work pane — one per session, all kept mounted so the terminals
+          (and their PTYs) survive session switches and work-tab switches */}
       <div className="relative min-h-0 flex-1">
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className="absolute inset-0"
-            style={{ visibility: tab.id === activeId ? "visible" : "hidden" }}
-          >
-            <TermView
-              sessionId={tab.id}
-              active={tab.id === activeId}
-              sessionType={tab.type}
-              host={tab.host}
-              onStartNew={focusComposer}
-              onCloseTab={() => void close(tab.id)}
-            />
-          </div>
-        ))}
+        {tabs.map((tab) => {
+          const active = tab.id === activeId;
+          const view = tabOf(tab.id);
+          return (
+            <div
+              key={tab.id}
+              className="absolute inset-0 flex min-h-0 flex-col"
+              style={{ visibility: active ? "visible" : "hidden" }}
+            >
+              {/* work-pane sub-tabs: Conversation (the hero) | Terminal (raw) */}
+              <Bar border="b" surface="app" className="!px-0">
+                <TabBar>
+                  <Tab
+                    active={view === "conversation"}
+                    onClick={() => setTabOf(tab.id, "conversation")}
+                  >
+                    Conversation
+                  </Tab>
+                  <Tab
+                    active={view === "terminal"}
+                    onClick={() => setTabOf(tab.id, "terminal")}
+                    leading={<StatusDot tone={tab.alive ? "ok" : "idle"} />}
+                  >
+                    Terminal
+                  </Tab>
+                </TabBar>
+              </Bar>
+              <div className="relative min-h-0 flex-1">
+                {/* Conversation — the receipts transcript (default surface) */}
+                <div
+                  className="absolute inset-0"
+                  style={{ visibility: view === "conversation" ? "visible" : "hidden" }}
+                >
+                  <SessionTranscript sessionId={tab.id} alive={tab.alive} />
+                </div>
+                {/* Terminal — the SAME TermView, only relocated into this tab
+                    panel. Kept always-mounted (visibility toggle, never
+                    unmounted) so the PTY / WebSocket / flow-control are
+                    untouched. */}
+                <div
+                  className="absolute inset-0"
+                  style={{ visibility: active && view === "terminal" ? "visible" : "hidden" }}
+                >
+                  <TermView
+                    sessionId={tab.id}
+                    active={active && view === "terminal"}
+                    sessionType={tab.type}
+                    host={tab.host}
+                    onStartNew={focusComposer}
+                    onCloseTab={() => void close(tab.id)}
+                  />
+                </div>
+              </div>
+            </div>
+          );
+        })}
         {/* the calm resting state — nothing but the mark above the composer */}
         {tabs.length === 0 && card.kind === "none" && !showSetup && (
           <div className="absolute inset-0 flex items-center justify-center">

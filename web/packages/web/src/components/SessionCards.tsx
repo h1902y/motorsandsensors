@@ -3,8 +3,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { zuzuuApi, describeZuzuuError } from "../lib/zuzuu-api";
 import { mergeSessionWithFallback, refreshSessionGit } from "../lib/session-git-actions";
 import { startUtilityRun } from "../lib/agent-launch";
-import type { EndCard } from "../lib/session-cards";
-import { Button, Spinner, confirm } from "./ui";
+import { blockReceipt, type EndCard } from "../lib/session-cards";
+import { useBlocks } from "../state/blocks";
+import type { Block } from "../term/blocks";
+import { Button, Receipt, Spinner, StatusDot, confirm } from "./ui";
 
 /**
  * The session-surface center cards: setup (no zuzuu home), recovery
@@ -229,4 +231,116 @@ export function SessionEndCard({
         </Card>
       );
   }
+}
+
+// ── Receipts transcript (Task 6) ─────────────────────────────────────────
+// The session pane's DEFAULT surface: the host session rendered as a calm
+// conversation of one-line receipts instead of a wall of monospace. The raw
+// terminal is demoted to a sibling tab. Receipts are driven entirely by the
+// real OSC-133 command blocks (useBlocks store) the terminal already emits —
+// no invented data shape, no new daemon API. The expandable body shows the
+// raw command (machine data → mono); full output lives in the Terminal tab.
+
+const GLYPH: Record<ReturnType<typeof blockReceipt>["glyph"], string> = {
+  // play triangle — a command run
+  run: "M5 3.5l7 4.5-7 4.5z",
+  // pencil — a file edit
+  edit: "M11 2.5l2.5 2.5L6 12.5 3 13l.5-3z",
+  // shield — a guarded / destructive command
+  guardrail: "M8 2l5 2v4c0 3-2.2 5-5 6-2.8-1-5-3-5-6V4z",
+  // magnifier — a search
+  search: "M10.5 10.5L14 14M7 12A5 5 0 117 2a5 5 0 010 10z",
+  // branch — a git command (two nodes joined by a curve)
+  git: "M5 5.5v5M5 3a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM5 10.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM11 3a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM11 6c0 3-3 3-6 4.5",
+};
+
+/**
+ * The session-as-conversation transcript. One `<Receipt>` per command block:
+ * a humanist sans label ("Ran npm test"), machine detail (duration, exit code)
+ * in the mono meta chip, expandable to the raw command. Substantial commands
+ * (multi-line) read as the body inside the same receipt. A running command at
+ * the tail renders as a spinner step; a session that has gone quiet shows the
+ * calm paused banner — together the green-check / spinner step rhythm.
+ */
+export function SessionTranscript({
+  sessionId,
+  alive,
+}: {
+  sessionId: string;
+  /** the PTY is still attached — drives the paused-vs-running tail state */
+  alive: boolean;
+}) {
+  const blocks = useBlocks((s) => s.bySession[sessionId]) ?? [];
+  const runnable = blocks.filter((b) => b.command.trim().length > 0);
+  const running = runnable.some((b) => b.exitCode === null);
+
+  if (runnable.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center p-8 text-center">
+        <p className="max-w-xs text-ui leading-relaxed text-ink-500">
+          This session&apos;s activity will appear here as a timeline of receipts.
+          The raw terminal lives in the <span className="text-ink-300">Terminal</span> tab.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto flex max-w-2xl flex-col gap-0.5 px-4 py-4">
+        {runnable.map((block) => (
+          <TranscriptReceipt key={block.id} block={block} />
+        ))}
+        {/* paused / running tail — the explicit awaiting-input state */}
+        <div className="mt-2 px-2">
+          {running ? (
+            <div className="flex items-center gap-2 text-ui text-ink-300">
+              <Spinner /> Working…
+            </div>
+          ) : (
+            <PausedBanner alive={alive} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TranscriptReceipt({ block }: { block: Block }) {
+  const r = blockReceipt(block);
+  const multiline = block.command.includes("\n");
+  return (
+    <Receipt
+      icon={GLYPH[r.glyph]}
+      label={r.label}
+      meta={r.meta ?? (r.running ? "running…" : undefined)}
+      tone={r.tone}
+    >
+      {/* expandable body — the raw command is machine data → mono */}
+      <pre className="wc-mono whitespace-pre-wrap break-words text-meta text-ink-400">
+        {multiline ? block.command : `$ ${block.command}`}
+      </pre>
+    </Receipt>
+  );
+}
+
+/**
+ * "Paused — waiting for your input." The calm awaiting-input banner the design
+ * calls for (Replit's paused state), shown when an alive session has no running
+ * command. A dead session reads as ended, not paused.
+ */
+export function PausedBanner({ alive }: { alive: boolean }) {
+  if (!alive) {
+    return (
+      <div className="flex items-center gap-2 text-ui text-ink-500">
+        <StatusDot tone="idle" /> Session ended.
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-2 rounded-[var(--radius-ui)] border border-border bg-elevated px-3 py-2 text-ui text-ink-300">
+      <StatusDot tone="ok" pulse />
+      Paused — waiting for your input.
+    </div>
+  );
 }

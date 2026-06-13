@@ -4,6 +4,80 @@
 // so the state machine is unit-testable.
 import type { SessionCloseResult, SessionGitStatus } from "@zuzuu-web/protocol";
 
+// ── Receipts transcript (Task 6) ────────────────────────────────────────
+// The session pane renders the host session as a *conversation of receipts*,
+// not a wall of monospace. The only real per-event source today is the
+// terminal's OSC-133 command blocks (command + exit code + duration), so each
+// block collapses to a one-line receipt. The derivation below — a humanist
+// sans label ("Ran npm test"), the machine detail for the mono meta slot, and
+// the running/ok/bad tone — is pure so it is unit-tested without a DOM.
+
+export type ReceiptTone = "default" | "ok" | "bad";
+
+export interface CommandReceipt {
+  /** the humanist sans label — "Ran npm test", "Edited store.mjs" */
+  label: string;
+  /** machine-data meta for the mono chip — duration, exit code (null while running) */
+  meta: string | null;
+  tone: ReceiptTone;
+  /** leading glyph hint, mapped to an icon path by the view */
+  glyph: "run" | "edit" | "guardrail" | "search" | "git";
+  /** still executing (no D marker yet) */
+  running: boolean;
+}
+
+/** Format a block duration for the mono meta chip. */
+export function fmtDuration(ms: number | null): string | null {
+  if (ms === null || ms < 0) return null;
+  if (ms < 1000) return `${Math.round(ms)}ms`;
+  return `${(ms / 1000).toFixed(1)}s`;
+}
+
+const FIRST_WORD = /^\s*(\S+)/;
+
+/**
+ * Humanize a shell command into a receipt label + glyph. We classify by the
+ * leading token so a `git commit` reads "Ran git commit" with a git glyph and
+ * an `nvim file.ts` reads "Edited file.ts" — turning terminal noise into a
+ * scannable timeline. Honest about its source: this is the command text the
+ * shell saw, not a synthesized tool-call event.
+ */
+export function receiptForCommand(command: string): { label: string; glyph: CommandReceipt["glyph"] } {
+  const first = (command.trim().split("\n")[0] ?? "").trim();
+  const verb = (FIRST_WORD.exec(first)?.[1] ?? "").toLowerCase();
+  const arg = first.slice(verb.length).trim();
+  const base = (p: string) => p.replace(/[\\/]+$/, "").split(/[\\/]/).pop() || p;
+  const editors = new Set(["vim", "nvim", "vi", "nano", "code", "emacs", "subl"]);
+  if (editors.has(verb)) {
+    const file = base(arg.split(/\s+/).pop() ?? "");
+    return { label: file ? `Edited ${file}` : "Opened an editor", glyph: "edit" };
+  }
+  if (verb === "git") return { label: first, glyph: "git" };
+  if (verb === "rg" || verb === "grep" || verb === "find" || verb === "ag")
+    return { label: first, glyph: "search" };
+  if (verb === "rm" || verb === "sudo" || verb === "kill" || verb === "chmod")
+    return { label: first, glyph: "guardrail" };
+  return { label: first || "(empty command)", glyph: "run" };
+}
+
+/** Map one command block onto its receipt shape (label, mono meta, tone). */
+export function blockReceipt(block: {
+  command: string;
+  exitCode: number | null;
+  durationMs: number | null;
+}): CommandReceipt {
+  const { label, glyph } = receiptForCommand(block.command);
+  const running = block.exitCode === null;
+  const dur = fmtDuration(block.durationMs);
+  const meta = running
+    ? null
+    : block.exitCode === 0
+      ? dur
+      : [dur, `exit ${block.exitCode}`].filter(Boolean).join(" · ");
+  const tone: ReceiptTone = running ? "default" : block.exitCode === 0 ? "ok" : "bad";
+  return { label, meta, tone, glyph, running };
+}
+
 export type CenterCard =
   | { kind: "none" }
   | { kind: "recovery"; branch: string; checkpoints: number };
