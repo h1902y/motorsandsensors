@@ -445,7 +445,7 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
         </>
       )}
 
-      {err && <div className="break-all font-mono text-meta text-danger">{err}</div>}
+      {err && <div className="wc-mono break-all text-meta text-danger">{err}</div>}
 
       {/* generation lineage for THIS module (per-module atoms, W2.5 Phase 2) */}
       {!bare && (

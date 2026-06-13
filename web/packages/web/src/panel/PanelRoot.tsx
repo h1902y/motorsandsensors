@@ -68,7 +68,7 @@ export function PanelRoot({ zuzuuBin }: { zuzuuBin: boolean }) {
           {guardrailPending > 0 && (
             <MetricChip
               label="guardrails"
-              value={`${guardrailPending} active`}
+              value={`${guardrailPending} pending`}
               tone="pending"
               title="guardrail proposals pending review"
             />

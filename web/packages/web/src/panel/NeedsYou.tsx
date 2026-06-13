@@ -2,7 +2,7 @@
 // Review CTA (lives HERE, not in the footer), and drift/CLI warnings.
 // Quiet "all caught up" when nothing needs the human.
 import type { ModuleOverviewEntry, ZuzuuStatus } from "@zuzuu-web/protocol";
-import { Button, Count } from "../components/ui";
+import { Button } from "../components/ui";
 import { useRightPanel } from "../state/right-panel";
 import { useReviewOpen } from "../state/review";
 import { MetricChip, Section, moduleDisplay, moduleHue } from "./kit";

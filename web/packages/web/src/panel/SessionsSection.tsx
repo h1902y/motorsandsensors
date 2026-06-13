@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { zuzuuApi } from "../lib/zuzuu-api";
 import { Count, StatusPill, cx } from "../components/ui";
 import { useRightPanel } from "../state/right-panel";
-import { TeachingEmpty, moduleDisplay, relativeTime } from "./kit";
+import { TeachingEmpty, relativeTime } from "./kit";
 import { SessionBrief } from "./SessionBrief";
 import { fmtDuration, sessionStateMeta, shortSessionId, splitSessions } from "./sections";
 

@@ -32,10 +32,9 @@ function AgentProgressionPill({ zuzuuHome }: { zuzuuHome: boolean }) {
 
   if (!zuzuuHome) return null;
 
-  // how many modules have a pinned generation
-  const pinnedGens = status.data?.generations
-    ? Object.values(status.data.generations).filter(Boolean).length
-    : null;
+  // whole-brain checkpoint count — a checkpoint IS the composed whole-agent
+  // generation, so "Gen N" honestly reflects the minted checkpoint number.
+  const checkpoints = status.data?.checkpoints ?? null;
   // total knowledge items (first approximation of "facts")
   const knowledgeEntry = overview.data?.modules.find((m) => m.id === "knowledge");
   const totalFacts = knowledgeEntry?.counts.items ?? null;
@@ -43,19 +42,21 @@ function AgentProgressionPill({ zuzuuHome }: { zuzuuHome: boolean }) {
   const totalPending = overview.data?.modules ? pendingTotal(overview.data.modules) : null;
 
   // nothing loaded yet → don't render a skeleton
-  if (pinnedGens === null && totalFacts === null && totalPending === null) return null;
+  if (checkpoints === null && totalFacts === null && totalPending === null) return null;
 
   const hasPending = (totalPending ?? 0) > 0;
 
   const parts: string[] = [];
-  if (pinnedGens !== null) parts.push(`Gen ${pinnedGens}`);
+  // Only present "Gen N" when there is at least one whole-brain checkpoint —
+  // never imply a generation from module counts.
+  if (checkpoints !== null && checkpoints > 0) parts.push(`Gen ${checkpoints}`);
   if (totalFacts !== null) parts.push(`${totalFacts} fact${totalFacts !== 1 ? "s" : ""}`);
 
   return (
     <span
       className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-meta text-ink-500"
       style={{ background: "color-mix(in oklab, var(--color-ink-600) 8%, transparent)" }}
-      title="Your agent's current state — generations pinned, facts known, proposals awaiting review"
+      title="Your agent's current state — checkpoints minted, facts known, proposals awaiting review"
     >
       <span className="wc-sans text-ink-400">Your agent:</span>
       {parts.length > 0 && (

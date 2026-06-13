@@ -233,7 +233,7 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
               </div>
 
               {state.error && (
-                <div className="break-all text-meta text-danger" style={{ fontFamily: "var(--font-mono)" }}>{state.error}</div>
+                <div className="wc-mono break-all text-meta text-danger">{state.error}</div>
               )}
 
               {/* Action row */}
@@ -408,7 +408,7 @@ function EndState({
                     />
                     <span className="wc-sans font-medium capitalize text-ink-100">{m.module}</span>
                     <span className="text-ink-600">→</span>
-                    <span className="text-ink-400" style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>{m.id}</span>
+                    <span className="wc-mono text-meta text-ink-400">{m.id}</span>
                   </div>
                 ))}
               </div>
@@ -421,7 +421,7 @@ function EndState({
 
           {mint.phase === "error" && (
             <>
-              <div className="break-all text-meta text-danger" style={{ fontFamily: "var(--font-mono)" }}>mint failed: {mint.message}</div>
+              <div className="wc-mono break-all text-meta text-danger">mint failed: {mint.message}</div>
               <Button variant="primary" onClick={onRetry}>Retry mint</Button>
             </>
           )}

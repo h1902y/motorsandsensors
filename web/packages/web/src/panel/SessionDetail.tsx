@@ -17,7 +17,7 @@ import { isCliAbsent, describeZuzuuError, zuzuuApi } from "../lib/zuzuu-api";
 import { useExplorer } from "../state/explorer";
 import { useRightPanel } from "../state/right-panel";
 import { Receipt, PropertyRow, StatusPill, HeroNumber, Segmented, Spinner, cx } from "../components/ui";
-import { MODULE_ORDER, ItemRow, moduleDisplay, kindIcon, relativeTime } from "./kit";
+import { MODULE_ORDER, ItemRow, moduleDisplay } from "./kit";
 import { moduleItemPath } from "./module-paths";
 import { fmtDuration, graduatedFromSession, sessionStateMeta, shortSessionId } from "./sections";
 
