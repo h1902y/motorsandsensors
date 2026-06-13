@@ -69,8 +69,11 @@ export function ProposalRow({
               {onApprove && (
                 <Button variant="primary" disabled={busy} onClick={onApprove}>Approve</Button>
               )}
+              {/* Reject is text-only, de-emphasized — never a red slab */}
               {onReject && (
-                <Button variant="danger" disabled={busy} onClick={onReject}>Reject</Button>
+                <Button variant="danger" disabled={busy} onClick={onReject} className="!border-0 !bg-transparent px-1">
+                  Reject
+                </Button>
               )}
             </div>
           )}
