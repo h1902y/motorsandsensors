@@ -53,6 +53,21 @@ export interface ProposalSummary {
   id: string;
   module: string;
   title: string;
+  /** the envelope kind being proposed (fact|rule|runbook|…) — best-effort */
+  kind?: string;
+  /** a short preview of the actual content being approved (body first lines,
+   *  or a rule's pattern→action, or an action's exec) — best-effort */
+  preview?: string;
+  /** the persisted score float, when the proposal carries one */
+  score?: number | null;
+  /** the persisted confidence bucket (high|med|low), when present */
+  confidence?: string | null;
+  /** the scorer's one-line rationale, when present */
+  rationale?: string | null;
+  /** the 5 normalized signal components behind the score, when present */
+  signals?: RankedProposalSignals;
+  /** the raw evidence behind the score, when present */
+  evidence?: RankedProposalEvidence;
 }
 
 export interface ModuleDetail {

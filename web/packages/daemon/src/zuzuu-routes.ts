@@ -132,6 +132,61 @@ function proposalTitle(p: Record<string, unknown>): string {
   return firstLine(cand?.body ?? payload?.body ?? p.id);
 }
 
+/** A short preview of the actual content being approved — the WHAT block in the
+ *  review/detail card. Knowledge → the body's first lines; a guardrail rule →
+ *  pattern → action; an action → its exec command. Best-effort, never throws. */
+function proposalPreview(p: Record<string, unknown>): string {
+  const payload = (p.payload ?? p.candidate) as Record<string, unknown> | undefined;
+  if (!payload) return "";
+  // guardrail rule: pattern → action
+  const pattern = payload.pattern ?? (payload.attributes as Record<string, unknown> | undefined)?.pattern;
+  const action = payload.action ?? (payload.attributes as Record<string, unknown> | undefined)?.action;
+  if (typeof pattern === "string" && pattern) {
+    return typeof action === "string" && action ? `${pattern} → ${action}` : String(pattern);
+  }
+  // action runbook/script: the exec line
+  const exec = payload.exec ?? (payload.attributes as Record<string, unknown> | undefined)?.exec;
+  if (typeof exec === "string" && exec) return exec;
+  // default: the body's first ~3 lines
+  const body = payload.body;
+  if (typeof body === "string" && body) {
+    return body.split("\n").slice(0, 3).join("\n").slice(0, 400);
+  }
+  return "";
+}
+
+/** Enrich a raw on-disk proposal into the ProposalSummary the panel renders —
+ *  carrying the payload preview + the persisted score/signals/evidence so the
+ *  module-detail card shows the same WHAT/WHY a review card does. Best-effort:
+ *  every enrichment field is optional and omitted when absent. */
+function proposalSummary(p: Record<string, unknown>, key: string) {
+  const payload = (p.payload ?? p.candidate) as Record<string, unknown> | undefined;
+  const kind = typeof payload?.type === "string" ? payload.type
+    : typeof p.kind === "string" && p.kind !== "item" ? p.kind
+      : undefined;
+  const preview = proposalPreview(p);
+  const score = p.score as { score?: number; confidence?: string; rationale?: string } | undefined;
+  const evidence = p.evidence as Record<string, unknown> | undefined;
+  const erVerdict = (p.analysis as { er?: { verdict?: string } } | undefined)?.er?.verdict
+    ?? (p.er as { verdict?: string } | undefined)?.verdict;
+  const ev: Record<string, unknown> = {};
+  if (typeof evidence?.occurrences === "number") ev.occurrences = evidence.occurrences;
+  if (typeof evidence?.sessions === "number") ev.sessions = evidence.sessions;
+  if (typeof evidence?.failures === "number") ev.failures = evidence.failures;
+  if (typeof erVerdict === "string") ev.erVerdict = erVerdict;
+  return {
+    id: String(p.id ?? "?"),
+    module: key,
+    title: proposalTitle(p),
+    ...(kind ? { kind } : {}),
+    ...(preview ? { preview } : {}),
+    ...(score && typeof score.score === "number" ? { score: score.score } : {}),
+    ...(score?.confidence ? { confidence: score.confidence } : {}),
+    ...(score?.rationale ? { rationale: score.rationale } : {}),
+    ...(Object.keys(ev).length ? { evidence: ev } : {}),
+  };
+}
+
 export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono {
   const app = new Hono();
   let root = getRoot();
@@ -189,7 +244,7 @@ export function createZuzuuApi(getRoot: () => string, opts: ApiOpts = {}): Hono 
     if (!MODULES.includes(key as typeof MODULES[number])) return c.json({ error: "unknown module" }, 404);
     const agent = await agentDir();
     const { items, errors, degraded } = await moduleEnvelopeItems(root, agent, key, opts.binary);
-    const proposals = (await proposalsOf(agent, key)).map((p) => ({ id: String(p.id ?? "?"), module: key, title: proposalTitle(p) }));
+    const proposals = (await proposalsOf(agent, key)).map((p) => proposalSummary(p, key));
     return c.json({ key, items, proposals, errors, ...(degraded ? { degraded: true } : {}) });
   });
 

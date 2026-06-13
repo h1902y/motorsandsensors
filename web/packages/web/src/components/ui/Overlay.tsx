@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type CSSProperties, type ReactNode } from "react";
 import { cx } from "./primitives";
 
 /**
@@ -49,16 +49,20 @@ export function Dialog({
   children,
   className,
   width = "md",
+  style,
 }: {
   children: ReactNode;
   className?: string;
   width?: "sm" | "md" | "lg";
+  /** extra inline styles (merged after the dialog shadow) — for callers that
+   *  need an exact responsive width, e.g. min(640px, 92vw). */
+  style?: CSSProperties;
 }) {
   const w = width === "sm" ? "max-w-md" : width === "lg" ? "max-w-2xl" : "max-w-lg";
   return (
     <div
       onClick={(e) => e.stopPropagation()}
-      style={{ boxShadow: "var(--shadow-dialog)" }}
+      style={{ boxShadow: "var(--shadow-dialog)", ...style }}
       className={cx(
         "w-full overflow-hidden rounded-[var(--radius-dialog)] border border-border bg-elevated",
         w,

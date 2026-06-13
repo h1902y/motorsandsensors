@@ -1,6 +1,8 @@
 // Pure queue logic for the review ceremony (ReviewFlow.tsx renders this state).
 // Kept free of React/fetch so the flow's decision rules are unit-testable.
-import type { ProposalSummary, RankedProposal } from "@zuzuu-web/protocol";
+import type {
+  ProposalSummary, RankedProposal, RankedProposalSignals, RankedProposalEvidence,
+} from "@zuzuu-web/protocol";
 
 /** One reviewable thing: an eval-ranked proposal, or a pending action-inbox item. */
 export interface ReviewItem {
@@ -12,6 +14,10 @@ export interface ReviewItem {
   score: number | null;
   confidence: string | null;
   rationale: string | null;
+  /** the 5 normalized signal components (CLI path only) */
+  signals?: RankedProposalSignals;
+  /** the raw evidence behind the score (CLI path only) */
+  evidence?: RankedProposalEvidence;
 }
 
 export interface ReviewState {
@@ -41,6 +47,8 @@ export function buildQueue(ranked: RankedProposal[], actionInbox: ProposalSummar
     score: p.score,
     confidence: p.confidence,
     rationale: p.rationale,
+    signals: p.signals,
+    evidence: p.evidence,
   }));
   const seen = new Set(queue.map((q) => q.id));
   for (const a of actionInbox) {
