@@ -11,6 +11,216 @@ import { moduleItemPath } from "./module-paths";
 import { SchemaView, ReadmeView } from "./ModuleDocs";
 import { ModuleGenerations } from "./ModuleGenerations";
 
+// ── Guardrails: severity helpers ──────────────────────────────────────────
+
+type Severity = "deny" | "ask" | "allow";
+type PillToneVal = "ok" | "warn" | "bad" | "neutral";
+
+/** Normalise whatever string the rule payload carries into one of the 3 known
+ *  severities, or undefined if absent/unknown. */
+function parseSeverity(raw: unknown): Severity | undefined {
+  if (raw === "deny" || raw === "ask" || raw === "allow") return raw;
+  return undefined;
+}
+
+function severityTone(s: Severity): PillToneVal {
+  if (s === "allow") return "ok";
+  if (s === "ask") return "warn";
+  return "bad"; // deny
+}
+
+/** Lock icon path (16×16 stroke) for the "enforced" note. */
+const LOCK_PATH = "M5 7V5a3 3 0 016 0v2M3.5 7h9a.5.5 0 01.5.5v6a.5.5 0 01-.5.5h-9a.5.5 0 01-.5-.5v-6A.5.5 0 013.5 7z";
+
+/** Plain-English summary sentence: "Blocks N actions, asks before M, allows K." */
+function guardrailsSummary(items: ModuleItem[]): { deny: number; ask: number; allow: number } {
+  const counts = { deny: 0, ask: 0, allow: 0 };
+  for (const it of items) {
+    if (it.kind !== "rule") continue;
+    const sev = parseSeverity(it.payload?.severity);
+    if (sev) counts[sev]++;
+  }
+  return counts;
+}
+
+/** One guardrail rule row — severity color + bold label + muted description
+ *  + literal pattern chip + "enforced by guardrails gate" note. */
+function GuardrailRuleRow({ item }: { item: ModuleItem }) {
+  const sev = parseSeverity(item.payload?.severity);
+  const tone = sev ? severityTone(sev) : "neutral";
+  const pattern = typeof item.payload?.pattern === "string" ? item.payload.pattern : undefined;
+  const description = typeof item.payload?.description === "string"
+    ? item.payload.description
+    : (typeof item.body === "string" ? item.body.replace(/^#[^\n]*\n/, "").trim() : undefined);
+
+  return (
+    <div className="flex items-start gap-3 border-b border-border py-3 last:border-0">
+      {/* severity pill — the one color per row */}
+      <div className="mt-0.5 shrink-0">
+        <StatusPill tone={tone}>{sev ?? "rule"}</StatusPill>
+      </div>
+
+      {/* label + description + pattern chip */}
+      <div className="min-w-0 flex-1">
+        <div className="wc-sans text-ui font-semibold text-ink-100">{item.title}</div>
+        {description && (
+          <div className="wc-sans mt-0.5 text-meta text-ink-500 leading-relaxed">{description}</div>
+        )}
+        {pattern && (
+          <div className="mt-1.5 flex items-center gap-1.5">
+            <span className="wc-sans text-meta text-ink-500">pattern</span>
+            <code className="wc-mono rounded-[var(--radius-sm)] border border-border bg-surface px-1.5 py-0.5 text-meta text-ink-300">
+              {pattern}
+            </code>
+          </div>
+        )}
+      </div>
+
+      {/* enforced note */}
+      <div className="shrink-0 flex items-center gap-1 text-meta text-ink-600 mt-0.5">
+        <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+          <path d={LOCK_PATH} strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span className="wc-sans">enforced by the guardrails gate</span>
+      </div>
+    </div>
+  );
+}
+
+/** The full guardrails items section: plain-English summary + sorted rule rows.
+ *  Replaces the generic ItemPeek list for moduleKey === "guardrails". */
+function GuardrailsSection({ items }: { items: ModuleItem[] }) {
+  const rules = items.filter((it) => it.kind === "rule");
+  const others = items.filter((it) => it.kind !== "rule");
+  const counts = guardrailsSummary(items);
+
+  // Build the summary sentence from real counts
+  const parts: string[] = [];
+  if (counts.deny > 0) parts.push(`blocks ${counts.deny} action${counts.deny !== 1 ? "s" : ""}`);
+  if (counts.ask > 0) parts.push(`asks before ${counts.ask}`);
+  if (counts.allow > 0) parts.push(`allows ${counts.allow}`);
+  const summary = parts.length > 0
+    ? parts.join(", ") + "."
+    : "no rules active yet.";
+
+  // Sort: deny first, then ask, then allow (precedence order)
+  const ORDER: Severity[] = ["deny", "ask", "allow"];
+  const sorted = [...rules].sort((a, b) => {
+    const ai = ORDER.indexOf(parseSeverity(a.payload?.severity) ?? "allow" as Severity);
+    const bi = ORDER.indexOf(parseSeverity(b.payload?.severity) ?? "allow" as Severity);
+    return ai - bi;
+  });
+
+  return (
+    <>
+      {/* plain-English summary */}
+      {rules.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5 rounded-ui border border-border bg-surface p-card-sm text-meta text-ink-400">
+          <svg viewBox="0 0 16 16" className="h-3.5 w-3.5 shrink-0 text-ink-500" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+            <path d="M8 2l4.5 1.8v3.5c0 3-1.9 5.1-4.5 6.2-2.6-1.1-4.5-3.2-4.5-6.2V3.8L8 2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="wc-sans">
+            {counts.deny > 0 && (
+              <><StatusPill tone="bad">{counts.deny} blocked</StatusPill>{" "}</>
+            )}
+            {counts.ask > 0 && (
+              <><StatusPill tone="warn">{counts.ask} ask</StatusPill>{" "}</>
+            )}
+            {counts.allow > 0 && (
+              <><StatusPill tone="ok">{counts.allow} allow</StatusPill>{" "}</>
+            )}
+            <span className="text-ink-500">{summary}</span>
+          </span>
+        </div>
+      )}
+
+      {/* rule rows */}
+      <Section label={`rules (${rules.length})`}>
+        {rules.length === 0 ? (
+          <div className="text-meta text-ink-600">no rules yet — approved proposals land here</div>
+        ) : (
+          <div className="flex flex-col">
+            {sorted.map((rule) => (
+              <GuardrailRuleRow key={rule.id} item={rule} />
+            ))}
+          </div>
+        )}
+      </Section>
+
+      {/* non-rule items (if any) fall through to the generic list */}
+      {others.length > 0 && (
+        <Section label={`other items (${others.length})`}>
+          <div className="flex flex-col">
+            {others.map((it) => (
+              <ItemPeek
+                key={it.id}
+                item={it}
+                allItems={items}
+                path={moduleItemPath("guardrails", it.id)}
+                onOpen={() => useExplorer.getState().openPreviewPath(moduleItemPath("guardrails", it.id))}
+                moduleKey="guardrails"
+              />
+            ))}
+          </div>
+        </Section>
+      )}
+    </>
+  );
+}
+
+// ── Instructions: calm document detail ───────────────────────────────────
+
+/** Full instructions item detail — calm document reading view (no code chrome).
+ *  Used when item.kind === "steering" | "amendment". */
+function InstructionsDetail({ item }: { item: ModuleItem }) {
+  const rel = relativeTime(item.updated_at ?? item.created_at);
+  const rawBody = typeof item.body === "string" ? item.body : "";
+  const bodyLines = rawBody.split("\n");
+  const body = (bodyLines[0]?.startsWith("# ") ? bodyLines.slice(1) : bodyLines)
+    .join("\n")
+    .trim();
+  const source = typeof item.payload?.source === "string" ? item.payload.source : undefined;
+
+  return (
+    <div className="wc-panel-enter mt-1 mb-2 ml-4 flex flex-col gap-4">
+      {/* document title */}
+      <h2 className="wc-serif text-display font-semibold leading-snug text-ink-100" style={{ maxWidth: "44ch" }}>
+        {item.title}
+      </h2>
+
+      {/* calm document body — sans, reading measure, generous line-height */}
+      {body ? (
+        <p className="wc-sans text-body leading-relaxed text-ink-300 whitespace-pre-wrap" style={{ maxWidth: "56ch" }}>
+          {body}
+        </p>
+      ) : (
+        <p className="wc-sans text-body italic text-ink-600" style={{ maxWidth: "56ch" }}>
+          no body — the instruction is its title
+        </p>
+      )}
+
+      {/* quiet metadata row */}
+      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-3 text-meta text-ink-500">
+        <span className="wc-sans flex items-center gap-1">
+          <svg viewBox="0 0 16 16" className="h-3 w-3 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden>
+            <path d={kindIcon(item.kind)} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          {item.kind}
+        </span>
+        {item.status && (
+          <StatusPill tone={item.status === "active" ? "ok" : "neutral"}>{item.status}</StatusPill>
+        )}
+        {source && (
+          <span className="wc-mono text-ink-600 truncate" title={source}>
+            {source.length > 18 ? source.slice(0, 16) + "…" : source}
+          </span>
+        )}
+        {rel && <span className="wc-sans">{rel}</span>}
+      </div>
+    </div>
+  );
+}
+
 const openInEditor = (path: string) => useExplorer.getState().openPreviewPath(path);
 
 const HINT_KEY = "zuzuu.hint.graduation";
@@ -137,23 +347,29 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
             </Section>
           )}
 
-          <Section label={`items (${items.length})`}>
-            {items.length === 0 ? (
-              <div className="text-meta text-ink-600">none yet — approved proposals land here</div>
-            ) : (
-              <div className="flex flex-col">
-                {items.map((it) => (
-                  <ItemPeek
-                    key={it.id}
-                    item={it}
-                    allItems={items}
-                    path={moduleItemPath(moduleKey, it.id)}
-                    onOpen={() => openInEditor(moduleItemPath(moduleKey, it.id))}
-                  />
-                ))}
-              </div>
-            )}
-          </Section>
+          {/* guardrails: specialized three-state rule rows + summary */}
+          {moduleKey === "guardrails" ? (
+            <GuardrailsSection items={items} />
+          ) : (
+            <Section label={`items (${items.length})`}>
+              {items.length === 0 ? (
+                <div className="text-meta text-ink-600">none yet — approved proposals land here</div>
+              ) : (
+                <div className="flex flex-col">
+                  {items.map((it) => (
+                    <ItemPeek
+                      key={it.id}
+                      item={it}
+                      allItems={items}
+                      path={moduleItemPath(moduleKey, it.id)}
+                      onOpen={() => openInEditor(moduleItemPath(moduleKey, it.id))}
+                      moduleKey={moduleKey}
+                    />
+                  ))}
+                </div>
+              )}
+            </Section>
+          )}
 
           {errors.length > 0 && (
             <Section label={`unparseable (${errors.length})`}>
@@ -390,11 +606,13 @@ function ItemPeek({
   allItems,
   path,
   onOpen,
+  moduleKey,
 }: {
   item: ModuleItem;
   allItems: ModuleItem[];
   path: string;
   onOpen: () => void;
+  moduleKey?: ModuleKey;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -420,7 +638,9 @@ function ItemPeek({
         </div>
       </div>
       {open && (
-        <ItemDetail item={item} allItems={allItems} />
+        moduleKey === "instructions" && (item.kind === "steering" || item.kind === "amendment")
+          ? <InstructionsDetail item={item} />
+          : <ItemDetail item={item} allItems={allItems} />
       )}
     </div>
   );
