@@ -13,20 +13,20 @@
   --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* ── ink ramp — warmed a few degrees off the old cool blue-grey ─────
-     Old ramp sat near hue 220 (cool, clinical). These are nudged toward
-     a warm near-black (a touch of violet/taupe) so surfaces feel less
-     like raw DevTools while staying genuinely dark. Text rungs hold
-     WCAG-AA contrast on the app background. */
-  --color-ink-950: #0b0c10; /* app background (deepest, warm near-black) */
-  --color-ink-900: #111219; /* panel surface */
-  --color-ink-850: #1e2030; /* elevated: menus, dialogs, raised hover */
-  --color-ink-800: #262838; /* hover */
-  --color-ink-700: #2d2f3e; /* hairline border */
-  --color-ink-600: #3f4155; /* strong border / faint text */
-  --color-ink-500: #62657a; /* muted text */
-  --color-ink-300: #9ba2b4; /* secondary text */
-  --color-ink-100: #e2e5ee; /* primary text */
+  /* ── ink ramp ────────────────────────────────────────────────────────
+     Warm-charcoal ramp: a neutral taupe/brown near-black, no blue cast, so
+     surfaces read premium rather than like raw DevTools. Elevation is built
+     from lightness steps (one rung per surface level), not drop-shadows.
+     Text rungs hold WCAG-AA contrast on the app background. */
+  --color-ink-950: #0E0F12; /* app field — deepest */
+  --color-ink-900: #15171B; /* page panels, conversation canvas */
+  --color-ink-850: #1B1E23; /* cards, tiles, proposal cards */
+  --color-ink-800: #22262C; /* hover/active row fill (soft) */
+  --color-ink-700: #2A2E35; /* hairline border (one step off card) */
+  --color-ink-600: #3A3E45; /* strong border */
+  --color-ink-500: #6B6862; /* faint text (timestamps, disabled) */
+  --color-ink-300: #9A9690; /* muted text (labels, descriptions) */
+  --color-ink-100: #E8E6E3; /* primary text/headings (warm) */
   --color-accent: #5be6c4;
   --color-accent-dim: #2f9a80;
   --color-danger: #f0726a;
@@ -89,11 +89,25 @@
   --radius-dialog: 10px; /* overlays, dialogs, command palette */
 
   /* ── elevation ─────────────────────────────────────────────────────── */
-  --shadow-menu: 0 6px 20px -6px rgb(0 0 0 / 0.5), 0 2px 6px -2px rgb(0 0 0 / 0.4);
-  --shadow-dialog: 0 24px 64px -16px rgb(0 0 0 / 0.6), 0 8px 24px -8px rgb(0 0 0 / 0.45);
+  --shadow-menu: 0 0 0 1px var(--color-ink-700);
+  --shadow-dialog: 0 0 0 1px var(--color-ink-700);
 
   /* canonical bar height — every header / footer / tab strip */
   --height-bar: 34px;
+}
+
+:root[data-theme="light"] {
+  --color-ink-950: #FBFBFA; /* canvas */
+  --color-ink-900: #FFFFFF; /* cards float */
+  --color-ink-850: #F8F7F5; /* elevated — a hair off card */
+  --color-ink-800: #F2F1EF; /* hover */
+  --color-ink-700: #E6E4E1; /* hairline */
+  --color-ink-600: #D2CFC9; /* strong border */
+  --color-ink-500: #8C887F; /* faint */
+  --color-ink-300: #5C584F; /* muted */
+  --color-ink-100: #2E2C28; /* primary, warm near-black */
+  --shadow-menu: 0 4px 16px -6px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.06);
+  --shadow-dialog: 0 16px 48px -12px rgb(0 0 0 / 0.12), 0 4px 12px rgb(0 0 0 / 0.08);
 }
 
 html,
@@ -104,19 +118,21 @@ body,
 }
 
 body {
-  @apply bg-app text-ink-100 font-mono antialiased;
+  @apply bg-app text-ink-100 font-sans antialiased;
   font-size: var(--text-body);
 }
 
 /* ── duotype helpers ─────────────────────────────────────────────────
-   The app default is mono (terminal/data DNA). Headings, module names,
-   teaching prose and labels opt INTO the humanist sans for warmth and a
+   The app default is sans (Geist). Machine-data elements — ids, paths,
+   counts, log lines, the terminal — opt INTO mono via .wc-mono for a
    real type hierarchy. */
 .wc-sans {
   font-family: var(--font-sans);
   font-feature-settings: "cv01", "ss03";
   letter-spacing: -0.005em;
 }
+/* Machine data only: ids, paths, durations, span ops, log lines, literal patterns. */
+.wc-mono { font-family: var(--font-mono); font-feature-settings: normal; }
 /* Section eyebrow: small, tracked, uppercase, sans — the section rhythm. */
 .wc-eyebrow {
   font-family: var(--font-sans);
