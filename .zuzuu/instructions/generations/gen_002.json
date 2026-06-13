@@ -1,0 +1,14 @@
+{
+  "id": "gen_002",
+  "module": "instructions",
+  "agent": "agt_2f237aa8f3e5",
+  "mintedAt": "2026-06-13T04:29:28.480Z",
+  "forkedFrom": "gen_001",
+  "mintedFrom": [],
+  "items": [
+    {
+      "id": "steering",
+      "hash": "bb498c57e526e3e5d3486b32e75f089bf3fddb018ff8fd6b20e862d419e6e17f"
+    }
+  ]
+}

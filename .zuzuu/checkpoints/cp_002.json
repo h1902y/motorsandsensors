@@ -1,0 +1,12 @@
+{
+  "id": "cp_002",
+  "createdAt": "2026-06-13T04:29:28.576Z",
+  "label": "coherent W24 dogfood state",
+  "pins": {
+    "knowledge": "gen_002",
+    "memory": "gen_001",
+    "actions": "gen_002",
+    "instructions": "gen_002",
+    "guardrails": "gen_002"
+  }
+}

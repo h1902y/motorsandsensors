@@ -1,0 +1,22 @@
+{
+  "id": "gen_002",
+  "module": "guardrails",
+  "agent": "agt_2f237aa8f3e5",
+  "mintedAt": "2026-06-13T04:29:15.293Z",
+  "forkedFrom": "gen_001",
+  "mintedFrom": [],
+  "items": [
+    {
+      "id": "confirm-force-push",
+      "hash": "bd1f69103476651e702bc0fcf73afc8f1e180f14b0efb45392872f60ca0254fb"
+    },
+    {
+      "id": "no-root-wipe",
+      "hash": "b9cf802a59cabf379c078abf7a655e3bb10b9b808f3ded31cb2ed8f0257b6750"
+    },
+    {
+      "id": "no-secret-reads",
+      "hash": "7fcda1f809b4b559054d5e2fd7383a15bb89fefd5059ffe3264879934e2ddba6"
+    }
+  ]
+}
