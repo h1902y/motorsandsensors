@@ -13,3 +13,33 @@ export function shiftRanges(m: { text: string; ranges: [number, number][] }): [n
 export const MIN_QUERY_LEN = 2;
 
 export const canSearch = (query: string): boolean => query.trim().length >= MIN_QUERY_LEN;
+
+/** A row in the in-tree search filter (matching files + their ancestor dirs). */
+export interface FilteredRow {
+  path: string;
+  name: string;
+  depth: number;
+  isDir: boolean;
+}
+
+/** From the flat list of matching file paths (content-search hits), build a
+ *  nested tree of the files PLUS all their ancestor directories, in DFS
+ *  pre-order (a plain lexicographic path sort yields valid pre-order). Used to
+ *  filter the file tree in place during search — the tree stays visible, just
+ *  pruned to matches. Every dir here is implicitly expanded. */
+export function buildFilteredRows(matchPaths: string[]): FilteredRow[] {
+  const dirs = new Set<string>();
+  const files = new Set<string>();
+  for (const p of matchPaths) {
+    if (!p) continue;
+    files.add(p);
+    const parts = p.split("/");
+    for (let i = 1; i < parts.length; i++) dirs.add(parts.slice(0, i).join("/"));
+  }
+  return [...new Set([...dirs, ...files])].sort().map((path) => ({
+    path,
+    name: path.split("/").pop() ?? path,
+    depth: path.split("/").length - 1,
+    isDir: dirs.has(path),
+  }));
+}

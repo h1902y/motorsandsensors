@@ -8,6 +8,7 @@ import { useSessions } from "../state/sessions";
 import { termRegistry } from "../term/registry";
 import { ActionMenu, MenuPopover, type MenuItem, prompt, confirm } from "../components/ui";
 import { localFileActions } from "../lib/local-actions";
+import { buildFilteredRows, canSearch } from "./search-logic";
 
 interface Row {
   path: string;
@@ -77,7 +78,8 @@ function EntryIcon({ row }: { row: Row }) {
 
 export function FileTree() {
   const queryClient = useQueryClient();
-  const { expanded, selected, toggle, select, openPreview, renaming, setRenaming } = useExplorer();
+  const { expanded, selected, toggle, select, openPreview, renaming, setRenaming, searchQuery } = useExplorer();
+  const searching = canSearch(searchQuery);
   const activeId = useSessions((s) => s.activeId);
   const activeCwd = useSessions((s) => {
     const tab = s.tabs.find((t) => t.id === s.activeId);
@@ -114,7 +116,21 @@ export function FileTree() {
     return map;
   }, [dirPaths, queries]);
 
-  const rows = useMemo(() => buildRows(dirData, expanded), [dirData, expanded]);
+  // Content-search hits (grouped by file) → matching file paths. Drives the
+  // in-tree filter: the tree stays visible, pruned to matches + their dirs.
+  const searchRes = useQuery({
+    queryKey: ["search", searchQuery],
+    queryFn: () => api.search(searchQuery, {}),
+    enabled: searching,
+    placeholderData: keepPreviousData,
+  });
+
+  const treeRows = useMemo(() => buildRows(dirData, expanded), [dirData, expanded]);
+  const rows = useMemo<Row[]>(() => {
+    if (!searching) return treeRows;
+    const paths = (searchRes.data?.results ?? []).map((r) => r.path);
+    return buildFilteredRows(paths).map((r) => ({ ...r, isSymlink: false, expanded: r.isDir, size: 0 }));
+  }, [searching, treeRows, searchRes.data]);
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -233,7 +249,9 @@ export function FileTree() {
                 }}
                 onClick={() => {
                   select(row.path);
-                  if (row.isDir) toggle(row.path);
+                  // in search mode the tree is a pre-expanded filtered view —
+                  // dir rows are display-only; files open as usual
+                  if (row.isDir) { if (!searching) toggle(row.path); }
                   else openPreview({ path: row.path, name: row.name, size: row.size });
                 }}
                 onDoubleClick={() => {
@@ -287,7 +305,9 @@ export function FileTree() {
           })}
         </div>
         {rows.length === 0 && (
-          <div className="px-3 py-2 text-ui text-ink-500">empty workspace</div>
+          <div className="px-3 py-2 text-ui text-ink-500">
+            {searching ? (searchRes.isFetching ? "searching…" : `no files match “${searchQuery.trim()}”`) : "empty workspace"}
+          </div>
         )}
       </div>
       {ctxMenu && (
