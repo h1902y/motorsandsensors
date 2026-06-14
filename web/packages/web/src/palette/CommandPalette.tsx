@@ -54,7 +54,7 @@ function RowIcon({ path, color }: { path: string; color?: string }) {
 }
 
 /**
- * Optional small colored chip — used only on rows belonging to a faculty
+ * Optional small colored chip — used only on rows belonging to a module
  * module (knowledge / memory / actions / instructions / guardrails).
  * The chip is the *only* place module hue appears; it is a small marker,
  * not a card fill or text color.
@@ -299,7 +299,7 @@ export function CommandPalette({
               setCoachDismissed(true);
             }}
           >
-            Press <Kbd>⌘K</Kbd> anytime to run any <span className="text-ink-100">zz command</span> — try typing a module name or faculty.
+            Press <Kbd>⌘K</Kbd> anytime to run any <span className="text-ink-100">zz command</span> — try typing a module name.
           </CoachMark>
         </div>
       )}
@@ -361,7 +361,7 @@ export function CommandPalette({
             </Command.Group>
           )}
 
-          {/* ── Module faculty shortcuts (empty query, never-blank) ── */}
+          {/* ── Module shortcuts (empty query, never-blank) ── */}
           {!historyOnly && isEmpty && (
             <Command.Group heading="Go to module">
               {MODULE_ORDER.map((moduleId) => {

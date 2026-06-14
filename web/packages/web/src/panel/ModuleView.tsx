@@ -251,7 +251,7 @@ function KnowledgePreviewMock() {
 // ── per-module explainer triplets ─────────────────────────────────────────────
 
 /** Icon-row-triplet explainers for each built-in module — teach what the
- *  faculty IS in three concrete beats before any items exist. */
+ *  module IS in three concrete beats before any items exist. */
 const MODULE_EXPLAINERS: Partial<Record<ModuleKey, ExplainerEntry[]>> = {
   knowledge: [
     { icon: KIND_ICONS.fact ?? "",     label: "Facts",     caption: "things zuzuu learned from your sessions" },

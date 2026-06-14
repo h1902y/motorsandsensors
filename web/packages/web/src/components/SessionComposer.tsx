@@ -47,14 +47,14 @@ export function startHostRow(rowCommand: string): void {
   if (spec) void startAgentSession(spec).catch((err: Error) => window.alert(err.message));
 }
 
-// ── warm suggestion chips — seeded from the faculty surface ─────────────────
+// ── warm suggestion chips — seeded from the module surface ──────────────────
 // Shown only in the first-run / resting state (no sessions alive or open).
 // Clicking a chip launches the currently-selected host (the same as pressing
-// Enter) — they surface the faculty story without forcing it.
+// Enter) — they surface the module story without forcing it.
 const SUGGESTION_CHIPS = [
   { label: "Recall what you know", title: "Start a session to recall stored knowledge" },
   { label: "Run an action", title: "Start a session to run a saved action or runbook" },
-  { label: "Review proposals", title: "Start a session to review pending faculty proposals" },
+  { label: "Review proposals", title: "Start a session to review pending module proposals" },
 ] as const;
 
 // ── HostPill ─────────────────────────────────────────────────────────────────
@@ -291,7 +291,7 @@ export const SessionComposer = forwardRef<HTMLDivElement>(function SessionCompos
       }}
     >
       {/* ── warm empty state ─────────────────────────────────────────────
-          A brief greeting + 3 faculty-seeded suggestion chips. Chips fire
+          A brief greeting + 3 module-seeded suggestion chips. Chips fire
           launchActive() on click — same path as pressing Enter. Shown only
           when there are no open tabs so it disappears once a session starts. */}
       {showEmptyState && (

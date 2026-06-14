@@ -3,7 +3,7 @@ import { moduleHue, type ModuleDisplay } from "./kit";
 import { versionLabel } from "./vocab";
 
 /** One module in the §3 grid — Copy.ai card model: large hue icon chip,
- *  faculty name as the primary sans hero, one-line description (teach),
+ *  module name as the primary sans hero, one-line description (teach),
  *  item count as a calm secondary line, amber StatusPill only when pending>0,
  *  neutral "vN" version chip when a version exists. The whole card is the click
  *  target; hover lifts it via the existing motion tokens. No hue on the card

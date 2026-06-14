@@ -24,7 +24,7 @@ const STEPS: Step[] = [
   },
   {
     id: "init",
-    title: "Create your faculty home",
+    title: "Create your module home",
     subtitle: "One command scaffolds the .zuzuu/ home.",
     cli: "zz init",
     detail:
