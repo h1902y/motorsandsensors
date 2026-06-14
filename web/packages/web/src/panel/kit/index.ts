@@ -1,5 +1,6 @@
 export * from "./kit";
 export * from "./progression";
+export * from "./vocab";
 export { MetricChip } from "./MetricChip";
 export { ItemRow } from "./ItemRow";
 export { ModuleTile } from "./ModuleTile";

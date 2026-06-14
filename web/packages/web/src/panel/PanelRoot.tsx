@@ -61,9 +61,9 @@ export function PanelRoot({ zuzuuBin }: { zuzuuBin: boolean }) {
             title="proposals awaiting your review across all modules"
           />
           <MetricChip
-            label="generations"
+            label="versions"
             value={pinnedGens > 0 ? String(pinnedGens) : "none"}
-            title="modules with an active generation pinned"
+            title="modules on their latest version"
           />
           {guardrailPending > 0 && (
             <MetricChip

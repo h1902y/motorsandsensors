@@ -5,7 +5,7 @@ import type { ModuleOverviewEntry, ZuzuuStatus } from "@zuzuu-web/protocol";
 import { Button } from "../components/ui";
 import { useRightPanel } from "../state/right-panel";
 import { useReviewOpen } from "../state/review";
-import { MetricChip, Section, moduleDisplay, moduleHue } from "./kit";
+import { Section, moduleDisplay, moduleHue } from "./kit";
 import { needsYouGroups, pendingTotal } from "./sections";
 
 export function NeedsYou({
@@ -23,23 +23,16 @@ export function NeedsYou({
   const total = pendingTotal(modules);
   const drift = status?.drift?.dirty ?? false;
   const calm = groups.length === 0 && !drift && zuzuuBin;
-  // per-module generations now: count how many modules have a pinned generation
-  const pinnedModules = status?.generations ? Object.values(status.generations).filter(Boolean).length : 0;
-  const genValue = pinnedModules > 0 ? `${pinnedModules} pinned` : "no gen";
 
   return (
     <Section
       label="needs you"
       trailing={
-        <>
-          {/* the ⟡ generation chip — per-module generations pinned */}
-          <MetricChip label="⟡" value={genValue} title="modules with a pinned generation" />
-          {total > 0 && (
-            <Button size="sm" variant="primary" onClick={() => openReview(true)}>
-              Review {total}
-            </Button>
-          )}
-        </>
+        total > 0 ? (
+          <Button size="sm" variant="primary" onClick={() => openReview(true)}>
+            Review {total}
+          </Button>
+        ) : undefined
       }
     >
       {!zuzuuBin && (

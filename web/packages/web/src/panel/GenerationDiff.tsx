@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { ModuleKey } from "@zuzuu-web/protocol";
 import { zuzuuApi } from "../lib/zuzuu-api";
-import { relativeTime } from "./kit";
+import { relativeTime, snapshotLabel } from "./kit";
 
 // ── shared helpers ────────────────────────────────────────────────────────
 
@@ -106,7 +106,7 @@ function ModuleGenerationDiffPanel({
           <DiffPill label={`−${diff.removed.length} removed`} tone="remove" />
         )}
         {!hasChanges && (
-          <span className="text-meta text-ink-500">No changes from prior generation.</span>
+          <span className="text-meta text-ink-500">No changes from prior version.</span>
         )}
         {diff.against && (
           <span className="ml-auto wc-mono text-meta text-ink-500 truncate max-w-[120px]" title={diff.against}>
@@ -140,12 +140,12 @@ function CheckpointDiffPanel({ id }: { id: string }) {
   });
 
   if (q.isLoading) {
-    return <div className="text-meta text-ink-500">Loading checkpoint…</div>;
+    return <div className="text-meta text-ink-500">Loading snapshot…</div>;
   }
   if (q.error) {
     return (
       <div className="text-meta text-ink-500">
-        Checkpoints unavailable — zuzuu CLI may be offline.
+        Snapshots unavailable — zuzuu CLI may be offline.
       </div>
     );
   }
@@ -160,7 +160,7 @@ function CheckpointDiffPanel({ id }: { id: string }) {
       {/* header */}
       <div className="mb-2 flex items-baseline gap-2">
         <span className="text-ui font-medium text-ink-100">
-          {cp.label ?? "Checkpoint"}
+          {cp.label ?? snapshotLabel(cp.id)}
         </span>
         {timeLabel && (
           <>
@@ -185,7 +185,7 @@ function CheckpointDiffPanel({ id }: { id: string }) {
           ))}
         </div>
       ) : (
-        <div className="text-meta text-ink-500">No module pins recorded.</div>
+        <div className="text-meta text-ink-500">No modules captured.</div>
       )}
     </div>
   );

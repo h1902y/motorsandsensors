@@ -111,8 +111,8 @@ export function ProposalDetail({ data }: { data: ProposalDetailData }) {
             <>Approve → activates this runbook in <Mod>{moduleLabel}</Mod>.</>
           ) : (
             <>
-              Approve → adds this {data.kind ?? "item"} to <Mod>{moduleLabel}</Mod> · advances{" "}
-              <Mod>{moduleLabel}</Mod>'s generation.
+              Approve → adds this {data.kind ?? "item"} to <Mod>{moduleLabel}</Mod> · saves a new
+              version of <Mod>{moduleLabel}</Mod>.
             </>
           )}
           <br />

@@ -68,7 +68,7 @@ function ReviewCeremony({ onClose }: { onClose: () => void }) {
       if (item.kind === "action") await zuzuuApi.approveAction(item.id);
       else await zuzuuApi.approveProposal(item.id, item.module);
       dispatch({ type: "approved", id: item.id });
-      showToast(item.kind === "action" ? "Action approved" : "Approved — generation will advance");
+      showToast(item.kind === "action" ? "Action approved" : "Approved — a new version will be saved");
       invalidate();
     } catch (err) { fail(err); } finally { setBusy(false); }
   };
@@ -307,7 +307,7 @@ function ActionRow({
       <p className="text-meta text-ink-600">
         {isAction
           ? "Approve — activates this runbook in the agent's next session."
-          : "Approve — mints the next generation with this learning included."}
+          : "Approve — saves a new version with this learning included."}
       </p>
     </div>
   );
@@ -393,12 +393,12 @@ function EndState({
           </div>
 
           {mint.phase === "minting" && (
-            <div className="flex items-center gap-2 text-ui text-ink-500"><Spinner /> minting generations…</div>
+            <div className="flex items-center gap-2 text-ui text-ink-500"><Spinner /> saving new versions…</div>
           )}
 
           {mint.phase === "done" && mint.minted.length > 0 && (
             <div className="w-full rounded-[var(--radius-sm)] border border-border bg-surface px-3 py-2.5">
-              <div className="wc-eyebrow mb-2">generations advanced</div>
+              <div className="wc-eyebrow mb-2">new versions saved</div>
               <div className="flex flex-col gap-1.5">
                 {mint.minted.map((m) => (
                   <div key={m.module} className="flex items-center gap-2 text-ui">
@@ -421,8 +421,8 @@ function EndState({
 
           {mint.phase === "error" && (
             <>
-              <div className="wc-mono break-all text-meta text-danger">mint failed: {mint.message}</div>
-              <Button variant="primary" onClick={onRetry}>Retry mint</Button>
+              <div className="wc-mono break-all text-meta text-danger">save failed: {mint.message}</div>
+              <Button variant="primary" onClick={onRetry}>Retry save</Button>
             </>
           )}
         </>

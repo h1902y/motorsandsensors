@@ -5,6 +5,7 @@ import { api } from "../lib/api";
 import { zuzuuApi } from "../lib/zuzuu-api";
 import { useExplorer } from "../state/explorer";
 import { schemaFields } from "./schema-fields";
+import { moduleDisplay } from "./kit";
 import { moduleReadmePath, moduleSchemaPath } from "./module-paths";
 
 // MarkdownView pulls in shiki — lazy so the module panel stays light until the
@@ -44,6 +45,7 @@ export function SchemaView({ moduleKey }: { moduleKey: ModuleKey }) {
     queryFn: () => zuzuuApi.moduleSchema(moduleKey),
   });
   const fields = schemaFields(q.data?.schema);
+  const moduleLabel = moduleDisplay(moduleKey).label;
 
   return (
     <div className="flex flex-col gap-2">
@@ -52,6 +54,9 @@ export function SchemaView({ moduleKey }: { moduleKey: ModuleKey }) {
       </button>
       {open && (
         <div className="wc-panel-enter flex flex-col gap-0.5 rounded-ui border border-border bg-surface p-2.5">
+          <p className="wc-sans mb-1 text-meta text-ink-600">
+            The shape every {moduleLabel.toLowerCase()} entry follows — its fields and types.
+          </p>
           {q.isLoading && <div className="text-meta text-ink-600">loading…</div>}
           {!q.isLoading && fields.length === 0 && (
             <div className="text-meta text-ink-600">no readable fields — open the file for the raw schema</div>

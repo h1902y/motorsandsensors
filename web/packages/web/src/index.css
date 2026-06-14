@@ -345,6 +345,32 @@ body {
 .prose input[type="checkbox"] {
   accent-color: var(--color-accent);
 }
+/* README headings: product-sized, not document-sized. Tailwind prose defaults
+   scale h1 to ~2em; rein them in so a module README reads as product content
+   (sans, tighter top margins) without disturbing prose table/code styling. */
+.prose :where(h1, h2, h3, h4) {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.prose :where(h1) {
+  font-size: 1.3rem;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+.prose :where(h2) {
+  font-size: 1.05rem;
+  margin-top: 1.1em;
+  margin-bottom: 0.45em;
+}
+.prose :where(h3) {
+  font-size: 0.95rem;
+  margin-top: 1em;
+  margin-bottom: 0.4em;
+}
+.prose :where(h1:first-child, h2:first-child, h3:first-child) {
+  margin-top: 0;
+}
 
 /* shiki emits its own inline-styled <pre> */
 .shiki-block pre {

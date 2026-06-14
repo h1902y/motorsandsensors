@@ -4,9 +4,9 @@ import type { ModuleItem, ModuleKey, ProposalSummary } from "@zuzuu-web/protocol
 import { describeZuzuuError, zuzuuApi } from "../lib/zuzuu-api";
 import { useExplorer } from "../state/explorer";
 import { useRightPanel } from "../state/right-panel";
-import { confirm, PropertyRow, StatusPill } from "../components/ui";
+import { confirm, InfoDot, PropertyRow, StatusPill } from "../components/ui";
 import { ProposalRow } from "./ProposalRow";
-import { ItemRow, Section, TeachingEmpty, moduleDisplay, moduleHue, kindIcon, relativeTime, KIND_ICONS, type ExplainerEntry } from "./kit";
+import { ItemRow, Section, TeachingEmpty, moduleDisplay, moduleHue, kindIcon, relativeTime, versionLabel, GLOSSARY, KIND_ICONS, type ExplainerEntry } from "./kit";
 import { moduleItemPath } from "./module-paths";
 import { SchemaView, ReadmeView } from "./ModuleDocs";
 import { ModuleGenerations } from "./ModuleGenerations";
@@ -223,11 +223,6 @@ function InstructionsDetail({ item }: { item: ModuleItem }) {
 
 const openInEditor = (path: string) => useExplorer.getState().openPreviewPath(path);
 
-const HINT_KEY = "zuzuu.hint.graduation";
-const readHintDismissed = (): boolean => {
-  try { return localStorage.getItem(HINT_KEY) === "1"; } catch { return true; }
-};
-
 // ── per-module faint preview mocks ───────────────────────────────────────────
 
 /** Faint mock knowledge items — previews what the filled knowledge list looks
@@ -295,7 +290,6 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
   const [err, setErr] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [approvingId, setApprovingId] = useState<string | null>(null);
-  const [hintDismissed, setHintDismissed] = useState(readHintDismissed);
   // display = the manifest ui descriptor when the overview has it (the
   // shared cache), built-in MODULE_META as the fallback
   const overview = useQuery({ queryKey: ["zuzuu", "overview"], queryFn: zuzuuApi.overview, refetchInterval: 8000 });
@@ -334,11 +328,6 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
     void run(p.id, () => (moduleKey === "actions" ? zuzuuApi.rejectAction(p.id) : zuzuuApi.rejectProposal(p.id, p.module)));
   };
 
-  const dismissHint = () => {
-    setHintDismissed(true);
-    try { localStorage.setItem(HINT_KEY, "1"); } catch { /* private mode */ }
-  };
-
   const proposals = detail.data?.proposals ?? [];
   const items = detail.data?.items ?? [];
   const errors = detail.data?.errors ?? [];
@@ -355,8 +344,9 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
       >
         ‹ All modules
       </button>
-      {/* module hero: the hue-carrying icon chip + the display name */}
-      <div className="flex items-center gap-3">
+      {/* module hero: hue-carrying icon chip + permanent title (+ InfoDot) and
+          an always-shown teaching subtitle */}
+      <div className="flex items-start gap-3">
         <span
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[11px]"
           style={{
@@ -368,18 +358,18 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
             <path d={display.icon} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </span>
-        <span className="wc-sans text-display font-semibold text-ink-100">{display.label}</span>
-      </div>
-
-      {/* educative one-time hint */}
-      {!hintDismissed && (
-        <div className="flex items-start gap-2 rounded-ui border border-border bg-surface p-card-sm text-meta text-ink-400">
-          <span className="min-w-0">items graduate through review — nothing changes without your approval</span>
-          <button onClick={dismissHint} className="ml-auto shrink-0 text-ink-600 hover:text-ink-300" title="Dismiss">
-            ✕
-          </button>
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5">
+            <span className="wc-sans text-display font-semibold text-ink-100">{display.label}</span>
+            <InfoDot title={display.label}>
+              {display.teach} — How it grows: each session, zuzuu proposes things to learn;
+              approving a proposal saves a new version of {display.label}. Roll back to any
+              earlier version anytime.
+            </InfoDot>
+          </div>
+          <p className="wc-sans mt-0.5 text-meta text-ink-500 leading-relaxed">{display.teach}</p>
         </div>
-      )}
+      </div>
 
       {bare ? (
         <TeachingEmpty
@@ -392,7 +382,14 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
         <>
           {/* pending first — the human gate is the panel's headline */}
           {proposals.length > 0 && (
-            <Section label={`pending proposals (${proposals.length})`}>
+            <Section
+              label={
+                <span className="inline-flex items-center gap-1">
+                  pending proposals ({proposals.length})
+                  <InfoDot title={GLOSSARY.proposal!.term}>{GLOSSARY.proposal!.what}</InfoDot>
+                </span>
+              }
+            >
               <div className="flex flex-col">
                 {proposals.map((p) => (
                   <ProposalRow
@@ -447,9 +444,16 @@ export function ModuleView({ moduleKey }: { moduleKey: ModuleKey }) {
 
       {err && <div className="wc-mono break-all text-meta text-danger">{err}</div>}
 
-      {/* generation lineage for THIS module (per-module atoms, W2.5 Phase 2) */}
+      {/* version lineage for THIS module (per-module atoms, W2.5 Phase 2) */}
       {!bare && (
-        <Section label="generations">
+        <Section
+          label={
+            <span className="inline-flex items-center gap-1">
+              Versions
+              <InfoDot title={GLOSSARY.version!.term}>{GLOSSARY.version!.what}</InfoDot>
+            </span>
+          }
+        >
           <ModuleGenerations moduleKey={moduleKey} />
         </Section>
       )}
@@ -590,10 +594,10 @@ function ItemDetail({ item, allItems }: { item: ModuleItem; allItems: ModuleItem
                 </span>
               </PropertyRow>
             )}
-            {/* generation lockfile */}
+            {/* version (generation lockfile) */}
             {generation && (
-              <PropertyRow label="generation">
-                <span className="wc-mono text-ink-400">{generation}</span>
+              <PropertyRow label="version">
+                <span className="wc-mono text-ink-400">{versionLabel(generation)}</span>
               </PropertyRow>
             )}
             {/* updated timestamp */}

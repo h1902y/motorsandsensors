@@ -6,9 +6,9 @@
 import type { ZuzuuSessionEntry } from "@zuzuu-web/protocol";
 import { useQuery } from "@tanstack/react-query";
 import { zuzuuApi } from "../lib/zuzuu-api";
-import { Count, StatusPill, cx } from "../components/ui";
+import { Count, InfoDot, StatusPill, cx } from "../components/ui";
 import { useRightPanel } from "../state/right-panel";
-import { TeachingEmpty, relativeTime } from "./kit";
+import { TeachingEmpty, relativeTime, GLOSSARY } from "./kit";
 import { SessionBrief } from "./SessionBrief";
 import { fmtDuration, sessionStateMeta, shortSessionId, splitSessions } from "./sections";
 
@@ -92,9 +92,10 @@ function CountsStrip({ sessions }: { sessions: ZuzuuSessionEntry[] }) {
   const crashed = sessions.filter((s) => s.state === "crashed").length;
   return (
     <div className="flex items-center gap-2 pb-2">
-      <span className="wc-sans text-meta text-ink-500">
+      <span className="inline-flex items-center wc-sans text-meta text-ink-500">
         <Count>{total}</Count>
         <span className="ml-1.5">sessions</span>
+        <InfoDot title={GLOSSARY.session!.term} className="ml-1">{GLOSSARY.session!.what}</InfoDot>
       </span>
       {completed > 0 && (
         <span className="text-meta text-ink-600">
@@ -217,7 +218,10 @@ export function SessionsSection() {
     };
     return (
       <div className="flex flex-col gap-2">
-        <div className="wc-eyebrow">sessions</div>
+        <div className="flex items-center gap-1">
+          <span className="wc-eyebrow">sessions</span>
+          <InfoDot title={GLOSSARY.session!.term}>{GLOSSARY.session!.what}</InfoDot>
+        </div>
         <TeachingEmpty
           display={sessionsDisplay}
           preview={<SessionsPreviewMock />}

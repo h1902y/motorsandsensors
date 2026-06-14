@@ -4,7 +4,7 @@ import type { ModuleKey } from "@zuzuu-web/protocol";
 import { Button, Segmented, StatusPill, Toast } from "../components/ui";
 import { describeZuzuuError, zuzuuApi } from "../lib/zuzuu-api";
 import { GenerationDiff } from "./GenerationDiff";
-import { moduleHue, relativeTime } from "./kit";
+import { moduleHue, relativeTime, versionLabel } from "./kit";
 
 // ── date grouping helpers ─────────────────────────────────────────────────
 
@@ -102,7 +102,7 @@ function LadderNode({
         {/* top row: gen label + active pill + time */}
         <div className="flex items-center gap-2">
           <span className="wc-mono text-ui font-medium text-ink-100">
-            Gen {genNum}
+            {versionLabel(gen.id)}
           </span>
           {isActive && (
             <StatusPill tone="ok">Active</StatusPill>
@@ -117,7 +117,7 @@ function LadderNode({
           {gen.mintedFrom.length > 0 ? (
             <>
               <span>
-                minted from {gen.mintedFrom.length} proposal
+                saved from {gen.mintedFrom.length} proposal
                 {gen.mintedFrom.length !== 1 ? "s" : ""}
               </span>
               <span>·</span>
@@ -148,10 +148,10 @@ function LadderNode({
               disabled={disabled}
               onClick={() => onActivate(gen.id)}
             >
-              {busy ? "…" : `Make Gen ${genNum} active`}
+              {busy ? "…" : `Make version ${genNum} active`}
             </Button>
             <span className="text-meta text-ink-500">
-              This won't delete Gen {total}.
+              This won't delete version {total}.
             </span>
           </div>
         )}
@@ -208,7 +208,7 @@ export function ModuleGenerations({ moduleKey }: { moduleKey: ModuleKey }) {
       await zuzuuApi.rollbackModule(moduleKey, id);
       void queryClient.invalidateQueries({ queryKey: ["zuzuu"] });
       setToastMsg(
-        `Gen ${targetNum} is now active — Gen ${totalNum} is still here.`,
+        `Version ${targetNum} is now active — version ${totalNum} is still here.`,
       );
       setShowToast(true);
     } catch (e) {
@@ -221,7 +221,7 @@ export function ModuleGenerations({ moduleKey }: { moduleKey: ModuleKey }) {
   if (q.isLoading) {
     return (
       <div className="text-meta text-ink-500 px-1 py-2">
-        Loading generation history…
+        Loading version history…
       </div>
     );
   }
@@ -229,9 +229,9 @@ export function ModuleGenerations({ moduleKey }: { moduleKey: ModuleKey }) {
   if (gens.length === 0) {
     return (
       <div className="px-1 py-3">
-        <p className="text-ui text-ink-300">No generations yet.</p>
+        <p className="text-ui text-ink-300">No versions yet.</p>
         <p className="mt-1 text-meta text-ink-500">
-          Approving a {moduleKey} proposal mints Gen 1.
+          Approving a {moduleKey} proposal saves version 1.
         </p>
       </div>
     );
@@ -275,10 +275,10 @@ export function ModuleGenerations({ moduleKey }: { moduleKey: ModuleKey }) {
       <div className="mb-3 flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <span className="wc-sans text-ui font-medium text-ink-100">
-            Level {currentGenNum}
+            Version {currentGenNum}
           </span>
           <span className="ml-2 text-meta text-ink-500">
-            Gen {currentGenNum} is active · {gens.length} generation{gens.length !== 1 ? "s" : ""}
+            Version {currentGenNum} is active · {gens.length} version{gens.length !== 1 ? "s" : ""}
           </span>
         </div>
         <Segmented

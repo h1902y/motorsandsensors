@@ -42,16 +42,16 @@ function AgentProgressionPill({ zuzuuHome }: { zuzuuHome: boolean }) {
   const hasPending = (totalPending ?? 0) > 0;
 
   const parts: string[] = [];
-  // Only present "Gen N" when there is at least one whole-brain checkpoint —
-  // never imply a generation from module counts.
-  if (checkpoints !== null && checkpoints > 0) parts.push(`Gen ${checkpoints}`);
+  // Only present "vN" when there is at least one whole-brain snapshot —
+  // never imply a version from module counts.
+  if (checkpoints !== null && checkpoints > 0) parts.push(`v${checkpoints}`);
   if (totalFacts !== null) parts.push(`${totalFacts} fact${totalFacts !== 1 ? "s" : ""}`);
 
   return (
     <span
       className="flex shrink-0 items-center gap-1 rounded-[var(--radius-sm)] px-1.5 py-0.5 text-meta text-ink-500"
       style={{ background: "color-mix(in oklab, var(--color-ink-600) 8%, transparent)" }}
-      title="Your agent's current state — checkpoints minted, facts known, proposals awaiting review"
+      title="Your agent's current state — snapshots saved, facts known, proposals awaiting review"
     >
       <span className="wc-sans text-ink-400">Your agent:</span>
       {parts.length > 0 && (

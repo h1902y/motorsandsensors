@@ -1,10 +1,11 @@
 import { StatusPill, cx } from "../../components/ui";
 import { moduleHue, type ModuleDisplay } from "./kit";
+import { versionLabel } from "./vocab";
 
 /** One module in the §3 grid — Copy.ai card model: large hue icon chip,
  *  faculty name as the primary sans hero, one-line description (teach),
  *  item count as a calm secondary line, amber StatusPill only when pending>0,
- *  neutral "Gen N" chip when a generation exists. The whole card is the click
+ *  neutral "vN" version chip when a version exists. The whole card is the click
  *  target; hover lifts it via the existing motion tokens. No hue on the card
  *  background — hue lives only on the icon chip. */
 export function ModuleTile({
@@ -24,10 +25,8 @@ export function ModuleTile({
   onOpen: () => void;
 }) {
   const hue = moduleHue(id);
-  // Short readable generation label: "gen_006" → "Gen 6", "gen_1" → "Gen 1"
-  const genLabel = generation
-    ? `Gen ${parseInt(generation.replace(/\D/g, ""), 10) || generation}`
-    : null;
+  // Short readable version label: "gen_006" → "v6", "gen_1" → "v1"
+  const genLabel = generation ? versionLabel(generation) : null;
 
   return (
     <button
