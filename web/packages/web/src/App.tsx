@@ -20,6 +20,8 @@ import { Layout } from "./app/Layout";
 import { Sidebar } from "./app/Sidebar";
 import { SessionPane } from "./app/SessionPane";
 import { Footer } from "./app/Footer";
+import { TakeoverOverlay } from "./app/TakeoverOverlay";
+import { initTabGuard } from "./state/takeover";
 import { useGlobalShortcuts } from "./app/shortcuts";
 import { saveRecording, switchVault } from "./app/vault";
 import { useFsEventBridge, useWorkspaceConfigQuery, useWorkspaceQuery, useZuzuuHealthQuery } from "./app/queries";
@@ -40,6 +42,7 @@ export default function App() {
   const zuzuuHome = zuzuuHealth.data?.home === true;
 
   useEffect(() => { init().catch((err: Error) => setInitError(err.message)); }, [init]);
+  useEffect(() => { initTabGuard(); }, []);
   useFsEventBridge(workspace.data !== undefined);
 
   const [vaultPickerOpen, setVaultPickerOpen] = useState(false);
@@ -84,6 +87,7 @@ export default function App() {
 
   return (
     <div className="flex h-full flex-col">
+      <TakeoverOverlay />
       <DisconnectedBanner state={conn.state} />
       <Layout
         sidebar={<Sidebar />}
