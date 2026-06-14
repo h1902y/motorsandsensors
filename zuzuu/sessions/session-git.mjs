@@ -351,6 +351,7 @@ export function continueSession(cwd) {
     if (!branches.length) return { ok: false, reason: 'no-session-branch' };
     const branch = branches[0];
     if (currentBranch(cwd) === branch) return { ok: true, branch };
+    resetZuzuuOwn(cwd); // zuzuu's own index churn must not block the checkout
     const r = git(['checkout', '-q', branch], cwd);
     return r.ok ? { ok: true, branch } : { ok: false, reason: r.err || 'checkout-failed' };
   } catch (e) {
@@ -369,6 +370,7 @@ export function discardSession(cwd) {
     const main = mainBranch(cwd);
     if (!main || main === branch) return { ok: false, reason: 'no-main-branch' };
     if (currentBranch(cwd) === branch) {
+      resetZuzuuOwn(cwd); // zuzuu's own index churn must not block the checkout
       const co = git(['checkout', '-q', main], cwd);
       if (!co.ok) return { ok: false, reason: co.err || 'checkout-main-failed' };
     }

@@ -250,6 +250,27 @@ test('close still refuses on REAL user dirt even when zuzuu\'s index is also dir
   });
 });
 
+test('continueSession checks out the leftover branch despite zuzuu index churn', () => {
+  tmpRepo((cwd) => {
+    mkdirSync(join(cwd, '.zuzuu'), { recursive: true });
+    writeFileSync(join(cwd, '.zuzuu', 'sessions.json'), '{"v":1}\n');
+    git(['add', '-A'], cwd);
+    git(['commit', '-q', '-m', 'idx'], cwd);
+
+    const o = openSession(cwd, 'contguard1');
+    // the index differs ON the session branch (committed), so a plain checkout
+    // from a churned main would otherwise be refused ("would be overwritten").
+    writeFileSync(join(cwd, '.zuzuu', 'sessions.json'), '{"v":2,"branch":true}\n');
+    checkpoint(cwd);
+    git(['checkout', '-q', 'main'], cwd);
+    writeFileSync(join(cwd, '.zuzuu', 'sessions.json'), '{"v":3,"churn":true}\n'); // dirty + differs
+
+    const r = continueSession(cwd);
+    assert.equal(r.ok, true, 'continue succeeds despite index churn');
+    assert.equal(curBranch(cwd), o.branch);
+  });
+});
+
 // ------------------------------------------------------------------ conflict
 
 test('conflict on close: abort cleanly — branch intact, main untouched, no merge state', () => {
