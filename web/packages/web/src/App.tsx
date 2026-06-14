@@ -101,7 +101,6 @@ export default function App() {
       <Footer
         zuzuuHome={zuzuuHome}
         onOpenPalette={() => { setPaletteMode("all"); setPaletteOpen(true); }}
-        onOpenVaultPicker={() => setVaultPickerOpen(true)}
       />
 
       {paletteOpen && (
