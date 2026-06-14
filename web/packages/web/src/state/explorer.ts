@@ -16,12 +16,16 @@ interface ExplorerState {
   /** path of the tree row currently being inline-renamed */
   renaming: string | null;
   setRenaming: (path: string | null) => void;
-  /** search is a transient state of the Files panel: while open, the search
-   *  input + results replace the tree (Esc/✕ collapses back) */
+  /** search is a transient state of the Files panel: an inline header input
+   *  whose query FILTERS the tree in place (the tree stays visible — matching
+   *  files + their ancestor dirs). Esc/✕ closes it. */
   searchOpen: boolean;
+  /** the live query typed into the header search input */
+  searchQuery: string;
   /** seed query handed off by the ⌘K palette (null = keep what's typed) */
   searchSeed: string | null;
   openSearch: (seed?: string) => void;
+  setSearchQuery: (q: string) => void;
   closeSearch: () => void;
   toggle: (path: string) => void;
   collapseAll: () => void;
@@ -42,9 +46,11 @@ export const useExplorer = create<ExplorerState>((set) => ({
   renaming: null,
   setRenaming: (renaming) => set({ renaming }),
   searchOpen: false,
+  searchQuery: "",
   searchSeed: null,
-  openSearch: (seed) => set({ searchOpen: true, searchSeed: seed ?? null }),
-  closeSearch: () => set({ searchOpen: false, searchSeed: null }),
+  openSearch: (seed) => set({ searchOpen: true, searchSeed: seed ?? null, searchQuery: seed ?? "" }),
+  setSearchQuery: (q) => set({ searchQuery: q }),
+  closeSearch: () => set({ searchOpen: false, searchSeed: null, searchQuery: "" }),
 
   toggle: (path) =>
     set((s) => {
@@ -87,5 +93,5 @@ export const useExplorer = create<ExplorerState>((set) => ({
       return { expanded, selected: path };
     }),
 
-  resetAll: () => set({ expanded: new Set<string>(), selected: null, searchOpen: false, searchSeed: null }),
+  resetAll: () => set({ expanded: new Set<string>(), selected: null, searchOpen: false, searchSeed: null, searchQuery: "" }),
 }));
