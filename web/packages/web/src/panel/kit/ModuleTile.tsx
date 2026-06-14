@@ -41,6 +41,11 @@ export function ModuleTile({
       )}
       title={pending > 0 ? `Open ${display.label} — ${pending} pending review` : `Open ${display.label}`}
     >
+      {/* version chip parked top-right so it never grows the secondary line */}
+      {genLabel && (
+        <span className="wc-sans absolute right-3 top-3 rounded-full bg-hover px-1.5 text-meta text-ink-400">{genLabel}</span>
+      )}
+
       {/* icon chip: large, hue-tinted, no hue wash on the card itself */}
       <span
         className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--radius-dialog)] transition-colors duration-150"
@@ -61,23 +66,20 @@ export function ModuleTile({
         </svg>
       </span>
 
-      {/* name + description */}
+      {/* name + description — description reserves 2 lines so every card is the
+          same height regardless of teach length */}
       <div className="flex w-full min-w-0 flex-col gap-1">
-        <span className="wc-sans text-title font-semibold text-ink-100">{display.label}</span>
-        <span className="wc-sans line-clamp-2 text-ui text-ink-500">{display.teach}</span>
+        <span className="wc-sans truncate text-title font-semibold text-ink-100">{display.label}</span>
+        <span className="wc-sans line-clamp-2 min-h-[2.5em] text-ui text-ink-500">{display.teach}</span>
       </div>
 
-      {/* secondary line: count + status pills */}
-      <div className="flex w-full flex-wrap items-center gap-1.5">
-        <span className="wc-sans text-meta text-ink-500">
+      {/* secondary line: count + pending — one line, never wraps (version is
+          parked in the corner), so the card footprint is uniform */}
+      <div className="mt-auto flex w-full items-center gap-1.5">
+        <span className="wc-sans shrink-0 text-meta text-ink-500">
           {count === 0 ? "empty" : `${count} ${count === 1 ? "item" : "items"}`}
         </span>
-        {pending > 0 && (
-          <StatusPill tone="warn">{pending} pending</StatusPill>
-        )}
-        {genLabel && (
-          <StatusPill tone="neutral">{genLabel}</StatusPill>
-        )}
+        {pending > 0 && <StatusPill tone="warn">{pending} pending</StatusPill>}
       </div>
     </button>
   );
